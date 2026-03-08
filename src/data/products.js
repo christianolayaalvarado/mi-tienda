@@ -213,7 +213,7 @@ export const products = [
     description: "Set de Faroles colgantes plateados con vidrio, medidas Grande: 58cm, Mediano:45cm. Ilumina tus espacios con elegancia y calidez con este set de 2 faroles plateados, con un diseño sofisticado y contemporáneo transformará cualquier ambiente, creando un atmósfera acogedora y relajante. Ideales para interiores y exteriores, estos faroles aportarán un toque de distinción a tu hogar o jardín, convirtiéndose en el centro de atención en tus reuniones y celebraciones. Disfruta de la luz tenue y parpadeante que emana a través de su estructura de vidrio, creando un ambiente mágico. Su acabado plateado refleja la luz, amplificando la luminosidad y generando un efecto visual encantador. Perfectos para decorar mesas, repisas, terrazas o entradas, añadiendo un toque de sofisticación a cualquier espacio, el tamaño mediano es ideal para crear un punto focal sin ocupar demasiado espacio. Fabricados con materiales de alta calidad, estos faroles garantizan durabilidad y resistencia, para que puedas disfrutar de su belleza durante mucho tiempo.",
     images: [
 
-      "/images/farolset0.jpg",
+      "/images/farolset00.jpg",
       "/images/farolset01.jpg",
       "/images/farolset02.jpg"
     ]
@@ -342,13 +342,13 @@ export const products = [
   {
     id: 17,
     title: "Maceta de madera",
-    price:70.00,
+    price:130.00,
     category: "Decoracion",
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Maceta de madera.",
+    description: "Maceta de madera en color wash blanco. Medidas: 61cm x 19cm x 9.5cm",
     images: [
 
       "/images/macetamadera00.jpg",
@@ -365,13 +365,13 @@ export const products = [
   {
     id: 18,
     title: "Burrito de madera",
-    price:70.00,
+    price:80.00,
     category: "Decoracion",
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Maceta de madera.",
+    description: "Figura de burrito de madera color textura negra, Medidas: 40cm alto x 30cm largo x 8cm ancho.",
     images: [
 
       "/images/burromadera00.jpg",
@@ -385,13 +385,13 @@ export const products = [
   {
     id: 19,
     title: "Jarron de vidrio",
-    price:70.00,
+    price:60.00,
     category: "Vidrio",
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Jarron de vidrio verde.",
+    description: "Jarron de vidrio verde, medidas: 29cm alto x 15 cm ancho x 12cm base.",
     images: [
 
       "/images/jarronverde00.jpg",
@@ -425,13 +425,13 @@ export const products = [
   {
     id: 21,
     title: "Estufa electrica",
-    price:70.00,
+    price:30.00,
     category: "Climatizado",
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Estufa electrica marca Recco.",
+    description: "Estufa electrica marca Recco.(Precio real S/.49.90)",
     images: [
 
       "/images/estufaelect00.jpg",
@@ -443,13 +443,13 @@ export const products = [
   {
     id: 22,
     title: "Deshumidificador Wurden",
-    price:70.00,
+    price:480.00,
     category: "Climatizado",
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Deshumidificador Wurden 16L, Descongelacion inteligente.",
+    description: "Deshumidificador Wurden 16L, Descongelacion inteligente.(Precio real S/.599.90)",
     images: [
 
       "/images/deshumidific00.jpg",
@@ -464,13 +464,13 @@ export const products = [
   {
     id: 23,
     title: "Maquina CoreMax",
-    price:70.00,
+    price:230.00,
     category: "Fitness",
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Maquina para hacer abdominales.",
+    description: "Maquina para hacer abdominales.(Precio real S/.380.00)",
     images: [
 
       "/images/maquinabdom00.jpg",
@@ -502,7 +502,7 @@ export const products = [
   {
     id: 25,
     title: "Jaula pajarera",
-    price:70.00,
+    price:45.00,
     category: "Decoracion",
     seller: "DecorHome",
     sellerCode: "VEN001",
@@ -520,7 +520,7 @@ export const products = [
   {
     id: 26,
     title: "Pajaro ceramico",
-    price:70.00,
+    price:40.00,
     category: "Decoracion",
     seller: "DecorHome",
     sellerCode: "VEN001",
@@ -538,13 +538,13 @@ export const products = [
   {
     id: 27,
     title: "Farol XL",
-    price:70.00,
+    price:100.00,
     category: "Decoracion",
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Farol metalico cromado con vidrio tamaño: XL, medidas: cm x cm.",
+    description: "Farol metalico cromado con vidrio tamaño: XL, medidas: 45cm alto x 18cm ancho.",
     images: [
 
       "/images/farolgrande00.jpg",
@@ -563,7 +563,7 @@ export const products = [
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Farol metalico cromado con vidrio tamaño mediano, medidas: cm x cm.",
+    description: "Farol metalico cromado con vidrio tamaño mediano, medidas: 35cm alto x 14cm ancho.",
     images: [
 
       "/images/farolmediano00.jpg",
@@ -577,13 +577,13 @@ export const products = [
   {
     id: 29,
     title: "Tetera ceramica",
-    price:70.00,
+    price:30.00,
     category: "Cocina",
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Tetera en ceramica floreado melon, medidas: cm x cm.",
+    description: "Tetera en ceramica floreado melon, medidas: 14cm alto x 17cm ancho x 24cm largo.",
     images: [
 
       "/images/teteraceramica00.jpg",
@@ -598,13 +598,13 @@ export const products = [
   {
     id: 30,
     title: "Tortero ceramica",
-    price:99.90,
+    price:55,
     category: "Cocina",
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Tortero en ceramica floreado melon, medidas: cm x cm.",
+    description: "Tortero en ceramica floreado melon, medidas: 28cm diametro x 14.5cm alto.",
     images: [
 
       "/images/tortero00.jpg",
