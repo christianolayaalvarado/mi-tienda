@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, priority }) {
   return (
   <Link href={`/product/${product.id}`} className="block">
     <div className="group bg-white rounded-xl shadow-md overflow-hidden transform transition duration-300 hover:-translate-y-1 hover:shadow-2xl">
@@ -16,6 +16,13 @@ export default function ProductCard({ product }) {
       src={product.images[0]}
       alt={product.title}
       fill
+      priority={priority}
+      sizes="(max-width: 640px) 50vw,
+         (max-width: 1024px) 33vw,
+         (max-width: 1280px) 25vw,
+         16vw"
+      placeholder="blur"
+      blurDataURL="/placeholder.jpg"
       className="object-cover transition-transform duration-300 group-hover:scale-105"
       />
       )  }

@@ -117,8 +117,8 @@ export default function HomeClient() {
       {/* Grid de productos */}
       {paginatedProducts.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
-          {paginatedProducts.map(product => (
-            <ProductCard key={product.id} product={product} />
+          {paginatedProducts.map((product, index) => (
+            <ProductCard key={product.id} product={product} priority={index < 2} />
           ))}
         </div>
       ) : (
