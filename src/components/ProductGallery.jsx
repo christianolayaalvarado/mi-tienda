@@ -23,19 +23,19 @@ export default function ProductGallery({ images, title }) {
   }
 
   return (
-    <div className="flex gap-6 items-center w-full">
+    <div className="flex flex-col md:flex-row gap-6 items-center w-full">
 
       {/* Miniaturas */}
-      <div className="flex flex-col items-center">
+      <div className="flex md:flex-col items-center w-full md:w-auto">
 
-        <button
-          onClick={prev}
-          className="mb-2 w-10 h-10 rounded-full bg-green-600 text-white hover:bg-green-700 transition"
-        >
+      <button
+        onClick={prev}
+        className="hidden md:flex mb-2 w-10 h-10 rounded-full bg-green-600 text-white hover:bg-green-700 transition items-center justify-center"
+      >
           ↑
         </button>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex md:flex-col items-center w-full md:w-auto">
           {images
             .slice(startIndex, startIndex + visibleCount)
             .map((img, index) => (
@@ -67,7 +67,7 @@ export default function ProductGallery({ images, title }) {
       </div>
 
       {/* Imagen grande */}
-        <div className="relative w-full max-w-[720px] aspect-square">
+        <div className="relative w-full max-w-[720px] aspect-square order-first md:order-none">
         <Image
           src={selectedImage}
           alt={title}

@@ -7,7 +7,8 @@ export const categories = [
   "Climatizado",
   "Electrodomestico",
   "Coleccionable",
-  "Muebles"
+  "Muebles",
+  "Fitness"
 ]
 
 export const products = [
@@ -90,7 +91,12 @@ export const products = [
       "/images/consola01.jpg",
       "/images/consola02.jpg",
       "/images/consola03.jpg",
-      "/images/consola04.jpg"
+      "/images/consola04.jpg",
+      "/images/consola05.jpg",
+      "/images/consola06.jpg",
+      "/images/consola07.jpg",
+      "/images/consola08.jpg",
+      "/images/consola09.jpg"
     ]
   },
   {
@@ -106,7 +112,11 @@ export const products = [
     images: [
       "/images/espejo00.jpg",
       "/images/espejo01.jpg",
-      "/images/espejo02.jpg"
+      "/images/espejo02.jpg",
+      "/images/espejo03.jpg",
+      "/images/espejo04.jpg",
+      "/images/espejo05.jpg",
+      "/images/espejo06.jpg"
     ]
   },
   {
@@ -203,12 +213,9 @@ export const products = [
     description: "Set de Faroles colgantes plateados con vidrio, medidas Grande: 58cm, Mediano:45cm. Ilumina tus espacios con elegancia y calidez con este set de 2 faroles plateados, con un diseño sofisticado y contemporáneo transformará cualquier ambiente, creando un atmósfera acogedora y relajante. Ideales para interiores y exteriores, estos faroles aportarán un toque de distinción a tu hogar o jardín, convirtiéndose en el centro de atención en tus reuniones y celebraciones. Disfruta de la luz tenue y parpadeante que emana a través de su estructura de vidrio, creando un ambiente mágico. Su acabado plateado refleja la luz, amplificando la luminosidad y generando un efecto visual encantador. Perfectos para decorar mesas, repisas, terrazas o entradas, añadiendo un toque de sofisticación a cualquier espacio, el tamaño mediano es ideal para crear un punto focal sin ocupar demasiado espacio. Fabricados con materiales de alta calidad, estos faroles garantizan durabilidad y resistencia, para que puedas disfrutar de su belleza durante mucho tiempo.",
     images: [
 
-      "/images/farolgrande00.jpg",
-      "/images/farolgrande01.jpg",
-      "/images/farolgrande02.jpg",
-      "/images/farolgrande03.jpg",
-      "/images/farolgrande04.jpg",
-      "/images/farolgrande05.jpg"
+      "/images/farolset0.jpg",
+      "/images/farolset01.jpg",
+      "/images/farolset02.jpg"
     ]
   },
   {
@@ -330,6 +337,282 @@ export const products = [
       "/images/cajate14.jpg",
       "/images/cajate15.jpg",
       "/images/cajate16.jpg"   
+    ]
+  },
+  {
+    id: 17,
+    title: "Maceta de madera",
+    price:70.00,
+    category: "Decoracion",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Maceta de madera.",
+    images: [
+
+      "/images/macetamadera00.jpg",
+      "/images/macetamadera01.jpg",
+      "/images/macetamadera02.jpg",
+      "/images/macetamadera03.jpg",
+      "/images/macetamadera04.jpg",
+      "/images/macetamadera05.jpg",
+      "/images/macetamadera06.jpg",
+      "/images/macetamadera07.jpg"
+       
+    ]
+  },
+  {
+    id: 18,
+    title: "Burrito de madera",
+    price:70.00,
+    category: "Decoracion",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Maceta de madera.",
+    images: [
+
+      "/images/burromadera00.jpg",
+      "/images/burromadera01.jpg",
+      "/images/burromadera02.jpg",
+      "/images/burromadera03.jpg",
+      "/images/burromadera04.jpg",
+      "/images/burromadera05.jpg"       
+    ]
+  },
+  {
+    id: 19,
+    title: "Jarron de vidrio",
+    price:70.00,
+    category: "Vidrio",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Jarron de vidrio verde.",
+    images: [
+
+      "/images/jarronverde00.jpg",
+      "/images/jarronverde01.jpg",
+      "/images/jarronverde02.jpg",
+      "/images/jarronverde03.jpg",
+      "/images/jarronverde04.jpg",
+      "/images/jarronverde05.jpg"       
+    ]
+  },
+  {
+    id: 20,
+    title: "Perchero en metal",
+    price:70.00,
+    category: "Decoracion",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Perchero en metal color verde menta.",
+    images: [
+
+      "/images/perchero00.jpg",
+      "/images/perchero01.jpg",
+      "/images/perchero02.jpg",
+      "/images/perchero03.jpg",
+      "/images/perchero04.jpg",
+      "/images/perchero05.jpg"       
+    ]
+  },
+  {
+    id: 21,
+    title: "Estufa electrica",
+    price:70.00,
+    category: "Climatizado",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Estufa electrica marca Recco.",
+    images: [
+
+      "/images/estufaelect00.jpg",
+      "/images/estufaelect01.jpg",
+      "/images/estufaelect02.jpg",
+      "/images/estufaelect03.jpg"       
+    ]
+  },
+  {
+    id: 22,
+    title: "Deshumidificador Wurden",
+    price:70.00,
+    category: "Climatizado",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Deshumidificador Wurden 16L, Descongelacion inteligente.",
+    images: [
+
+      "/images/deshumidific00.jpg",
+      "/images/deshumidific01.jpg",
+      "/images/deshumidific02.jpg",
+      "/images/deshumidific03.jpg",    
+      "/images/deshumidific04.jpg",
+      "/images/deshumidific05.jpg",
+      "/images/deshumidific06.jpg"       
+    ]
+  },
+  {
+    id: 23,
+    title: "Maquina CoreMax",
+    price:70.00,
+    category: "Fitness",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Maquina para hacer abdominales.",
+    images: [
+
+      "/images/maquinabdom00.jpg",
+      "/images/maquinabdom01.jpg",
+      "/images/maquinabdom02.jpg",
+      "/images/maquinabdom03.jpg",
+      "/images/maquinabdom04.jpg",
+      "/images/maquinabdom05.jpg"       
+    ]
+  },
+  {
+    id: 24,
+    title: "Portavela de cristal",
+    price:70.00,
+    category: "Vidrio",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Maquina para hacer abdominales.",
+    images: [
+
+      "/images/portavelacris00.jpg",
+      "/images/portavelacris01.jpg",
+      "/images/portavelacris02.jpg",
+      "/images/portavelacris03.jpg"       
+    ]
+  },
+  {
+    id: 25,
+    title: "Jaula pajarera",
+    price:70.00,
+    category: "Decoracion",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Jaula para pajaros (Pajarera), SIN pajaros.",
+    images: [
+
+      "/images/jaulapajaros00.jpg",
+      "/images/jaulapajaros01.jpg",
+      "/images/jaulapajaros02.jpg",
+      "/images/jaulapajaros03.jpg"       
+    ]
+  },
+  {
+    id: 26,
+    title: "Pajaro ceramico",
+    price:70.00,
+    category: "Decoracion",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Pajaro en ceramica tamaño real.",
+    images: [
+
+      "/images/pajaro00.jpg",
+      "/images/pajaro01.jpg",
+      "/images/pajaro02.jpg",
+      "/images/pajaro03.jpg"       
+    ]
+  },
+  {
+    id: 27,
+    title: "Farol XL",
+    price:70.00,
+    category: "Decoracion",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Farol metalico cromado con vidrio tamaño: XL, medidas: cm x cm.",
+    images: [
+
+      "/images/farolgrande00.jpg",
+      "/images/farolgrande01.jpg",
+      "/images/farolgrande02.jpg",
+      "/images/farolgrande03.jpg",
+      "/images/farolgrande04.jpg"       
+    ]
+  },
+  {
+    id: 28,
+    title: "Farol M",
+    price:70.00,
+    category: "Decoracion",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Farol metalico cromado con vidrio tamaño mediano, medidas: cm x cm.",
+    images: [
+
+      "/images/farolmediano00.jpg",
+      "/images/farolmediano01.jpg",
+      "/images/farolmediano02.jpg",
+      "/images/farolmediano03.jpg",
+      "/images/farolmediano04.jpg",
+      "/images/farolmediano05.jpg"       
+    ]
+  },
+  {
+    id: 29,
+    title: "Tetera ceramica",
+    price:70.00,
+    category: "Cocina",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Tetera en ceramica floreado melon, medidas: cm x cm.",
+    images: [
+
+      "/images/teteraceramica00.jpg",
+      "/images/teteraceramica01.jpg",
+      "/images/teteraceramica02.jpg",
+      "/images/teteraceramica03.jpg",
+      "/images/teteraceramica04.jpg",
+      "/images/teteraceramica05.jpg",
+      "/images/teteraceramica06.jpg"       
+    ]
+  },
+  {
+    id: 30,
+    title: "Tortero ceramica",
+    price:99.90,
+    category: "Cocina",
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Tortero en ceramica floreado melon, medidas: cm x cm.",
+    images: [
+
+      "/images/tortero00.jpg",
+      "/images/tortero01.jpg",
+      "/images/tortero02.jpg",
+      "/images/tortero03.jpg",
+      "/images/tortero04.jpg",
+      "/images/tortero05.jpg"       
     ]
   }
 ]

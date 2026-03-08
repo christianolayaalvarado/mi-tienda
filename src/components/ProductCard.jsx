@@ -29,11 +29,11 @@ export default function ProductCard({ product, priority }) {
       </div>
 
       <div className="p-4">
-        <h2 className="text-sm truncate font-semibold line-clamp-2">
+        <h2 className="text-base sm:text-sm truncate font-semibold line-clamp-2">
           {product.title}
         </h2>
 
-        <p className="text-green-600 font-bold text-xl mt-2">
+        <p className="text-green-600 font-bold text-2xl sm:text-xl mt-2">
           S/ {product.price}
         </p>
         <p className="text-xs text-gray-500 mt-1">

@@ -22,6 +22,7 @@ export default function NavbarContent() {
     "Coleccionable",
     "Decoracion",
     "Electrodomestico",
+    "Fitness",
     "Hogar",
     "Iluminacion",
     "Muebles",

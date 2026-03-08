@@ -25,7 +25,7 @@ export default async function ProductDetail({ params }) {
       <div className="grid md:grid-cols-[1.1fr_1fr] gap-16 items-start">
 
         {/* Galería */}
-        <div className="flex justify-start">
+        <div className="flex justify-center md:justify-start w-full">
           <ProductGallery 
             images={product.images} 
             title={product.title} 
@@ -33,13 +33,13 @@ export default async function ProductDetail({ params }) {
         </div>
 
         {/* Información */}
-        <div className="flex flex-col justify-start mt-10 pl-10">
+        <div className="flex flex-col justify-start mt-6 md:mt-10 md:pl-10 text-center md:text-left">
 
-          <h1 className="text-4xl font-bold">
+          <h1 className="text-3xl md:text-4xl font-bold">
             {product.title}
           </h1>
 
-          <p className="text-green-600 text-3xl mt-4 font-semibold">
+          <p className="text-green-600 text-2xl md:text-3xl mt-4 font-semibold">
             S/ {product.price}
           </p>
 
@@ -84,7 +84,7 @@ export default async function ProductDetail({ params }) {
           </div>
 
           {/* Botón */}
-          <button className="mt-8 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition w-fit">
+          <button className="mt-8 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition w-fit mx-auto md:mx-0">
             Agregar al carrito
           </button>
 
