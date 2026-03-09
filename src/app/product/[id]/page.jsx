@@ -20,9 +20,9 @@ export default async function ProductDetail({ params }) {
   }
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto">
+    <div className="px-4 py-6 md:p-8 max-w-[1400px] mx-auto">
 
-      <div className="grid md:grid-cols-[1.1fr_1fr] gap-16 items-start">
+      <div className="grid md:grid-cols-[1.1fr_1fr] gap-8 md:gap-16 items-start">
 
         {/* Galería */}
         <div className="flex justify-center md:justify-start w-full">
@@ -33,7 +33,7 @@ export default async function ProductDetail({ params }) {
         </div>
 
         {/* Información */}
-        <div className="flex flex-col justify-start mt-6 md:mt-10 md:pl-10 text-center md:text-left">
+        <div className="flex flex-col justify-start mt-6 md:mt-10 md:pl-10 text-center md:text-left px-2 md:px-0">
 
           <h1 className="text-3xl md:text-4xl font-bold">
             {product.title}
