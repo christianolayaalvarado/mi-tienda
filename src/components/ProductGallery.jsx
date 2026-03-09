@@ -31,14 +31,14 @@ export default function ProductGallery({ images, title }) {
         {/* Botón anterior */}
         <button
           onClick={prev}
-          className="mr-2 md:mb-2 w-8 h-8 md:w-10 md:h-10 rounded-full bg-green-600 text-white hover:bg-green-700 transition flex items-center justify-center"
+          className="mb-2 lg:mb-2 w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-green-600 text-white hover:bg-green-700 transition flex items-center justify-center"
         >
           <span className="md:hidden">←</span>
           <span className="hidden md:block">↑</span>
         </button>
 
         {/* Contenedor miniaturas */}
-        <div className="flex lg:flex-col gap-3 lg:gap-4 overflow-hidden">
+        <div className="flex gap-3 lg:flex-col lg:gap-4 overflow-hidden max-w-full">
           {images
             .slice(startIndex, startIndex + visibleCount)
             .map((img, index) => (
@@ -64,7 +64,7 @@ export default function ProductGallery({ images, title }) {
         {/* Botón siguiente */}
         <button
           onClick={next}
-          className="ml-2 md:mt-2 w-8 h-8 md:w-10 md:h-10 rounded-full bg-green-600 text-white hover:bg-green-700 transition flex items-center justify-center"
+          className="mt-2 lg:mt-2 w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-green-600 text-white hover:bg-green-700 transition flex items-center justify-center"
         >
           <span className="md:hidden">→</span>
           <span className="hidden md:block">↓</span>
