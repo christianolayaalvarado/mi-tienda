@@ -119,6 +119,10 @@ useEffect(() => {
   </div>
 )}
 
+<div className="pointer-events-none md:hidden absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-white to-transparent"></div>
+
+<div className="pointer-events-none md:hidden absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-white to-transparent"></div>
+
 
         <div
   ref={scrollRef}
