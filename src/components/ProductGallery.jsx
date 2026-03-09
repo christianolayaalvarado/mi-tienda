@@ -23,10 +23,10 @@ export default function ProductGallery({ images, title }) {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full">
+    <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full max-w-full">
 
       {/* Miniaturas */}
-      <div className="flex lg:flex-col items-center justify-center mx-auto lg:mx-0">
+      <div className="flex lg:flex-col items-center justify-center mx-auto lg:mx-0 max-w-full">
 
         {/* Botón anterior */}
         <button
@@ -38,7 +38,7 @@ export default function ProductGallery({ images, title }) {
         </button>
 
         {/* Contenedor miniaturas */}
-        <div className="flex md:flex-col gap-3 md:gap-4 overflow-hidden">
+        <div className="flex lg:flex-col gap-3 lg:gap-4 overflow-hidden">
           {images
             .slice(startIndex, startIndex + visibleCount)
             .map((img, index) => (
