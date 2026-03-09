@@ -26,7 +26,7 @@ export default function ProductGallery({ images, title }) {
     <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full">
 
       {/* Miniaturas */}
-      <div className="flex lg:flex-col items-center w-full lg:w-auto justify-center">
+      <div className="flex lg:flex-col items-center justify-center mx-auto lg:mx-0">
 
         {/* Botón anterior */}
         <button
