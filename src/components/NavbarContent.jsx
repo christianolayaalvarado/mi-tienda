@@ -108,13 +108,13 @@ useEffect(() => {
       <div className="border-t relative">
 
       {showLeft && (
-  <div className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 animate-pulse pointer-events-none">
+  <div className="md:hidden absolute left-2 bottom-1 text-green-600 text-sm opacity-70 animate-pulse pointer-events-none">
     ←
   </div>
 )}
 
 {showRight && (
-  <div className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 animate-pulse pointer-events-none">
+  <div className="md:hidden absolute right-2 bottom-1 text-green-600 text-sm opacity-70 animate-pulse pointer-events-none">
     →
   </div>
 )}
