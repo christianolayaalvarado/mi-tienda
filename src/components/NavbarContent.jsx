@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 export default function NavbarContent() {
@@ -15,6 +15,37 @@ export default function NavbarContent() {
   const currentPage = searchParams.get("page") || "1"
 
   const [search, setSearch] = useState(currentSearch)
+
+  const scrollRef = useRef(null)
+
+const [showLeft, setShowLeft] = useState(false)
+const [showRight, setShowRight] = useState(false)
+
+const updateArrows = () => {
+  const el = scrollRef.current
+  if (!el) return
+
+  const maxScroll = el.scrollWidth - el.clientWidth
+
+  setShowLeft(el.scrollLeft > 5)
+  setShowRight(el.scrollLeft < maxScroll - 5)
+}
+
+useEffect(() => {
+  updateArrows()
+
+  const el = scrollRef.current
+  if (!el) return
+
+  el.addEventListener("scroll", updateArrows)
+  window.addEventListener("resize", updateArrows)
+
+  return () => {
+    el.removeEventListener("scroll", updateArrows)
+    window.removeEventListener("resize", updateArrows)
+  }
+}, [])
+
 
   const categories = [
     "Climatizado",
@@ -74,9 +105,25 @@ export default function NavbarContent() {
 
       </div>
 
-      <div className="border-t">
+      <div className="border-t relative">
 
-        <div className="max-w-7xl mx-auto px-6 py-2 flex gap-6 text-sm overflow-x-auto whitespace-nowrap">
+      {showLeft && (
+  <div className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 animate-pulse pointer-events-none">
+    ←
+  </div>
+)}
+
+{showRight && (
+  <div className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 animate-pulse pointer-events-none">
+    →
+  </div>
+)}
+
+
+        <div
+  ref={scrollRef}
+  className="max-w-7xl mx-auto px-6 md:px-8 py-2 flex gap-6 text-sm overflow-x-auto whitespace-nowrap scrollbar-none"
+>
 
           <button
             onClick={() =>
