@@ -23,7 +23,7 @@ export default function ProductGallery({ images, title }) {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full max-w-full">
+    <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full max-w-full px-2">
 
       {/* Miniaturas */}
       <div className="flex lg:flex-col items-center justify-center mx-auto lg:mx-0 max-w-full">
@@ -73,7 +73,7 @@ export default function ProductGallery({ images, title }) {
       </div>
 
       {/* Imagen grande */}
-      <div className="relative w-full max-w-[420px] md:max-w-[640px] aspect-square order-first md:order-none mx-auto">
+      <div className="relative w-[90%] sm:w-[85%] md:w-full max-w-[420px] md:max-w-[640px] aspect-square order-first md:order-none mx-auto">
         <Image
           src={selectedImage}
           alt={title}
