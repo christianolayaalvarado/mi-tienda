@@ -73,7 +73,7 @@ export default function ProductGallery({ images, title }) {
       </div>
 
       {/* Imagen grande */}
-      <div className="relative w-[90%] sm:w-[85%] md:w-full max-w-[420px] md:max-w-[640px] aspect-square order-first md:order-none mx-auto">
+      <div className="relative w-[80%] sm:w-[85%] md:w-full max-w-[420px] md:max-w-[640px] aspect-square order-first md:order-none mx-auto">
         <Image
           src={selectedImage}
           alt={title}
