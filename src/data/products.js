@@ -1,11 +1,11 @@
 export const categories = [
-  "Iluminacion",
-  "Decoracion",
+  "Iluminación",
+  "Decoración",
   "Hogar",
   "Vidrio",
   "Cocina",
   "Climatizado",
-  "Electrodomestico",
+  "Electrodoméstico",
   "Coleccionable",
   "Muebles",
   "Fitness"
@@ -16,7 +16,8 @@ export const products = [
     id: 1,
     title: "Lámpara Vintage",
     price: 100.00,
-    category: "Iluminacion",
+    category: "Iluminación",
+    stock: 2,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -41,7 +42,8 @@ export const products = [
     id: 2,
     title: "Lámpara nordica",
     price: 90.00,
-    category: "Iluminacion",
+    category: "Iluminación",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -61,7 +63,8 @@ export const products = [
     id: 3,
     title: "Cabeza de caballo",
     price: 80.00,
-    category: "Decoracion",
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -81,6 +84,7 @@ export const products = [
     title: "Consola Balaustre",
     price: 1199.00,
     category: "Muebles",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -103,7 +107,8 @@ export const products = [
     id: 5,
     title: "Espejo decorativo",
     price: 900.00,
-    category: "Decoracion",
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -123,7 +128,8 @@ export const products = [
     id: 6,
     title: "Escultura decorativa",
     price: 150.00,
-    category: "Decoracion",
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -141,6 +147,7 @@ export const products = [
     title: "Baul de madera",
     price: 1000.00,
     category: "Muebles",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -164,7 +171,8 @@ export const products = [
     id: 8,
     title: "Candelabro aluminio",
     price: 60,
-    category: "Decoracion",
+    category: "Decoración",
+    stock: 2,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -179,14 +187,15 @@ export const products = [
       "/images/candelabro04.jpg",
       "/images/candelabro05.jpg",
       "/images/candelabro06.jpg",
-      "/images/candelabro07.jpg"      
+      "/images/candelabro07.jpg"
     ]
   },
   {
     id: 9,
     title: "Botella de vidrio",
     price: 25.00,
-    category: "Decoracion",
+    category: "Decoración",
+    stock: 2,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -198,14 +207,15 @@ export const products = [
       "/images/botellaleche01.jpg",
       "/images/botellaleche02.jpg",
       "/images/botellaleche03.jpg",
-      "/images/botellaleche04.jpg"    
+      "/images/botellaleche04.jpg"
     ]
   },
   {
     id: 10,
     title: "Faroles colgantes",
     price: 140.00,
-    category: "Decoracion",
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -222,7 +232,8 @@ export const products = [
     id: 11,
     title: "Pajarera con aves",
     price: 130.00,
-    category: "Decoracion",
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -240,8 +251,9 @@ export const products = [
   {
     id: 12,
     title: "Candelabro resina",
-    price:79.90,
-    category: "Decoracion",
+    price: 79.90,
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -254,14 +266,15 @@ export const products = [
       "/images/candelabrores02.jpg",
       "/images/candelabrores03.jpg",
       "/images/candelabrores04.jpg",
-      "/images/candelabrores05.jpg"   
+      "/images/candelabrores05.jpg"
     ]
   },
   {
     id: 13,
     title: "Figura de madera",
-    price:69.90,
-    category: "Decoracion",
+    price: 69.90,
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -271,14 +284,15 @@ export const products = [
 
       "/images/figurapajaromadera00.jpg",
       "/images/figurapajaromadera01.jpg",
-      "/images/figurapajaromadera02.jpg"   
+      "/images/figurapajaromadera02.jpg"
     ]
   },
   {
     id: 14,
     title: "Juego decorativo",
-    price:30.00,
-    category: "Decoracion",
+    price: 30.00,
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -288,14 +302,15 @@ export const products = [
 
       "/images/juegodecor00.jpg",
       "/images/juegodecor01.jpg",
-      "/images/juegodecor02.jpg"   
+      "/images/juegodecor02.jpg"
     ]
   },
   {
     id: 15,
     title: "Roseta de Roble",
-    price:27.00,
-    category: "Decoracion",
+    price: 27.00,
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -305,14 +320,15 @@ export const products = [
 
       "/images/rosetaroble00.jpg",
       "/images/rosetaroble01.jpg",
-      "/images/rosetaroble02.jpg"   
+      "/images/rosetaroble02.jpg"
     ]
   },
   {
     id: 16,
     title: "Caja de Té",
-    price:70.00,
+    price: 70.00,
     category: "Coleccionable",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -336,14 +352,15 @@ export const products = [
       "/images/cajate13.jpg",
       "/images/cajate14.jpg",
       "/images/cajate15.jpg",
-      "/images/cajate16.jpg"   
+      "/images/cajate16.jpg"
     ]
   },
   {
     id: 17,
     title: "Maceta de madera",
-    price:130.00,
-    category: "Decoracion",
+    price: 130.00,
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -359,14 +376,15 @@ export const products = [
       "/images/macetamadera05.jpg",
       "/images/macetamadera06.jpg",
       "/images/macetamadera07.jpg"
-       
+
     ]
   },
   {
     id: 18,
     title: "Burrito de madera",
-    price:80.00,
-    category: "Decoracion",
+    price: 80.00,
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -379,14 +397,15 @@ export const products = [
       "/images/burromadera02.jpg",
       "/images/burromadera03.jpg",
       "/images/burromadera04.jpg",
-      "/images/burromadera05.jpg"       
+      "/images/burromadera05.jpg"
     ]
   },
   {
     id: 19,
     title: "Jarron de vidrio",
-    price:60.00,
+    price: 60.00,
     category: "Vidrio",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -399,14 +418,15 @@ export const products = [
       "/images/jarronverde02.jpg",
       "/images/jarronverde03.jpg",
       "/images/jarronverde04.jpg",
-      "/images/jarronverde05.jpg"       
+      "/images/jarronverde05.jpg"
     ]
   },
   {
     id: 20,
     title: "Perchero en metal",
-    price:70.00,
-    category: "Decoracion",
+    price: 70.00,
+    category: "Decoración",
+    stock: 2,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -419,14 +439,15 @@ export const products = [
       "/images/perchero02.jpg",
       "/images/perchero03.jpg",
       "/images/perchero04.jpg",
-      "/images/perchero05.jpg"       
+      "/images/perchero05.jpg"
     ]
   },
   {
     id: 21,
     title: "Estufa electrica",
-    price:30.00,
+    price: 30.00,
     category: "Climatizado",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -437,14 +458,15 @@ export const products = [
       "/images/estufaelect00.jpg",
       "/images/estufaelect01.jpg",
       "/images/estufaelect02.jpg",
-      "/images/estufaelect03.jpg"       
+      "/images/estufaelect03.jpg"
     ]
   },
   {
     id: 22,
     title: "Deshumidificador Wurden",
-    price:480.00,
+    price: 480.00,
     category: "Climatizado",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -455,17 +477,18 @@ export const products = [
       "/images/deshumidific00.jpg",
       "/images/deshumidific01.jpg",
       "/images/deshumidific02.jpg",
-      "/images/deshumidific03.jpg",    
+      "/images/deshumidific03.jpg",
       "/images/deshumidific04.jpg",
       "/images/deshumidific05.jpg",
-      "/images/deshumidific06.jpg"       
+      "/images/deshumidific06.jpg"
     ]
   },
   {
     id: 23,
     title: "Maquina CoreMax",
-    price:230.00,
+    price: 230.00,
     category: "Fitness",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -478,14 +501,15 @@ export const products = [
       "/images/maquinabdom02.jpg",
       "/images/maquinabdom03.jpg",
       "/images/maquinabdom04.jpg",
-      "/images/maquinabdom05.jpg"       
+      "/images/maquinabdom05.jpg"
     ]
   },
   {
     id: 24,
     title: "Portavela de cristal",
-    price:70.00,
+    price: 70.00,
     category: "Vidrio",
+    stock: 2,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -496,14 +520,15 @@ export const products = [
       "/images/portavelacris00.jpg",
       "/images/portavelacris01.jpg",
       "/images/portavelacris02.jpg",
-      "/images/portavelacris03.jpg"       
+      "/images/portavelacris03.jpg"
     ]
   },
   {
     id: 25,
     title: "Jaula pajarera",
-    price:45.00,
-    category: "Decoracion",
+    price: 45.00,
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -514,14 +539,15 @@ export const products = [
       "/images/jaulapajaros00.jpg",
       "/images/jaulapajaros01.jpg",
       "/images/jaulapajaros02.jpg",
-      "/images/jaulapajaros03.jpg"       
+      "/images/jaulapajaros03.jpg"
     ]
   },
   {
     id: 26,
     title: "Pajaro ceramico",
-    price:40.00,
-    category: "Decoracion",
+    price: 40.00,
+    category: "Decoración",
+    stock: 2,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -532,14 +558,15 @@ export const products = [
       "/images/pajaro00.jpg",
       "/images/pajaro01.jpg",
       "/images/pajaro02.jpg",
-      "/images/pajaro03.jpg"       
+      "/images/pajaro03.jpg"
     ]
   },
   {
     id: 27,
     title: "Farol XL",
-    price:100.00,
-    category: "Decoracion",
+    price: 100.00,
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -551,14 +578,15 @@ export const products = [
       "/images/farolgrande01.jpg",
       "/images/farolgrande02.jpg",
       "/images/farolgrande03.jpg",
-      "/images/farolgrande04.jpg"       
+      "/images/farolgrande04.jpg"
     ]
   },
   {
     id: 28,
     title: "Farol M",
-    price:70.00,
-    category: "Decoracion",
+    price: 70.00,
+    category: "Decoración",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -571,14 +599,15 @@ export const products = [
       "/images/farolmediano02.jpg",
       "/images/farolmediano03.jpg",
       "/images/farolmediano04.jpg",
-      "/images/farolmediano05.jpg"       
+      "/images/farolmediano05.jpg"
     ]
   },
   {
     id: 29,
     title: "Tetera ceramica",
-    price:30.00,
+    price: 30.00,
     category: "Cocina",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -592,14 +621,15 @@ export const products = [
       "/images/teteraceramica03.jpg",
       "/images/teteraceramica04.jpg",
       "/images/teteraceramica05.jpg",
-      "/images/teteraceramica06.jpg"       
+      "/images/teteraceramica06.jpg"
     ]
   },
   {
     id: 30,
     title: "Tortero ceramica",
-    price:55,
+    price: 55,
     category: "Cocina",
+    stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
@@ -612,7 +642,197 @@ export const products = [
       "/images/tortero02.jpg",
       "/images/tortero03.jpg",
       "/images/tortero04.jpg",
-      "/images/tortero05.jpg"       
+      "/images/tortero05.jpg"
+    ]
+  },
+  {
+    id: 31,
+    title: "Lavadora LG17kgTurboWash",
+    price: 900.00,
+    category: "Electrodoméstico",
+    stock: 1,
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Lavadora LG17kgTurboWash, capacidad: 17kg, tecnología TurboWash. Dimensiones: 632 Ancho x 1,020 Profundidad x 670 Alto mm. Tecnología TurboWash 3D™,",
+    images: [
+
+      "/images/Lavadora00.jpg",
+      "/images/Lavadora01.jpg",
+      "/images/Lavadora02.jpg",
+      "/images/Lavadora03.jpg",
+      "/images/Lavadora04.jpg",
+      "/images/Lavadora05.jpg"
+    ]
+  },
+  {
+    id: 32,
+    title: "Refrigeradora DAEWOO-RF34NCBG ",
+    price: 900.00,
+    category: "Electrodoméstico",
+    stock: 1,
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Refrigeradora DAEWOO Bottom Freezer RF-34NCBG con capacidad de 335 litros, tecnología No Frost, eficiencia energética A+, sistema de enfriamiento Multi Air Flow, estantes ajustables y compartimentos especiales para frutas y verduras. Dimensiones: 59.5 cm de ancho, 66.7 cm de profundidad y 189 cm de alto. Esta refrigeradora combina funcionalidad y estilo para mantener tus alimentos frescos y organizados.",
+    images: [
+
+      "/images/refrigerador00.jpg",
+      "/images/refrigerador01.jpg",
+      "/images/refrigerador02.jpg",
+      "/images/refrigerador03.jpg",
+      "/images/refrigerador04.jpg",
+      "/images/refrigerador05.jpg"
+    ]
+  },
+  {
+    id: 33,
+    title: "Televisor LG 55pulgadas 4K UHD",
+    price: 1000.00,
+    category: "Electrodoméstico",
+    stock: 1,
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Televisor LG Nanocell 55pulgadas 4K UHD, pantalla 4K Nanocel, resolución 4k Ultra HD 3840x2160 píxeles, smart TV con sistema operativo webOS. Dimensiones: 123.5 cm de ancho, 58.1 cm de profundidad y 71.5 cm de alto. (Precio real S/.1700). Este televisor ofrece una calidad de imagen excepcional con su tecnología Nanocell, que proporciona colores vibrantes y detalles nítidos. Con su resolución 4K UHD, podrás disfrutar de tus películas, programas y juegos favoritos con una claridad impresionante. Además, su sistema operativo webOS te brinda acceso a una amplia variedad de aplicaciones y servicios de streaming para que puedas disfrutar de tu contenido favorito de manera fácil y conveniente.",
+    images: [
+
+      "/images/televisorLG00.jpg",
+      "/images/televisorLG01.jpg",
+      "/images/televisorLG02.jpg",
+      "/images/televisorLG03.jpg",
+      "/images/televisorLG04.jpg",
+      "/images/televisorLG05.jpg"
+    ]
+  },
+  {
+    id: 34,
+    title: "Microondas Daewoo",
+    price: 170.00,
+    category: "Electrodoméstico",
+    stock: 1,
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Horno microondas DAEWOO modelo KQG-28MG, Dimensiones externas: 465 x 280 x 368 mm, Consumo 1400W, Dimensiones cavidad: 314 x 235 x 346 mm, cocinado Menús Chef Peruano ",
+    images: [
+
+      "/images/microondas00.jpg",
+      "/images/microondas01.jpg",
+      "/images/microondas02.jpg",
+      "/images/microondas03.jpg",
+      "/images/microondas04.jpg",
+      "/images/microondas05.jpg",
+      "/images/microondas06.jpg",
+      "/images/microondas07.jpg",
+      "/images/microondas08.jpg",
+      "/images/microondas09.jpg"
+    ]
+  },
+  {
+    id: 35,
+    title: "Televisor PHILLIPS",
+    price: 800.00,
+    category: "Electrodoméstico",
+    stock: 1,
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Televisor Philips 43pulgadas. Modelo 43PUD7406/44. Android TV LED 4K UHD, resolucion de pantalla 3840 x 2160, Aplicaciones preinstaladas Amazon Prime Video Disney+ Youtube Netflix, Control por voz Google Assistant, Bluetooth, HDMI x 3, USB x 2, Wi-Fi. Dimensiones: 95.8 cm de ancho, 8.2 cm de profundidad y 56.0 cm de alto. (Precio real S/.1500). Este televisor ofrece una experiencia visual impresionante con su pantalla LED 4K UHD, que proporciona colores vibrantes y detalles nítidos. Con su sistema operativo Android TV, tendrás acceso a una amplia variedad de aplicaciones y servicios de streaming para disfrutar de tu contenido favorito de manera fácil y conveniente. Además, su control por voz con Google Assistant te permite navegar por el televisor y controlar tus dispositivos inteligentes con solo tu voz.",
+    images: [
+
+      "/images/televisorPhilips00.jpg",
+      "/images/televisorPhilips01.jpg",
+      "/images/televisorPhilips02.jpg",
+      "/images/televisorPhilips03.jpg",
+      "/images/televisorPhilips04.jpg",
+      "/images/televisorPhilips05.jpg"
+    ]
+  },
+  {
+    id: 36,
+    title: "Canasta floral",
+    price: 60.00,
+    category: "Decoración",
+    stock: 1,
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Canasta floral de mimbre con flores artificiales, medidas: 40cm alto x 30cm diámetro x 6cm alto",
+    images: [
+      "/images/canastafloral00.jpg",
+      "/images/canastafloral01.jpg",
+      "/images/canastafloral02.jpg"
+    ]
+  },
+  {
+    id: 37,
+    title: "Sillon Floreado",
+    price: 1200.00,
+    category: "Muebles",
+    stock: 1,
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "sillón con tapizado de estilo damasco en tonos rosa y gris, medidas: 91cm alto x 76cm ancho x 71cm profundidad, (Precio real S/.2500). Este elegante sillón de estilo damasco en tonos rosa y gris es la pieza perfecta para agregar un toque de sofisticación y encanto a tu espacio. Con sus medidas de 91cm de alto, 76cm de ancho y 71cm de profundidad, este sillón ofrece un asiento cómodo y acogedor para relajarte después de un largo día. Su diseño clásico y atemporal se adapta a una variedad de estilos de decoración, desde lo tradicional hasta lo contemporáneo, convirtiéndolo en una adición versátil a cualquier sala de estar, dormitorio o rincón de lectura. El tapizado en tonos rosa y gris añade un toque de elegancia y suavidad, creando un ambiente cálido y acogedor en tu hogar. No pierdas la oportunidad de adquirir este hermoso sillón a un precio especial.",
+    images: [
+      "/images/sillonrosagris00.jpg",
+      "/images/sillonrosagris01.jpg",
+      "/images/sillonrosagris02.jpg",
+      "/images/sillonrosagris03.jpg",
+      "/images/sillonrosagris04.jpg",
+      "/images/sillonrosagris05.jpg",
+      "/images/sillonrosagris06.jpg"
+    ]
+  },
+  {
+    id: 38,
+    title: "Sillon Verde",
+    price: 850.00,
+    category: "Muebles",
+    stock: 1,
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "sillón con tapizado en verde, medidas: 91cm alto x 76cm ancho x 71cm profundidad",
+    images: [
+      "/images/sillonverde00.jpg",
+      "/images/sillonverde01.jpg",
+      "/images/sillonverde02.jpg",
+      "/images/sillonverde03.jpg",
+      "/images/sillonverde04.jpg",
+      "/images/sillonverde05.jpg"
+
+    ]
+  },
+  {
+    id: 39,
+    title: "Sofa Gris",
+    price: 2400.00,
+    category: "Muebles",
+    stock: 1,
+    seller: "DecorHome",
+    sellerCode: "VEN001",
+    store: "DecorHome Store",
+    storeCode: "ST008",
+    description: "Sofa tapizado gris modelo Chesterfield dos cuerpos, estilo clásico con respaldo capitoné y brazos enrollados  medidas: 91cm alto x 76cm ancho x 71cm profundidad, precio real S/.4500. Este elegante sofá modelo Chesterfield en color gris es la pieza perfecta para agregar un toque de sofisticación y estilo clásico a tu sala de estar. Con su diseño atemporal, este sofá presenta un respaldo capitoné y brazos enrollados que le confieren un aire de elegancia y distinción. Con medidas de 91cm de alto, 76cm de ancho y 71cm de profundidad, este sofá ofrece un asiento cómodo y espacioso para que tú y tus invitados puedan relajarse y disfrutar de momentos inolvidables. El tapizado en gris añade un toque de neutralidad y versatilidad, permitiéndote combinarlo fácilmente con una variedad de estilos de decoración. No pierdas la oportunidad de adquirir este hermoso sofá a un precio especial.",
+    images: [
+      "/images/sofa00.jpg",
+      "/images/sofa01.jpg",
+      "/images/sofa02.jpg",
+      "/images/sofa03.jpg",
+      "/images/sofa04.jpg",
+      "/images/sofa05.jpg",
+      "/images/sofa06.jpg",
+      "/images/sofa07.jpg"
     ]
   }
 ]

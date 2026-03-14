@@ -7,6 +7,8 @@ export default function ProductGallery({ images, title }) {
 
   const [selectedImage, setSelectedImage] = useState(images[0])
   const [startIndex, setStartIndex] = useState(0)
+  const [fade, setFade] = useState(false)
+  const [viewerOpen, setViewerOpen] = useState(false)
 
   const visibleCount = 4
 
@@ -20,6 +22,15 @@ export default function ProductGallery({ images, title }) {
     if (startIndex > 0) {
       setStartIndex(startIndex - 1)
     }
+  }
+
+  function changeImage(img) {
+  setFade(true)
+
+  setTimeout(() => {
+    setSelectedImage(img)
+    setFade(false)
+  }, 120)
   }
 
   return (
@@ -44,11 +55,12 @@ export default function ProductGallery({ images, title }) {
             .map((img, index) => (
               <div
                 key={index}
-                onClick={() => setSelectedImage(img)}
-                className={`relative w-16 h-16 md:w-24 md:h-24 flex-shrink-0 rounded-lg overflow-hidden cursor-pointer border-2 transition-transform ${
+                onMouseEnter={() => changeImage(img)}
+                onClick={() => changeImage(img)}
+                className={`relative w-16 h-16 md:w-24 md:h-24 flex-shrink-0 rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-200 ${
                   selectedImage === img
-                    ? "border-green-600 scale-105"
-                    : "border-gray-300 hover:border-green-400 hover:scale-110"
+                    ? "border-lime-500 scale-120 shadow-lg"
+                    : "border-gray-300 hover:border-lime-400 hover:scale-105"
                 }`}
               >
                 <Image
@@ -74,13 +86,21 @@ export default function ProductGallery({ images, title }) {
 
       {/* Imagen grande */}
       <div className="relative w-[80%] sm:w-[85%] md:w-full max-w-[420px] md:max-w-[640px] aspect-square order-first md:order-none mx-auto">
+      
+        <div
+          onClick={() => setViewerOpen(true)}
+          className="relative w-[80%] sm:w-[85%] md:w-full max-w-[420px] md:max-w-[640px] aspect-square order-first md:order-none mx-auto cursor-zoom-in"
+        ></div>
+            
         <Image
-          src={selectedImage}
-          alt={title}
-          fill
-          className="object-contain rounded-xl shadow-lg transition duration-300"
-        />
-      </div>
+        src={selectedImage}
+        alt={title}
+        fill
+        sizes="(max-width: 768px) 90vw, (max-width: 1200px) 50vw, 40vw"
+        className={`object-contain rounded-xl shadow-lg transition-all duration-300 hover:scale-105 ${
+          fade ? "opacity-40 scale-95" : "opacity-100"
+        }`}
+      />      </div>
 
     </div>
   )

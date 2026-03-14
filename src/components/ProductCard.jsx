@@ -22,7 +22,7 @@ export default function ProductCard({ product, priority }) {
          (max-width: 1280px) 25vw,
          16vw"
       placeholder="blur"
-      blurDataURL="/placeholder.jpg"
+      blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbGw9JyNlNWU3ZWInLz48L3N2Zz4="
       className="object-cover transition-transform duration-300 group-hover:scale-105"
       />
       )  }
@@ -36,6 +36,20 @@ export default function ProductCard({ product, priority }) {
         <p className="text-green-600 font-bold text-2xl sm:text-xl mt-2">
           S/ {product.price}
         </p>
+        
+        {product.stock === 1 && (
+          <p className="text-red-600 text-xs font-semibold mt-1">
+            🔥 Última unidad
+          </p>
+        )}
+
+        {product.stock > 1 && product.stock <= 3 && (
+          <p className="text-orange-600 text-xs font-semibold mt-1">
+            🔥 Solo quedan {product.stock}
+          </p>
+        )}  
+
+
         <p className="text-xs text-gray-500 mt-1">
         por <span className="font-medium"> {product.store}</span>
         </p>
