@@ -53,7 +53,7 @@ export default function ProductGallery({ images, title }) {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full max-w-full overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full max-w-full">
 
       {/* Miniaturas */}
       <div className="flex lg:flex-col items-center justify-center mx-auto lg:mx-0 max-w-full">
@@ -67,7 +67,7 @@ export default function ProductGallery({ images, title }) {
         </button>
 
         {/* Contenedor miniaturas */}
-        <div className="flex gap-3 lg:flex-col lg:gap-4 overflow-visible max-w-full">
+        <div className="flex gap-3 lg:flex-col lg:gap-4 overflow-visible max-w-full py-2">
           {images
             .slice(startIndex, startIndex + visibleCount)
             .map((img, index) => (
@@ -77,7 +77,7 @@ export default function ProductGallery({ images, title }) {
                 onClick={() => changeImage(img)}
                 className={`relative w-16 h-16 md:w-24 md:h-24 flex-shrink-0 rounded-lg cursor-pointer border-2 transition-all duration-200 ${
                   selectedImage === img
-                    ? "border-lime-500 scale-110 shadow-2xl ring-2 ring-lime-300 z-10"
+                    ? "border-lime-500 scale-105 shadow-2xl ring-2 ring-lime-300 z-10"
                     : "border-gray-300 hover:border-lime-400 hover:scale-105 hover:shadow-md"
                 }`}
               >
