@@ -63,7 +63,7 @@ export default function ProductGallery({ images, title }) {
           onClick={prev}
           className="mb-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-lime-100 hover:scale-110 transition"
         >
-          <Chevron className="-rotate-90" />
+          <Chevron className="rotate-180 md:-rotate-90" />
         </button>
 
         {/* Contenedor miniaturas */}
@@ -102,7 +102,7 @@ export default function ProductGallery({ images, title }) {
           onClick={next}
           className="mt-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-lime-100 hover:scale-110 transition"
         >
-          <Chevron className="rotate-90" />
+          <Chevron className="md:rotate-90" />
         </button>
 
       </div>
