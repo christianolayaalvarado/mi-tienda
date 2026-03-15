@@ -29,7 +29,7 @@ export default async function ProductDetail({ params }) {
       <div className="grid md:grid-cols-[1.1fr_1fr] gap-8 md:gap-16 items-start">
 
         {/* Galería */}
-        <div className="flex justify-center md:justify-start w-full">
+        <div className="flex justify-center md:justify-start w-full max-w-full overflow-hidden">
           <ProductGallery 
             images={product.images} 
             title={product.title} 

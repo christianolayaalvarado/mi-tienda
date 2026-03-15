@@ -53,7 +53,7 @@ export default function ProductGallery({ images, title }) {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full max-w-full px-2">
+    <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start w-full max-w-full overflow-hidden">
 
       {/* Miniaturas */}
       <div className="flex lg:flex-col items-center justify-center mx-auto lg:mx-0 max-w-full">
