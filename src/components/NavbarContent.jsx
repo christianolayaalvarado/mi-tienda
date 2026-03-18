@@ -1,5 +1,5 @@
 "use client"
-
+import {User} from "lucide-react"
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -7,11 +7,15 @@ import { useCart } from "@/context/CartContext"
 import { Trash2 } from "lucide-react"
 import Image from "next/image"
 
+
 export default function NavbarContent() {
+
+  
 
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  
   // Calcular el total de productos
 const { cartItems = [], increaseQuantity, decreaseQuantity, removeFromCart } = useCart()
 
@@ -30,12 +34,48 @@ const subtotal = cartItems.reduce(
 
 
   const currentSearch = searchParams.get("search") || ""
+  
+const [search, setSearch] = useState(currentSearch)
+
+const [debouncedSearch, setDebouncedSearch] = useState(currentSearch)
+
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setDebouncedSearch(search)
+  }, 500)
+
+  return () => clearTimeout(timer)
+}, [search])
+
+
+  
+  
   const currentCategory = searchParams.get("category") || ""
   const currentSort = searchParams.get("sort") || ""
 
+  function buildURL({
+    searchVal = currentSearch,
+    categoryVal = currentCategory,
+    sortVal = currentSort,
+    pageVal = "1"
+  }) {
+    const params = new URLSearchParams()
 
-  const [search, setSearch] = useState(currentSearch)
+    if (searchVal) params.set("search", searchVal)
+    if (categoryVal) params.set("category", categoryVal)
+    if (sortVal) params.set("sort", sortVal)
+    if (pageVal) params.set("page", pageVal.toString())
 
+    return `/?${params.toString()}`
+  }
+
+      useEffect(() => {
+  router.push(buildURL({ searchVal: debouncedSearch, pageVal: "1" }))
+}, [debouncedSearch])
+
+useEffect(() => {
+  setSearch(currentSearch)
+}, [currentSearch])
   const scrollRef = useRef(null)
   const cartRef = useRef(null)
 
@@ -106,6 +146,7 @@ useEffect(() => {
 }, [totalItems])
 
 
+  
   const categories = [
     "Climatizado",
     "Cocina",
@@ -119,21 +160,7 @@ useEffect(() => {
     "Vidrio"
   ]
 
-  function buildURL({
-    searchVal = currentSearch,
-    categoryVal = currentCategory,
-    sortVal = currentSort,
-    pageVal = "1"
-  }) {
-    const params = new URLSearchParams()
-
-    if (searchVal) params.set("search", searchVal)
-    if (categoryVal) params.set("category", categoryVal)
-    if (sortVal) params.set("sort", sortVal)
-    if (pageVal) params.set("page", pageVal.toString())
-
-    return `/?${params.toString()}`
-  }
+  
 
   return (
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
@@ -150,10 +177,8 @@ useEffect(() => {
             placeholder="Buscar productos..."
             value={search}
             onChange={(e) => {
-              const value = e.target.value
-              setSearch(value)
-              router.push(buildURL({ searchVal: value, pageVal: "1" }))
-            }}
+              setSearch(e.target.value)
+              }}
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
           />
         </div>
@@ -162,8 +187,7 @@ useEffect(() => {
              data-cart-icon
              onClick={() => setCartOpen(!cartOpen)}
               className="text-sm font-medium cursor-pointer relative"
-          >
-        🛒 Carrito
+          >🛒 Carrito
 
           {totalItems > 0 && (
               <span
@@ -174,6 +198,14 @@ useEffect(() => {
               {totalItems}
               </span> 
            )}
+          </div>
+          
+        <div
+          onClick={() => router.push("/login")}
+          className="cursor-pointer flex items-center gap-1 text-sm hover:text-green-600"
+        >
+          <User size={18} />
+          <span>Login</span>
         </div>
 
 
@@ -301,7 +333,7 @@ useEffect(() => {
 
           <button
             onClick={() =>
-              router.push(buildURL({ categoryVal: "", pageVal: "1" }))
+              router.push(buildURL({ searchVal: "", categoryVal: "", pageVal: "1" }))
             }
             className={`font-semibold transition px-2 py-1 rounded ${
               currentCategory === "" ? "bg-green-600 text-white" : "hover:text-green-600"

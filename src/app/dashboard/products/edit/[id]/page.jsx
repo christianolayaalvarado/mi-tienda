@@ -1,29 +1,23 @@
-"use client"
-
 import ProductGallery from "@/components/ProductGallery"
 import ProductCard from "@/components/ProductCard"
 import ProductInfo from "@/components/ProductInfo"
 import Link from "next/link"
 import { products } from "@/data/products"
-import {use} from "react"
 
-export default function ProductDetail({ params }) {
 
-  
-const { id } = use(params)
 
-const stored = JSON.parse(localStorage.getItem("products")) || []
-const allProducts = [...products, ...stored]
+export default async function ProductDetail({ params }) {
 
-const product = allProducts.find(
-  p => p.id === Number(id)
-)
+  const { id } = await params
+  const productId = Number(id)
+
+  const product = products.find(p => p.id === productId)
 
   if (!product) {
     return <h1 className="p-10 text-xl">Producto no encontrado</h1>
   }
 
-    const relatedProducts = allProducts
+    const relatedProducts = products
   .filter(p => p.category === product.category && p.id !== product.id)
   .slice(0, 4)
 

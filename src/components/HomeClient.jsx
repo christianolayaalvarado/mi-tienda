@@ -5,6 +5,7 @@ import { products } from "@/data/products"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
+
 export default function HomeClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -14,13 +15,21 @@ export default function HomeClient() {
   const currentSort = searchParams.get("sort") || ""
   const currentPage = parseInt(searchParams.get("page")) || 1
 
-  const [search, setSearch] = useState(currentSearch)
+  const [allProducts, setAllProducts] = useState(products)
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("products")) || []
+    setAllProducts([...products, ...stored])
+  }, [])
+
 
   const productsPerPage = 12
 
   // Filtrar productos
-  const filteredProducts = products.filter(product => {
-    const matchSearch = product.title.toLowerCase().includes(search.toLowerCase())
+  const filteredProducts = allProducts.filter(product => {
+    const matchSearch = product.title
+      .toLowerCase()
+      .includes(currentSearch.toLowerCase())
     const matchCategory = currentCategory === "" || product.category === currentCategory
     return matchSearch && matchCategory
   })

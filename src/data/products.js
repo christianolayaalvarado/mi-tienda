@@ -1,14 +1,16 @@
 export const categories = [
-  "Iluminación",
-  "Decoración",
-  "Hogar",
-  "Vidrio",
+
   "Cocina",
-  "Climatizado",
-  "Electrodoméstico",
   "Coleccionable",
+  "Climatizado",
+  "Decoración",
+  "Electrodoméstico",
+  "Fitness",
+  "Hogar",
+  "Iluminación",
   "Muebles",
-  "Fitness"
+  "Vidrio"
+
 ]
 
 export const products = [
