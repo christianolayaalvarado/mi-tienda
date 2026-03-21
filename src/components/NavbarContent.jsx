@@ -1,11 +1,12 @@
 "use client"
-import {User} from "lucide-react"
+
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCart } from "@/context/CartContext"
-import { Trash2 } from "lucide-react"
+import { Trash2, User } from "lucide-react"
 import Image from "next/image"
+import {useSession, signOut} from "next-auth/react"
 
 
 export default function NavbarContent() {
@@ -14,7 +15,7 @@ export default function NavbarContent() {
 
   const router = useRouter()
   const searchParams = useSearchParams()
-
+  const { data: session, status } = useSession()
   
   // Calcular el total de productos
 const { cartItems = [], increaseQuantity, decreaseQuantity, removeFromCart } = useCart()
@@ -200,13 +201,33 @@ useEffect(() => {
            )}
           </div>
           
-        <div
-          onClick={() => router.push("/login")}
-          className="cursor-pointer flex items-center gap-1 text-sm hover:text-green-600"
-        >
-          <User size={18} />
-          <span>Login</span>
-        </div>
+        {!session ? (
+  <div
+    onClick={() => router.push("/login")}
+    className="cursor-pointer flex items-center gap-1 text-sm hover:text-green-600"
+  >
+    <User size={18} />
+    <span>Login</span>
+  </div>
+) : (
+  <div className="flex items-center gap-3 text-sm">
+    
+    <div
+      onClick={() => router.push("/dashboard")}
+      className="cursor-pointer hover:text-green-600"
+    >
+      Dashboard
+    </div>
+
+    <button
+      onClick={() => signOut({ callbackUrl: "/" })}
+      className="text-red-500 hover:underline"
+    >
+      Salir
+    </button>
+
+  </div>
+)}
 
 
           {cartOpen && (

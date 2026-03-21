@@ -1,35 +1,58 @@
 "use client"
 
-import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { useState, useEffect } from "react"
 
 import { Swiper, SwiperSlide } from "swiper/react"
 import { Autoplay, Pagination } from "swiper/modules"
 import "swiper/css"
-
-import {pagination} from "swiper/modules"
 import "swiper/css/pagination"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [progress, setProgress] = useState(0)
   const router = useRouter()
+
+  useEffect(() => {
+  setProgress(0)
+
+  const interval = setInterval(() => {
+    setProgress((prev) => {
+      if (prev >= 100) return 100
+      return prev + 2
+    })
+  }, 70) // 70ms * 50 ≈ 3500ms
+
+  return () => clearInterval(interval)
+}, [activeIndex])
 
   const handleLogin = async (e) => {
     e.preventDefault()
-
+    // Validación básica
+    if (!email || !password) {
+        setError("Completa todos los campos")
+        return
+      }
+      setLoading(true)
+    
     const res = await signIn("credentials", {
       email,
       password,
       redirect: false
     })
+    setLoading(false)
 
-    if (!res.error) {
-      router.push("/dashboard")
+    // Si hay error, mostrar mensaje Manejo SEGURO del error
+    if (!res||res.error) {
+      setError("Credenciales incorrectas")
     } else {
-      alert("Credenciales incorrectas")
+      router.push("/dashboard")
     }
   }
 
@@ -49,25 +72,25 @@ export default function LoginPage() {
 ]
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
-
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden">
+    <div className="w-full h-screen flex flex-col md:flex-row">
       {/* IZQUIERDA (imagen/carrusel) */}
-      <div className="md:w-1/2 w-full h-56 md:h-auto">
+      <div className="md:w-1/2 w-full md:h-full relative">
         {/* luego metemos carrusel */}
       
 
 <Swiper
-  modules={[Autoplay, Pagination]}
-  autoplay={{ delay: 3500, disableOnInteraction: false }}
-  pagination={{ clickable: true }}        
-  loop={true}
-  className="h-full"
+modules={[Autoplay]}
+autoplay={{ delay: 4000, disableOnInteraction: false }}
+loop={true}
+onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
+className="h-full"
 >
   {slides.map((slide, index) => (
-    <SwiperSlide key={index}>
+    <SwiperSlide key={index} className="h-full">
       <div className="relative w-full h-full">
-
-        <Image
+      
+      <Image
           src={slide.image}
           alt={slide.title}
           fill
@@ -83,6 +106,28 @@ export default function LoginPage() {
             {slide.title}
           </h2>
         </div>
+        
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-2 w-1/2 z-50">
+  {slides.map((_, i) => (
+    <div key={i} className="flex-1 h-3 bg-white/20 rounded overflow-hidden">
+      
+      <div
+        style={{
+  width:
+    i < activeIndex
+      ? "100%"
+      : i === activeIndex
+      ? `${progress}%`
+      : "0%",
+}}
+className="h-full bg-green-500/40 transition-all duration-75"
+      />
+      
+    </div>
+  ))}
+</div>
+
+        
 
       </div>
     </SwiperSlide>
@@ -91,7 +136,7 @@ export default function LoginPage() {
       </div>
 
       {/* DERECHA (login) */}
-      <div className="md:w-1/2 w-full flex items-center justify-center p-6">
+      <div className="md:w-1/2 w-full flex items-center justify-center px-6">
         <form
           onSubmit={handleLogin}
           className="w-full max-w-md space-y-4"
@@ -103,23 +148,41 @@ export default function LoginPage() {
           <input
             type="email"
             placeholder="Correo"
-            onChange={(e) => setEmail(e.target.value)}
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              setError("")
+            }}
             className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
           />
 
           <input
             type="password"
             placeholder="Contraseña"
-            onChange={(e) => setPassword(e.target.value)}
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              setError("")
+            }}
             className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
           />
 
-          <button className="w-full bg-green-600 text-white py-2 rounded">
-            Ingresar
-          </button>
+            <button
+              disabled={loading}
+              className="w-full bg-green-600 text-white py-2 rounded disabled:opacity-50"
+            >
+              {loading ? "Ingresando..." : "Ingresar"}
+            </button>
+
+          {error && (
+            <p className="text-red-500 text-sm text-center">
+              {error}
+            </p>
+          )}
+
         </form>
       </div>
-
+    </div>
     </div>
   )
 }
