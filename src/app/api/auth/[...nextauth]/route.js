@@ -1,5 +1,7 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import prisma from "@/lib/prisma";
+import bcrypt from "bcrypt";
 
 const handler = NextAuth({
   providers: [
@@ -9,30 +11,45 @@ const handler = NextAuth({
         email: { label: "Correo", type: "text" },
         password: { label: "Contraseña", type: "password" },
       },
+
+
+
       async authorize(credentials) {
-        // 🟡 Validación defensiva
-        if (!credentials?.email || !credentials?.password) {
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            return null;
+          }
+
+          // 🔍 Buscar usuario en DB
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email.toLowerCase },
+          });
+
+          if (!user || !user.password) {
+            return null;
+          }
+
+          // 🔐 Comparar password hasheado
+          const isValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isValid) {
+            return null;
+          }
+
+          // ✅ Retornar usuario sin password
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          };
+        } catch (error) {
+          console.error("Authorize error:", error);
           return null;
         }
-
-        // 🔐 Usuario fijo (ADMIN)
-        const user = {
-          id: "1",
-          name: "Admin",
-          email: "admin@demo.com",
-          password: "123456",
-        };
-
-        // Validación
-        if (
-          credentials.email === user.email &&
-          credentials.password === user.password
-        ) {
-          return user;
-        }
-
-        return null;
-      },
+      }
     }),
   ],
 
@@ -49,6 +66,7 @@ const handler = NextAuth({
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.name = user.name;
       }
       return token;
     },
@@ -59,12 +77,13 @@ const handler = NextAuth({
           ...session.user,
           id: token.id,
           email: token.email,
+          name: token.name,
         };
       }
       return session;
     },
   },
-  debug: true,
+  debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET,
 });
 
