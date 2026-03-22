@@ -17,7 +17,7 @@ export const products = [
   {
     id: 1,
     title: "Lámpara Vintage",
-    price: 100.00,
+    price: 70.00,
     category: "Iluminación",
     stock: 2,
     seller: "DecorHome",
@@ -43,7 +43,7 @@ export const products = [
   {
     id: 2,
     title: "Lámpara nordica",
-    price: 90.00,
+    price: 60.00,
     category: "Iluminación",
     stock: 1,
     seller: "DecorHome",
@@ -64,7 +64,7 @@ export const products = [
   {
     id: 3,
     title: "Cabeza de caballo",
-    price: 80.00,
+    price: 70.00,
     category: "Decoración",
     stock: 1,
     seller: "DecorHome",
@@ -84,7 +84,7 @@ export const products = [
   {
     id: 4,
     title: "Consola Balaustre",
-    price: 1199.00,
+    price: 1000.00,
     category: "Muebles",
     stock: 1,
     seller: "DecorHome",
@@ -108,7 +108,7 @@ export const products = [
   {
     id: 5,
     title: "Espejo decorativo",
-    price: 900.00,
+    price: 700.00,
     category: "Decoración",
     stock: 1,
     seller: "DecorHome",
@@ -129,7 +129,7 @@ export const products = [
   {
     id: 6,
     title: "Escultura decorativa",
-    price: 150.00,
+    price: 120.00,
     category: "Decoración",
     stock: 1,
     seller: "DecorHome",
@@ -147,7 +147,7 @@ export const products = [
   {
     id: 7,
     title: "Baul de madera",
-    price: 1000.00,
+    price: 900.00,
     category: "Muebles",
     stock: 1,
     seller: "DecorHome",
@@ -172,7 +172,7 @@ export const products = [
   {
     id: 8,
     title: "Candelabro aluminio",
-    price: 60,
+    price: 50,
     category: "Decoración",
     stock: 2,
     seller: "DecorHome",
@@ -195,7 +195,7 @@ export const products = [
   {
     id: 9,
     title: "Botella de vidrio",
-    price: 25.00,
+    price: 15.00,
     category: "Decoración",
     stock: 2,
     seller: "DecorHome",
@@ -233,7 +233,7 @@ export const products = [
   {
     id: 11,
     title: "Pajarera con aves",
-    price: 130.00,
+    price: 120.00,
     category: "Decoración",
     stock: 1,
     seller: "DecorHome",
@@ -253,7 +253,7 @@ export const products = [
   {
     id: 12,
     title: "Candelabro resina",
-    price: 79.90,
+    price: 70.00,
     category: "Decoración",
     stock: 1,
     seller: "DecorHome",
@@ -274,7 +274,7 @@ export const products = [
   {
     id: 13,
     title: "Figura de madera",
-    price: 69.90,
+    price: 60.00,
     category: "Decoración",
     stock: 1,
     seller: "DecorHome",
@@ -292,7 +292,7 @@ export const products = [
   {
     id: 14,
     title: "Juego decorativo",
-    price: 30.00,
+    price: 25.00,
     category: "Decoración",
     stock: 1,
     seller: "DecorHome",
@@ -310,7 +310,7 @@ export const products = [
   {
     id: 15,
     title: "Roseta de Roble",
-    price: 27.00,
+    price: 20.00,
     category: "Decoración",
     stock: 1,
     seller: "DecorHome",
@@ -384,7 +384,7 @@ export const products = [
   {
     id: 18,
     title: "Burrito de madera",
-    price: 80.00,
+    price: 60.00,
     category: "Decoración",
     stock: 1,
     seller: "DecorHome",
@@ -426,7 +426,7 @@ export const products = [
   {
     id: 20,
     title: "Perchero en metal",
-    price: 70.00,
+    price: 50.00,
     category: "Decoración",
     stock: 2,
     seller: "DecorHome",
@@ -447,7 +447,7 @@ export const products = [
   {
     id: 21,
     title: "Estufa electrica",
-    price: 30.00,
+    price: 25.00,
     category: "Climatizado",
     stock: 1,
     seller: "DecorHome",
@@ -509,14 +509,14 @@ export const products = [
   {
     id: 24,
     title: "Portavela de cristal",
-    price: 70.00,
+    price: 50.00,
     category: "Vidrio",
     stock: 2,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Maquina para hacer abdominales.",
+    description: "Portavela de cristal transparente.",
     images: [
 
       "/images/portavelacris00.jpg",
@@ -566,7 +566,7 @@ export const products = [
   {
     id: 27,
     title: "Farol XL",
-    price: 100.00,
+    price: 90.00,
     category: "Decoración",
     stock: 1,
     seller: "DecorHome",
@@ -629,7 +629,7 @@ export const products = [
   {
     id: 30,
     title: "Tortero ceramica",
-    price: 55,
+    price: 45,
     category: "Cocina",
     stock: 1,
     seller: "DecorHome",
@@ -657,7 +657,7 @@ export const products = [
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "Lavadora LG17kgTurboWash, capacidad: 17kg, tecnología TurboWash. Dimensiones: 632 Ancho x 1,020 Profundidad x 670 Alto mm. Tecnología TurboWash 3D™,",
+    description: "Lavadora LG17kgTurboWash, capacidad: 17kg, tecnología TurboWash. Dimensiones: 632 Ancho x 1,020 Profundidad x 670 Alto mm. Tecnología TurboWash 3D™",
     images: [
 
       "/images/Lavadora00.jpg",
@@ -713,7 +713,7 @@ export const products = [
   {
     id: 34,
     title: "Microondas Daewoo",
-    price: 170.00,
+    price: 150.00,
     category: "Electrodoméstico",
     stock: 1,
     seller: "DecorHome",
@@ -750,10 +750,8 @@ export const products = [
 
       "/images/televisorPhilips00.jpg",
       "/images/televisorPhilips01.jpg",
-      "/images/televisorPhilips02.jpg",
-      "/images/televisorPhilips03.jpg",
-      "/images/televisorPhilips04.jpg",
-      "/images/televisorPhilips05.jpg"
+      "/images/televisorPhilips02.jpg"
+
     ]
   },
   {
@@ -776,14 +774,14 @@ export const products = [
   {
     id: 37,
     title: "Sillon Floreado",
-    price: 1200.00,
+    price: 600.00,
     category: "Muebles",
-    stock: 1,
+    stock: 2,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "sillón con tapizado de estilo damasco en tonos rosa y gris, medidas: 91cm alto x 76cm ancho x 71cm profundidad, (Precio real S/.2500). Este elegante sillón de estilo damasco en tonos rosa y gris es la pieza perfecta para agregar un toque de sofisticación y encanto a tu espacio. Con sus medidas de 91cm de alto, 76cm de ancho y 71cm de profundidad, este sillón ofrece un asiento cómodo y acogedor para relajarte después de un largo día. Su diseño clásico y atemporal se adapta a una variedad de estilos de decoración, desde lo tradicional hasta lo contemporáneo, convirtiéndolo en una adición versátil a cualquier sala de estar, dormitorio o rincón de lectura. El tapizado en tonos rosa y gris añade un toque de elegancia y suavidad, creando un ambiente cálido y acogedor en tu hogar. No pierdas la oportunidad de adquirir este hermoso sillón a un precio especial.",
+    description: "Sillón con tapizado de estilo damasco en tonos rosa y gris, medidas: 91cm alto x 76cm ancho x 71cm profundidad, (Precio real S/.2500). Este elegante sillón de estilo damasco en tonos rosa y gris es la pieza perfecta para agregar un toque de sofisticación y encanto a tu espacio. Con sus medidas de 91cm de alto, 76cm de ancho y 71cm de profundidad, este sillón ofrece un asiento cómodo y acogedor para relajarte después de un largo día. Su diseño clásico y atemporal se adapta a una variedad de estilos de decoración, desde lo tradicional hasta lo contemporáneo, convirtiéndolo en una adición versátil a cualquier sala de estar, dormitorio o rincón de lectura. El tapizado en tonos rosa y gris añade un toque de elegancia y suavidad, creando un ambiente cálido y acogedor en tu hogar. No pierdas la oportunidad de adquirir este hermoso sillón a un precio especial.",
     images: [
       "/images/sillonrosagris00.jpg",
       "/images/sillonrosagris01.jpg",
@@ -797,14 +795,14 @@ export const products = [
   {
     id: 38,
     title: "Sillon Verde",
-    price: 850.00,
+    price: 550.00,
     category: "Muebles",
     stock: 1,
     seller: "DecorHome",
     sellerCode: "VEN001",
     store: "DecorHome Store",
     storeCode: "ST008",
-    description: "sillón con tapizado en verde, medidas: 91cm alto x 76cm ancho x 71cm profundidad",
+    description: "Sillón con tapizado en tipo pana, en color aqua marina, estilo capitoné, medidas: 91cm alto x 76cm ancho x 71cm profundidad",
     images: [
       "/images/sillonverde00.jpg",
       "/images/sillonverde01.jpg",

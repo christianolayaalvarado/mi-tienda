@@ -1,32 +1,22 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions'; // Importa desde lib
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
-// GET → listar productos
-export async function GET() {
-  const products = await prisma.product.findMany({
-    include: { category: true }
-  })
-
-  return Response.json(products)
-}
-
-// POST → crear producto
-export async function POST(req) {
-  const body = await req.json()
-
-  const product = await prisma.product.create({
-    data: {
-      title: body.title,
-      price: body.price,
-      stock: body.stock,
-      category: {
-        connect: {
-          id: body.categoryId
-        }
-      }
+export async function GET(req) {
+  try {
+    // Obtener la sesión del usuario
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401 });
     }
-  })
 
-  return Response.json(product)
+    // Traer productos de la DB
+    const products = await prisma.product.findMany();
+    return new Response(JSON.stringify(products), { status: 200 });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return new Response(JSON.stringify({ error: 'Error al cargar productos' }), { status: 500 });
+  }
 }

@@ -65,7 +65,7 @@ export default function DashboardProducts() {
               </td>
 
               <td className="p-3">
-                {product.category}
+                {product.category?.name || "-"}
               </td>
 
               <td className="p-3">

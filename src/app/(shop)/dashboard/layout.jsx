@@ -1,24 +1,15 @@
-"use client"
-
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { getServerSession } from "next-auth"
+import { redirect } from "next/navigation"
+import LogoutButton from "@/components/LogoutButton"
 import Link from "next/link"
 
-export default function DashboardLayout({ children }) {
+export default async function DashboardLayout({ children }) {
 
-  const { data: session, status } = useSession()
-  const router = useRouter()
+  const session = await getServerSession()
 
-  useEffect(() => {
-    if (status === "loading") return
-
-    if (!session) {
-      router.push("/login")
-    }
-  }, [session, status])
-
-  if (!session) return null
+  if (!session) {
+    redirect("/login")
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -30,6 +21,9 @@ export default function DashboardLayout({ children }) {
           Dashboard
         </h2>
 
+        <p className="text-sm mb-6 text-gray-300">
+          {session.user.email}
+        </p>
         <nav className="flex flex-col gap-4">
 
           <Link href="/dashboard">
@@ -41,7 +35,7 @@ export default function DashboardLayout({ children }) {
           </Link>
 
         </nav>
-
+        <LogoutButton />
       </aside>
 
       {/* Contenido */}

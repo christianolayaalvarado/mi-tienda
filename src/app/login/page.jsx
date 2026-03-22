@@ -39,7 +39,9 @@ export default function LoginPage() {
         setError("Completa todos los campos")
         return
       }
-      setLoading(true)
+       
+    setError("")
+    setLoading(true)
     
     const res = await signIn("credentials", {
       email,
@@ -49,12 +51,13 @@ export default function LoginPage() {
     setLoading(false)
 
     // Si hay error, mostrar mensaje Manejo SEGURO del error
-    if (!res||res.error) {
+    if (!res || res.error) {
       setError("Credenciales incorrectas")
-    } else {
-      router.push("/dashboard")
+      return
+    } 
+      router.replace("/dashboard")
     }
-  }
+  
 
   const slides = [
   {
@@ -147,24 +150,34 @@ className="h-full bg-green-500/40 transition-all duration-75"
 
           <input
             type="email"
+            disabled={loading}  
             placeholder="Correo"
             value={email}
             onChange={(e) => {
               setEmail(e.target.value)
               setError("")
             }}
-            className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+            className={`w-full border p-3 rounded-lg outline-none ${
+  error
+    ? "border-red-500"
+    : "focus:ring-2 focus:ring-green-500"
+}`}
           />
 
           <input
             type="password"
+            disabled={loading}
             placeholder="Contraseña"
             value={password}
             onChange={(e) => {
               setPassword(e.target.value)
               setError("")
             }}
-            className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+            className={`w-full border p-3 rounded-lg outline-none ${
+  error
+    ? "border-red-500"
+    : "focus:ring-2 focus:ring-green-500"
+}`}
           />
 
             <button
