@@ -5,6 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default function OrderSuccessPage() {
 
   const searchParams = useSearchParams()
@@ -16,6 +19,17 @@ export default function OrderSuccessPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [proofFile, setProofFile] = useState(null)
+
+
+    useEffect(() => {
+    if (!orderId) {
+      router.push("/")
+      return
+    }
+
+    fetchOrder()
+  }, [orderId])
+
 
   // 🔹 cargar orden
   const fetchOrder = async () => {
@@ -40,14 +54,18 @@ export default function OrderSuccessPage() {
     }
   }
 
-  useEffect(() => {
-    if (!orderId) {
-      router.push("/")
-      return
-    }
+  if (!orderId) {
+    return <p className="p-6 text-gray-600">Esperando ID de orden...</p>
+  }
 
-    fetchOrder()
-  }, [orderId])
+  if (loading) {
+    return <p className="p-6 text-gray-600">Cargando orden...</p>
+  }
+
+  if (!order) {
+    return <p className="p-6 text-red-500">Orden no encontrada</p>
+  }
+
 
   // 🔹 seleccionar archivo
   const handleFileChange = (e) => {
@@ -92,13 +110,6 @@ export default function OrderSuccessPage() {
     }
   }
 
-  if (loading) {
-    return <p className="p-6 text-gray-600">Cargando orden...</p>
-  }
-
-  if (!order) {
-    return <p className="p-6 text-red-500">Orden no encontrada</p>
-  }
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 space-y-10">
