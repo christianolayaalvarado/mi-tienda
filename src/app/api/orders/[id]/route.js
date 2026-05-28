@@ -11,8 +11,8 @@ const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id)
 // ==============================
 export async function GET(req, context) {
   try {
-    const { params } = await context
-    const orderId = params?.id
+    const contextData = await context
+    const orderId = contextData?.params?.id
 
     if (!orderId || !isValidObjectId(orderId)) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 })
@@ -48,8 +48,8 @@ export async function GET(req, context) {
 // ==============================
 export async function DELETE(req, context) {
   try {
-    const { params } = await context
-    const orderId = params?.id
+    const contextData = await context
+    const orderId = contextData?.params?.id
 
     if (!orderId || !isValidObjectId(orderId)) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 })
