@@ -9,19 +9,14 @@ export default function CartPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  // 🔹 Calcular total
   const total = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
-  // 🔥 CHECKOUT
-  const handleCheckout = async () => {
-
-    // ⏳ Esperar sesión
+  // 🔥 Finalizar compra directo (sin checkout)
+  const handleDirectCheckout = async () => {
     if (status === "loading") return;
-
-    // 🔐 Si no está logueado → redirigir
     if (!session) {
       router.push("/login?callbackUrl=/cart");
       return;
@@ -30,33 +25,24 @@ export default function CartPage() {
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          items: cartItems,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: cartItems }),
       });
 
       const data = await res.json();
-
       if (!res.ok) {
-        console.error("Error backend:", data);
         alert(data.error || "Error al crear orden");
         return;
       }
 
-      // ✅ Éxito
       clearCart();
-      router.push("/dashboard/orders");
-
+      router.push(`/order-success?orderId=${data.orderId}`);
     } catch (error) {
       console.error("Error en checkout:", error);
       alert("Error procesando la compra");
     }
   };
 
-  // 🔹 Si carrito vacío
   if (!cartItems.length) {
     return (
       <div className="max-w-4xl mx-auto p-6 text-center">
@@ -83,14 +69,9 @@ export default function CartPage() {
           >
             <div>
               <h2 className="font-semibold">{item.title}</h2>
-              <p className="text-sm text-gray-500">
-                Cantidad: {item.quantity}
-              </p>
-              <p className="text-sm text-gray-500">
-                Precio: S/ {item.price}
-              </p>
+              <p className="text-sm text-gray-500">Cantidad: {item.quantity}</p>
+              <p className="text-sm text-gray-500">Precio: S/ {item.price}</p>
             </div>
-
             <button
               onClick={() => removeFromCart(item.id)}
               className="text-red-600 text-sm"
@@ -101,18 +82,29 @@ export default function CartPage() {
         ))}
       </div>
 
-      {/* 🔹 Total */}
-      <div className="mt-6 flex justify-between items-center">
+      {/* 🔹 Total y acciones */}
+      <div className="mt-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <h2 className="text-xl font-bold">
           Total: S/ {total.toFixed(2)}
         </h2>
 
-        <button
-          onClick={handleCheckout}
-          className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
-        >
-          Comprar ahora
-        </button>
+        <div className="flex gap-4">
+          {/* Proceder al pago → Checkout */}
+          <button
+            onClick={() => router.push("/checkout")}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+          >
+            Proceder al pago
+          </button>
+
+          {/* Finalizar compra directo */}
+          <button
+            onClick={handleDirectCheckout}
+            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+          >
+            Finalizar compra
+          </button>
+        </div>
       </div>
     </div>
   );
