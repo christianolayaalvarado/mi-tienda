@@ -8,10 +8,7 @@ export async function GET(req) {
     const session = await getServerSession(authOptions)
 
     if (!session) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     const { search, categoryId, page = 1, limit = 8 } =
@@ -27,30 +24,14 @@ export async function GET(req) {
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: "Usuario no encontrado" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
     }
 
     // 🔥 Filtros SOLO para sus productos
     const where = {
-      userId: user.id, // ✅ CLAVE
-
-      ...(search
-        ? {
-          title: {
-            contains: search,
-            mode: "insensitive",
-          },
-        }
-        : {}),
-
-      ...(categoryId
-        ? {
-          categoryId,
-        }
-        : {}),
+      userId: user.id,
+      ...(search ? { title: { contains: search, mode: "insensitive" } } : {}),
+      ...(categoryId ? { categoryId } : {}),
     }
 
     const total = await prisma.product.count({ where })
@@ -67,17 +48,15 @@ export async function GET(req) {
       orderBy: { createdAt: "desc" },
     })
 
+    // ✅ Ajuste: devolver array directo si frontend lo espera así
     return NextResponse.json({
       products,
       totalPages: Math.ceil(total / take),
+      currentPage,
     })
 
   } catch (error) {
     console.error("GET /api/products/mine error:", error)
-
-    return NextResponse.json(
-      { error: "Error al obtener productos" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Error al obtener productos", detail: error.message }, { status: 500 })
   }
 }

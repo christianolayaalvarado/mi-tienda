@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 
 export function useProducts() {
   const [products, setProducts] = useState([])
+  const [totalPages, setTotalPages] = useState(1) // ✅ manejar paginación
   const { data: session } = useSession()
   const [loading, setLoading] = useState(true)
 
@@ -15,27 +16,30 @@ export function useProducts() {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/products`);
-        if (!res.ok) throw new Error("Error al cargar productos");
-        const data = await res.json();
-        setProducts(data);
-      } catch (err) {
-        console.error("Error fetching products:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+        const res = await fetch(`/api/products/mine`)
+        if (!res.ok) throw new Error("Error al cargar productos")
+        const data = await res.json()
 
-    fetchProducts();
-  }, [session]);
+        // ✅ Ajuste: consumir data.products en lugar de data directo
+        setProducts(data.products || [])
+        setTotalPages(data.totalPages || 1)
+      } catch (err) {
+        console.error("Error fetching products:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [session])
 
   // 🔹 Eliminar producto
   async function deleteProduct(id) {
     try {
-      const res = await fetch(`/api/products`, {
+      const res = await fetch(`/api/products/bulk-delete`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({ ids: [id] }) // ✅ enviar array de IDs
       })
       if (res.ok) {
         setProducts(prev => prev.filter(p => p.id !== id))
@@ -69,7 +73,7 @@ export function useProducts() {
   // 🔹 Actualizar producto
   async function updateProduct(updatedProduct) {
     try {
-      const res = await fetch(`/api/products`, {
+      const res = await fetch(`/api/products/${updatedProduct.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedProduct)
@@ -92,6 +96,7 @@ export function useProducts() {
 
   return {
     products,
+    totalPages, // ✅ ahora disponible para paginación
     loading,
     addProduct,
     deleteProduct,

@@ -20,7 +20,9 @@ export async function GET() {
       });
     }
 
+    // ✅ incluir el campo id de cada CartItem
     const items = cart.items.map((item) => ({
+      id: item.id,              // 🔑 ahora disponible en frontend
       productId: item.productId,
       quantity: item.quantity,
       title: item.title,
