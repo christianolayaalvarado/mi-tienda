@@ -1,5 +1,3 @@
-// src/lib/authOptions.js
-
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 import prisma from "./prisma";
@@ -17,6 +15,7 @@ export const authOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email.toLowerCase() },
+          include: { stores: true },
         });
 
         if (!user || !user.password) return null;
@@ -24,28 +23,52 @@ export const authOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
-        return { id: user.id, email: user.email, name: user.name };
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          store: user.stores?.[0]?.name || "",
+          storeCode: user.stores?.[0]?.code || "",
+        };
       },
     }),
   ],
-  session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+
+  session: {
+    strategy: "jwt",
+    maxAge: 60 * 60 * 24, // 1 día
+  },
+
+  pages: {
+    signIn: "/login",
+  },
+
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
+        token.store = user.store;
+        token.storeCode = user.storeCode;
       }
       return token;
     },
+
     async session({ session, token }) {
       if (token) {
-        session.user = { ...session.user, id: token.id, email: token.email, name: token.name };
+        session.user = {
+          ...session.user,
+          id: token.id,
+          email: token.email,
+          name: token.name,
+          store: token.store,
+          storeCode: token.storeCode,
+        };
       }
       return session;
     },
   },
-  debug: process.env.NODE_ENV === "development",
+
   secret: process.env.NEXTAUTH_SECRET,
 };

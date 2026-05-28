@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 
 function Chevron({ className = "" }) {
@@ -24,15 +24,43 @@ function Chevron({ className = "" }) {
 
 export default function ProductGallery({ images, title }) {
 
-  const [selectedImage, setSelectedImage] = useState(images[0])
+  // 🔹 Limpiar imágenes inválidas
+  const validImages =
+    images && images.length > 0
+      ? images.filter(img => img && img.trim() !== "")
+      : []
+
+  const displayImages =
+    validImages.length > 0
+      ? validImages
+      : ["/images/placeholder.png"]
+
+  const [selectedImage, setSelectedImage] = useState(null)
   const [startIndex, setStartIndex] = useState(0)
   const [fade, setFade] = useState(false)
   const [viewerOpen, setViewerOpen] = useState(false)
 
   const visibleCount = 4
 
+  // 🔥 FIX IMPORTANTE: inicializar correctamente
+  useEffect(() => {
+    if (displayImages.length > 0) {
+      setSelectedImage(displayImages[0])
+      setStartIndex(0)
+    }
+  }, [images])
+
+  // 🔹 ESC para cerrar viewer
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === "Escape") setViewerOpen(false)
+    }
+    window.addEventListener("keydown", handleKey)
+    return () => window.removeEventListener("keydown", handleKey)
+  }, [])
+
   const next = () => {
-    if (startIndex + visibleCount < images.length) {
+    if (startIndex + visibleCount < displayImages.length) {
       setStartIndex(startIndex + 1)
     }
   }
@@ -43,13 +71,15 @@ export default function ProductGallery({ images, title }) {
     }
   }
 
-  function changeImage(img) {
-  setFade(true)
-
-  setTimeout(() => {
+  const changeImage = (img) => {
+    setFade(true)
     setSelectedImage(img)
-    setFade(false)
-  }, 120)
+    setTimeout(() => setFade(false), 120)
+  }
+
+  // 🔥 Fallback si imagen falla (clave para Cloudinary)
+  const handleImageError = () => {
+    setSelectedImage("/images/placeholder.png")
   }
 
   return (
@@ -57,8 +87,7 @@ export default function ProductGallery({ images, title }) {
 
       {/* Miniaturas */}
       <div className="flex lg:flex-col items-center justify-center mx-auto lg:mx-0 max-w-full">
-
-        {/* Botón anterior */}
+        
         <button
           onClick={prev}
           className="mb-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-lime-100 hover:scale-110 transition"
@@ -66,9 +95,8 @@ export default function ProductGallery({ images, title }) {
           <Chevron className="rotate-180 md:-rotate-90" />
         </button>
 
-        {/* Contenedor miniaturas */}
-        <div className="flex gap-3 lg:flex-col lg:gap-4 overflow-visible max-w-full py-2">
-          {images
+        <div className="flex gap-3 lg:flex-col lg:gap-4 overflow-x-auto lg:overflow-visible max-w-full py-2 scrollbar-none">
+          {displayImages
             .slice(startIndex, startIndex + visibleCount)
             .map((img, index) => (
               <div
@@ -81,71 +109,69 @@ export default function ProductGallery({ images, title }) {
                     : "border-gray-300 hover:border-lime-400 hover:scale-105 hover:shadow-md"
                 }`}
               >
-
-              <div className="relative w-full h-full rounded-lg overflow-hidden">
-
-                <Image
-                  src={img}
-                  alt={`${title} ${index}`}
-                  fill
-                  className="object-cover"
-                />
-
+                <div className="relative w-full h-full rounded-lg overflow-hidden">
+                  <Image
+                    src={img || "/images/placeholder.png"}
+                    alt={`${title} ${index}`}
+                    fill
+                    className="object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/images/placeholder.png"
+                    }}
+                  />
+                </div>
               </div>
-
-            </div>
-          ))}
+            ))}
         </div>
 
-        {/* Botón siguiente */}
         <button
           onClick={next}
           className="mt-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-lime-100 hover:scale-110 transition"
         >
           <Chevron className="md:rotate-90" />
         </button>
-
       </div>
 
       {/* Imagen grande */}
-      <div className="relative w-[80%] sm:w-[85%] md:w-full max-w-[420px] md:max-w-[640px] aspect-square order-first md:order-none mx-auto">
-      
+      <div className="relative w-[80%] sm:w-[85%] md:w-full max-w-[640px] aspect-square mx-auto">
         <div
           onClick={() => setViewerOpen(true)}
-          className="relative w-[80%] sm:w-[85%] md:w-full max-w-[420px] md:max-w-[640px] aspect-square order-first md:order-none mx-auto cursor-zoom-in"
+          className="relative w-full h-full cursor-zoom-in"
         >
-            
-        <Image
-        src={selectedImage}
-        alt={title}
-        fill
-        sizes="(max-width: 768px) 90vw, (max-width: 1200px) 50vw, 40vw"
-        className={`object-contain rounded-xl shadow-lg transition-all duration-300 hover:scale-105 ${
-          fade ? "opacity-40 scale-95" : "opacity-100"
-        }`}
-      />   </div>   </div>
+          {selectedImage && (
+            <Image
+              src={selectedImage}
+              alt={title}
+              fill
+              sizes="(max-width: 768px) 90vw, (max-width: 1200px) 50vw, 40vw"
+              className={`object-contain rounded-xl shadow-lg transition-all duration-300 hover:scale-105 ${
+                fade ? "opacity-40 scale-95" : "opacity-100"
+              }`}
+              priority
+              onError={handleImageError}
+            />
+          )}
+        </div>
+      </div>
 
+      {/* Viewer fullscreen */}
       {viewerOpen && (
-  <div
-    onClick={() => setViewerOpen(false)}
-    className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
-  >
-    <div className="relative w-[90vw] h-[90vh]">
-      <Image
-        src={selectedImage}
-        alt={title}
-        fill
-        className="object-contain"
-      />
-    </div>
-  </div>
-)}
-
-
-
-
-
-
+        <div
+          onClick={() => setViewerOpen(false)}
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 cursor-zoom-out"
+        >
+          <div className="relative w-[90vw] h-[90vh]">
+            <Image
+              src={selectedImage || "/images/placeholder.png"}
+              alt={title}
+              fill
+              className="object-contain"
+              priority
+              onError={handleImageError}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

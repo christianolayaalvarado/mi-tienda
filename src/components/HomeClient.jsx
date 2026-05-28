@@ -1,156 +1,156 @@
-"use client"
+"use client";
 
-import ProductCard from "@/components/ProductCard"
-import { products } from "@/data/products"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
-
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import ProductCard from "@/components/ProductCard";
 
 export default function HomeClient() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  console.log("Render HomeClient");
 
-  const currentSearch = searchParams.get("search") || ""
-  const currentCategory = searchParams.get("category") || ""
-  const currentSort = searchParams.get("sort") || ""
-  const currentPage = parseInt(searchParams.get("page")) || 1
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [allProducts, setAllProducts] = useState(products)
+  // ---------------- PARAMS ----------------
+  const currentSearch = searchParams.get("search") || "";
+  const currentCategory = searchParams.get("category") || "";
+  const currentSort = searchParams.get("sort") || "";
+  const currentPage = parseInt(searchParams.get("page")) || 1;
 
+  // ---------------- STATES ----------------
+  const [products, setProducts] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  const fetchController = useRef(null);
+  const isFirstLoad = useRef(true);
+
+  // ---------------- FETCH PRODUCTS ----------------
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+
+      if (fetchController.current) fetchController.current.abort();
+      fetchController.current = new AbortController();
+
+      const params = new URLSearchParams();
+      if (currentSearch) params.set("search", currentSearch);
+      if (currentCategory) params.set("category", currentCategory);
+      if (currentSort) params.set("sort", currentSort);
+      params.set("page", currentPage);
+
+      const res = await fetch(`/api/products?${params.toString()}`, {
+        signal: fetchController.current.signal,
+      });
+
+      if (!res.ok) throw new Error("Error al obtener productos");
+
+      const data = await res.json();
+
+      // 🔹 Evitar duplicados
+      const uniqueProducts = Array.from(
+        new Map(data.products.map((p) => [p.id, p])).values()
+      );
+
+      setProducts(uniqueProducts);
+      setTotalPages(data.totalPages || 1);
+
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      console.error("Error fetch productos:", err);
+      setProducts([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ---------------- EFFECT ----------------
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("products")) || []
-    setAllProducts([...products, ...stored])
-  }, [])
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      fetchProducts();
+      return;
+    }
+    const timer = setTimeout(fetchProducts, 400);
+    return () => clearTimeout(timer);
+  }, [currentSearch, currentCategory, currentSort, currentPage]);
 
+  // ---------------- PAGINACIÓN ----------------
+  const changePage = (page) => {
+    if (page < 1 || page > totalPages) return;
 
-  const productsPerPage = 12
+    const params = new URLSearchParams();
+    if (currentSearch) params.set("search", currentSearch);
+    if (currentCategory) params.set("category", currentCategory);
+    if (currentSort) params.set("sort", currentSort);
+    params.set("page", page);
 
-  // Filtrar productos
-  const filteredProducts = allProducts.filter(product => {
-    const matchSearch = product.title
-      .toLowerCase()
-      .includes(currentSearch.toLowerCase())
-    const matchCategory = currentCategory === "" || product.category === currentCategory
-    return matchSearch && matchCategory
-  })
+    router.push(`/?${params.toString()}`, { scroll: false });
+  };
 
-  // Ordenar productos
-  const sortedProducts = [...filteredProducts]
-  if (currentSort === "price_asc") sortedProducts.sort((a, b) => a.price - b.price)
-  if (currentSort === "price_desc") sortedProducts.sort((a, b) => b.price - a.price)
-  if (currentSort === "newest") sortedProducts.sort((a, b) => b.id - a.id)
-
-  // Paginación
-  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / productsPerPage))
-  const safePage = currentPage > totalPages ? totalPages : currentPage
-  const start = (safePage - 1) * productsPerPage
-  const end = start + productsPerPage
-  const paginatedProducts = sortedProducts.slice(start, end)
-
-  function buildURL({
-    searchVal = currentSearch,
-    categoryVal = currentCategory,
-    sortVal = currentSort,
-    pageVal = safePage
-  }) {
-    const params = new URLSearchParams()
-    if (searchVal) params.set("search", searchVal)
-    if (categoryVal) params.set("category", categoryVal)
-    if (sortVal) params.set("sort", sortVal)
-    if (pageVal) params.set("page", pageVal.toString())
-    return `/?${params.toString()}`
-  }
-
+  // ---------------- RENDER ----------------
   return (
-    <div className="max-w-7xl mx-auto p-10">
+    <div className="max-w-7xl mx-auto px-6 py-8">
 
-      {/* Contador y filtros activos */}
-      <div className="mb-6 flex items-center justify-between">
-        <p className="text-sm text-gray-600">
-          {sortedProducts.length} productos encontrados
+      {/* LOADING */}
+      {loading && (
+        <p className="text-center text-sm text-gray-500 mb-4">
+          Cargando productos...
         </p>
-
-        <div className="flex items-center gap-4">
-          {(currentSearch || currentCategory || currentSort) && (
-            <button
-              onClick={() => router.push("/")}
-              className="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded"
-            >
-              Limpiar filtros
-            </button>
-          )}
-
-          <select
-            value={currentSort}
-            onChange={(e) => router.push(buildURL({ sortVal: e.target.value, pageVal: 1 }))}
-            className="border rounded-md px-3 py-1 text-sm"
-          >
-            <option value="">Ordenar</option>
-            <option value="newest">Más nuevos</option>
-            <option value="price_asc">Precio: menor a mayor</option>
-            <option value="price_desc">Precio: mayor a menor</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Filtros activos */}
-      {(currentSearch || currentCategory || currentSort) && (
-        <div className="flex flex-wrap gap-2 mb-6">
-          {currentSearch && (
-            <button
-              onClick={() => router.push(buildURL({ searchVal: "", pageVal: 1 }))}
-              className="text-sm bg-gray-100 border px-3 py-1 rounded"
-            >
-              Búsqueda: {currentSearch} ✕
-            </button>
-          )}
-          {currentCategory && (
-            <button
-              onClick={() => router.push(buildURL({ categoryVal: "", pageVal: 1 }))}
-              className="text-sm bg-gray-100 border px-3 py-1 rounded"
-            >
-              Categoría: {currentCategory} ✕
-            </button>
-          )}
-          {currentSort && (
-            <button
-              onClick={() => router.push(buildURL({ sortVal: "", pageVal: 1 }))}
-              className="text-sm bg-gray-100 border px-3 py-1 rounded"
-            >
-              Orden activo ✕
-            </button>
-          )}
-        </div>
       )}
 
-      {/* Grid de productos */}
-      {paginatedProducts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
-          {paginatedProducts.map((product, index) => (
-            <ProductCard key={product.id} product={product} priority={index < 2} />
+      {/* 🔥 GRID MIXTO (SIN TIENDAS) */}
+      {!loading && products.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {products.map((product, idx) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              priority={idx < 5}
+            />
           ))}
         </div>
-      ) : (
-        <div className="text-center py-20 text-gray-500">
-          No se encontraron productos con estos filtros.
-        </div>
       )}
 
-      {/* Paginación */}
+      {/* EMPTY */}
+      {!loading && products.length === 0 && (
+        <p className="text-center">No se encontraron productos.</p>
+      )}
+
+      {/* PAGINACIÓN */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-10">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+        <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
+          <button
+            onClick={() => changePage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            ←
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <button
-              key={p}
-              onClick={() => router.push(buildURL({ pageVal: p }))}
-              className={`px-3 py-1 border rounded ${p === safePage ? "bg-black text-white" : "bg-white"}`}
+              key={page}
+              onClick={() => changePage(page)}
+              className={`px-3 py-1 rounded border ${
+                currentPage === page
+                  ? "bg-green-600 text-white"
+                  : "hover:bg-gray-100"
+              }`}
             >
-              {p}
+              {page}
             </button>
           ))}
+
+          <button
+            onClick={() => changePage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            →
+          </button>
         </div>
       )}
-
     </div>
-  )
+  );
 }

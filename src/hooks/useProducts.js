@@ -10,24 +10,24 @@ export function useProducts() {
 
   // 🔹 Traer productos del usuario logueado
   useEffect(() => {
-    if (!session?.user?.id) return
+    if (!session) return;
 
     const fetchProducts = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const res = await fetch(`/api/products`)
-        if (!res.ok) throw new Error("Error al cargar productos")
-        const data = await res.json()
-        setProducts(data)
+        const res = await fetch(`/api/products`);
+        if (!res.ok) throw new Error("Error al cargar productos");
+        const data = await res.json();
+        setProducts(data);
       } catch (err) {
-        console.error("Error fetching products:", err)
+        console.error("Error fetching products:", err);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchProducts()
-  }, [session])
+    fetchProducts();
+  }, [session]);
 
   // 🔹 Eliminar producto
   async function deleteProduct(id) {

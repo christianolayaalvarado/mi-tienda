@@ -1,305 +1,220 @@
-"use client"
+"use client";
 
-import { useCart } from "@/context/CartContext"
-import {useState} from "react"
+import { useCart } from "@/context/CartContext";
+import { useState } from "react";
 
 export default function ProductInfo({ product }) {
+  const { addToCart, cartItems } = useCart();
 
-  const { addToCart, cartItems } = useCart()
-  const existingItem = cartItems.find(item => item.id === product.id)
+  const existingItem = cartItems.find((item) => item.productId === product.id);
 
-  const [added, setAdded] = useState(false)
-  const [showToast, setShowToast] = useState(false)
-  const [stockLimit, setStockLimit] = useState(false)
+  const mainImage = product.images?.[0] || "/images/placeholder.png";
 
-  const [animateQty, setAnimateQty] = useState(false)
+  const maxAvailable = Number(product.stock) || 0;
+  const alreadyInCart = Number(existingItem?.quantity) || 0;
+  const remainingStock = Math.max(maxAvailable - alreadyInCart, 0);
+  const maxInCart = alreadyInCart >= maxAvailable;
 
-  const [quantity, setQuantity] = useState(() => {
-    
-    return existingItem ? existingItem.quantity : 1
+  const [quantity, setQuantity] = useState(1);
+  const [added, setAdded] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [stockLimit, setStockLimit] = useState(false);
+  const [animateQty, setAnimateQty] = useState(false);
 
-  })
-  const maxInCart = existingItem && existingItem.quantity >= product.stock
+  const selectionTotal = product.price * quantity;
 
-  const remainingStock = product.stock - (existingItem?.quantity ?? 0)
-
-  const selectionTotal = product.price * quantity
-
+  // ---------------- AÑADIR AL CARRITO ----------------
   const handleAdd = (e) => {
+    if (maxInCart) {
+      setStockLimit(true);
+      setTimeout(() => setStockLimit(false), 2000);
+      return;
+    }
 
-  const existingItem = cartItems.find(item => item.id === product.id)
+    flyToCart(mainImage, e);
 
-if (existingItem && existingItem.quantity >= product.stock) {
-  setStockLimit(true)
+    addToCart({
+      ...product,
+      storeId: product.store?.id || null,
+      images: product.images?.length ? product.images : ["/images/placeholder.png"],
+      quantity,
+    });
 
-  setTimeout(() => {
-    setStockLimit(false)
-  }, 2000)
+    setAdded(true);
+    setShowToast(true);
+    setTimeout(() => {
+      setAdded(false);
+      setShowToast(false);
+    }, 2000);
+  };
 
-  return
-}
-
-  flyToCart(product.images[0], e)
-    
-  addToCart({
-    ...product,
-    name: product.title,
-    image: product.images[0],
-    quantity
-  })
-
-  setAdded(true)
-
-  setShowToast(true)
-
-  setTimeout(() => {
-    setAdded(false)
-    setShowToast(false)
-  }, 2000)
-  }
-
+  // ---------------- ANIMACIÓN ----------------
   function flyToCart(imageSrc, event) {
+    const cartIcon = document.querySelector("[data-cart-icon]");
+    if (!cartIcon) return;
 
-  const cartIcon = document.querySelector("[data-cart-icon]")
-  if (!cartIcon) return
+    const img = document.createElement("img");
+    img.src = imageSrc || "/images/placeholder.png";
 
-  const img = document.createElement("img")
-  img.src = imageSrc
+    const rect = event.currentTarget.getBoundingClientRect();
+    const cartRect = cartIcon.getBoundingClientRect();
 
-  const rect = event.currentTarget.getBoundingClientRect()
-  const cartRect = cartIcon.getBoundingClientRect()
+    img.style.position = "fixed";
+    img.style.left = rect.left + "px";
+    img.style.top = rect.top + "px";
+    img.style.width = "40px";
+    img.style.height = "40px";
+    img.style.objectFit = "cover";
+    img.style.borderRadius = "8px";
+    img.style.zIndex = "9999";
+    img.style.transition = "all 0.7s ease-in-out";
 
-  img.style.position = "fixed"
-  img.style.left = rect.left + "px"
-  img.style.top = rect.top + "px"
-  img.style.width = "40px"
-  img.style.height = "40px"
-  img.style.objectFit = "cover"
-  img.style.borderRadius = "8px"
-  img.style.zIndex = "9999"
-  img.style.transition = "all 0.7s ease-in-out"
+    document.body.appendChild(img);
 
-  document.body.appendChild(img)
+    requestAnimationFrame(() => {
+      img.style.left = cartRect.left + "px";
+      img.style.top = cartRect.top + "px";
+      img.style.width = "10px";
+      img.style.height = "10px";
+      img.style.opacity = "0.2";
+    });
 
-  requestAnimationFrame(() => {
-    img.style.left = cartRect.left + "px"
-    img.style.top = cartRect.top + "px"
-    img.style.width = "10px"
-    img.style.height = "10px"
-    img.style.opacity = "0.2"
-  })
-
-  setTimeout(() => {
-    img.remove()
-  }, 700)
-}
+    setTimeout(() => img.remove(), 700);
+  }
 
   return (
     <div className="flex flex-col justify-start mt-6 md:mt-10 md:pl-10 text-center md:text-left px-2 md:px-0">
+      {/* Título */}
+      <h1 className="text-3xl md:text-4xl font-bold">{product.title}</h1>
 
-      <h1 className="text-3xl md:text-4xl font-bold">
-        {product.title}
-      </h1>
-
+      {/* Precio */}
       <p className="text-green-600 text-2xl md:text-3xl mt-4 font-semibold">
         S/ {product.price}
       </p>
 
-      {/* AVISO DE STOCK BAJO */}
-
-      {product.stock === 1 && (
-        <p className="text-red-600 font-semibold mt-2">
-          🔥 Unica unidad disponible
-        </p>
+      {/* Stock dinámico */}
+      {remainingStock === 1 && (
+        <p className="text-red-600 font-semibold mt-2">🔥 Última unidad disponible</p>
+      )}
+      {remainingStock > 1 && remainingStock <= 3 && (
+        <p className="text-orange-600 font-semibold mt-2">🔥 Solo quedan {remainingStock} unidades</p>
+      )}
+      {remainingStock === 0 && (
+        <p className="text-red-600 font-semibold mt-2">Producto agotado</p>
       )}
 
-      {product.stock > 1 && product.stock <= 3 && (
-        <p className="text-orange-600 font-semibold mt-2">
-          🔥 Solo quedan {product.stock} unidades
-        </p>
-      )}
-
+      {/* Info */}
       <div className="mt-6 space-y-1 text-sm text-gray-600">
-
         <p>
           <span className="font-semibold text-gray-800">ID Producto:</span> {product.id}
         </p>
-
         <p>
-          <span className="font-semibold text-gray-800">Categoría:</span> {product.category}
+          <span className="font-semibold text-gray-800">Categoría:</span> {product.category?.name || "-"}
         </p>
-
         <p>
-          <span className="font-semibold text-gray-800">Vendedor:</span> {product.seller}
+          <span className="font-semibold text-gray-800">Vendedor:</span> {product.user?.name || "Sin nombre"}
         </p>
-
         <p>
-          <span className="font-semibold text-gray-800">Código vendedor:</span> {product.sellerCode}
+          <span className="font-semibold text-gray-800">Tienda:</span> {product.store?.name || "Sin tienda"}
         </p>
-
         <p>
-          <span className="font-semibold text-gray-800">Tienda:</span> {product.store}
+          <span className="font-semibold text-gray-800">Código tienda:</span> {product.store?.code || "-"}
         </p>
-
         <p>
-          <span className="font-semibold text-gray-800">Código tienda:</span> {product.storeCode}
+          <span className="font-semibold text-gray-800">Stock:</span> {remainingStock} disponibles
         </p>
-
-        <p>
-          <span className="font-semibold text-gray-800">Stock:</span>{" "}
-          {product.stock > 0 ? `${product.stock} unidades` : "Agotado"}
-        </p>
-
       </div>
 
+      {/* Descripción */}
       <div className="mt-6">
-        <h2 className="text-lg font-semibold mb-2">
-          Descripción
-        </h2>
-
-        <p className="text-gray-700 leading-relaxed text-justify">
-          {product.description}
-        </p>
+        <h2 className="text-lg font-semibold mb-2">Descripción</h2>
+        <p className="text-gray-700 leading-relaxed text-justify">{product.description}</p>
       </div>
 
-                  {/* SELECTOR DE CANTIDAD */}
+      {/* Selector */}
+      <div className="flex items-center gap-4 mt-6 justify-center md:justify-start">
+        <button
+          disabled={quantity <= 1}
+          onClick={() => {
+            setQuantity((q) => Math.max(1, q - 1));
+            setAnimateQty(true);
+            setTimeout(() => setAnimateQty(false), 200);
+          }}
+          className={`w-10 h-10 rounded-lg border text-lg ${
+            quantity <= 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "hover:bg-gray-100"
+          }`}
+        >
+          −
+        </button>
 
-        <div className="flex items-center gap-4 mt-6 justify-center md:justify-start">
+        <span className={`text-lg font-semibold w-8 text-center ${animateQty ? "scale-125" : ""}`}>
+          {quantity}
+        </span>
 
-            <button
-              disabled={quantity <= 1}
-              onClick={() => {
-                setQuantity(q => Math.max(1, q - 1))
-                setAnimateQty(true)
-                setTimeout(() => setAnimateQty(false), 200)
-              }}
-              className={`w-10 h-10 rounded-lg border text-lg transition
-                ${quantity <= 1
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "hover:bg-gray-100"}
-              `}
-            >
-              −
-            </button>
+        <button
+          disabled={remainingStock === 0 || quantity >= remainingStock}
+          onClick={() => {
+            setQuantity((q) => Math.min(remainingStock, q + 1));
+            setAnimateQty(true);
+            setTimeout(() => setAnimateQty(false), 200);
+          }}
+          className={`w-10 h-10 rounded-lg border text-lg ${
+            remainingStock === 0 || quantity >= remainingStock
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "hover:bg-gray-100"
+          }`}
+        >
+          +
+        </button>
+      </div>
 
-            <span
-              className={`text-lg font-semibold w-8 text-center transition-transform duration-200 ${
-                animateQty ? "scale-125" : "scale-100"
-              }`}
-            >
-              {quantity}
-            </span>
-
-          <button
-            disabled={quantity >= remainingStock}
-            onClick={() => {
-              setQuantity(q => Math.min(remainingStock, q + 1))
-              setAnimateQty(true)
-              setTimeout(() => setAnimateQty(false), 200)
-            }}
-            className={`w-10 h-10 rounded-lg border text-lg transition
-              ${quantity >= remainingStock
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "hover:bg-gray-100"}
-            `}
-          >
-            +
-          </button>
-
-        </div>
-
-      {/* TOTAL DE LA SELECCIÓN */}
-
-        {quantity > 1 && (
-          <p className="text-gray-700 text-sm mt-2 font-medium">
-            Total por esta selección: 
-            <span className="text-green-600 font-semibold ml-1">
-              S/ {selectionTotal}
-            </span>
-          </p>
-        )}
-
-      
-
-
-
-        {/* AVISO DE STOCK RESTANTE PARA AÑADIR */}
-
-          {remainingStock === 1 && (
-            <p className="text-orange-600 text-sm mt-2">
-              Solo puedes añadir 1 unidad más
-            </p>
-          )}
-
-          {remainingStock > 1 && remainingStock <= 3 && (
-            <p className="text-orange-600 text-sm mt-2">
-              Puedes añadir hasta {remainingStock} unidades más
-            </p>
-          )}
-
-          <button
-            onClick={(e) =>handleAdd(e)}
-            disabled={product.stock === 0 || maxInCart}
-            className={`mt-8 px-6 py-3 rounded-lg transition w-fit mx-auto md:mx-0
-              ${product.stock === 0
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-green-600 text-white hover:bg-green-700"}
-            `}
-          >
-          {product.stock === 0
-            ? "Producto agotado"
-            : maxInCart
-            ? "Stock máximo en carrito"
-            : quantity > 1
-            ? `Agregar ${quantity} al carrito`
-            : "Agregar al carrito"}
-          </button>
-
-      {added && (
-       <p className="mt-3 text-green-600 font-medium">
-         Producto añadido al carrito
-       </p>
+      {/* Total */}
+      {quantity > 1 && (
+        <p className="text-gray-700 text-sm mt-2 font-medium">
+          Total: <span className="text-green-600">S/ {selectionTotal}</span>
+        </p>
       )}
 
-      {showToast && (
-  <div className="fixed bottom-6 right-6 bg-white shadow-xl border rounded-lg px-4 py-3 flex items-center gap-3 animate-fade-in z-50">
-    
-    <div className="text-green-600 text-xl">
-      ✓
-    </div>
+      {/* BOTÓN */}
+      <button
+        onClick={handleAdd}
+        disabled={remainingStock === 0 || maxInCart}
+        className={`mt-8 px-6 py-3 rounded-lg ${
+          remainingStock === 0 || maxInCart ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"
+        }`}
+      >
+        {remainingStock === 0
+          ? "Producto agotado"
+          : maxInCart
+          ? "Ya tienes el máximo en carrito"
+          : quantity > 1
+          ? `Agregar ${quantity}`
+          : "Agregar al carrito"}
+      </button>
 
-    <div className="text-sm">
-      <p className="font-semibold">
-        Producto añadido
-      </p>
-      <p className="text-gray-500 text-xs">
-        {product.title}
-      </p>
-    </div>
+      {/* Toast añadido */}
+      {added && showToast && (
+        <div className="fixed bottom-6 right-6 bg-white shadow-xl border rounded-lg px-4 py-3 flex items-center gap-3 z-50">
+          <div className="text-green-600 text-xl">✓</div>
+          <div className="text-sm">
+            <p className="font-semibold">Producto añadido</p>
+            <p className="text-gray-500 text-xs">{product.title}</p>
+          </div>
+        </div>
+      )}
 
-  </div>
-)}
-
+      {/* Toast stock */}
       {stockLimit && (
-  <div className="fixed bottom-6 right-6 bg-white shadow-xl border rounded-lg px-4 py-3 flex items-center gap-3 animate-fade-in z-50">
-    
-    <div className="text-red-500 text-xl">
-      !
+        <div className="fixed bottom-6 right-6 bg-white shadow-xl border rounded-lg px-4 py-3 flex items-center gap-3 z-50">
+          <div className="text-red-500 text-xl">!</div>
+          <div className="text-sm">
+            <p className="font-semibold">Stock máximo alcanzado</p>
+            <p className="text-gray-500 text-xs">
+              Ya tienes todas las unidades disponibles en el carrito
+            </p>
+          </div>
+        </div>
+      )}
     </div>
-
-    <div className="text-sm">
-      <p className="font-semibold">
-        Stock máximo alcanzado
-      </p>
-      <p className="text-gray-500 text-xs">
-        Solo quedan {product.stock} unidades
-      </p>
-    </div>
-
-  </div>
-)}
-
-
-    </div>
-  )
+  );
 }

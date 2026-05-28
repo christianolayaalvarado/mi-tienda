@@ -1,79 +1,94 @@
-"use client"
-
-import ProductGallery from "@/components/ProductGallery"
-import ProductCard from "@/components/ProductCard"
-import ProductInfo from "@/components/ProductInfo"
+import prisma from "@/lib/prisma"
 import Link from "next/link"
-import { products } from "@/data/products"
-import {use} from "react"
+import ProductGallery from "@/components/ProductGallery"
+import ProductInfo from "@/components/ProductInfo"
+import Image from "next/image"
 
-export default function ProductDetail({ params }) {
+export default async function ProductDetail({ params }) {
 
-  
-const { id } = use(params)
+  // 🔥 FIX Next.js
+  const { id } = await params
 
-const stored = JSON.parse(localStorage.getItem("products")) || []
-const allProducts = [...products, ...stored]
+  // 🔹 Validar ObjectId (Mongo)
+  const isValidObjectId = /^[a-fA-F0-9]{24}$/.test(id)
 
-const product = allProducts.find(
-  p => p.id === Number(id)
-)
-
-  if (!product) {
-    return <h1 className="p-10 text-xl">Producto no encontrado</h1>
+  if (!isValidObjectId) {
+    return <p className="p-6">ID de producto inválido</p>
   }
 
-    const relatedProducts = allProducts
-  .filter(p => p.category === product.category && p.id !== product.id)
-  .slice(0, 4)
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      category: true,
+      user: true,
+      store: true,
+    },
+  })
 
+  if (!product) {
+    return <p className="p-6">Producto no encontrado</p>
+  }
 
+  // 🔹 Productos relacionados
+  const relatedProducts = await prisma.product.findMany({
+    where: {
+      categoryId: product.categoryId,
+      NOT: { id: product.id },
+    },
+    take: 4,
+  })
 
   return (
-    <div className="px-4 py-6 md:p-8 max-w-[1400px] mx-auto">
+    <div className="max-w-7xl mx-auto px-6 py-8">
 
-      <div className="grid md:grid-cols-[1.60fr_1fr] gap-8 md:gap-16 items-start">
+      <Link href="/" className="text-green-600 hover:underline">
+        ← Volver
+      </Link>
 
-        {/* Galería */}
-        <div className="flex justify-center md:justify-start w-full max-w-full">
-          <ProductGallery 
-            images={product.images} 
-            title={product.title} 
-          />
+      <div className="grid md:grid-cols-2 gap-10 mt-6">
+
+        {/* 🔥 FIX AQUÍ */}
+        <ProductGallery 
+          images={product.images} 
+          title={product.title} 
+        />
+
+        <ProductInfo product={product} />
+      </div>
+
+      {/* 🔥 MEJORADOS RELACIONADOS */}
+      {relatedProducts.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold mb-4">
+            Productos relacionados
+          </h2>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {relatedProducts.map((item) => (
+              <Link key={item.id} href={`/product/${item.id}`}>
+                <div className="border p-3 rounded hover:shadow transition">
+
+                  {item.images?.[0] && (
+                    <div className="relative w-full h-32 mb-2">
+                      <Image
+                        src={item.images[0]}
+                        alt={item.title}
+                        fill
+                        className="object-cover rounded"
+                      />
+                    </div>
+                  )}
+
+                  <p className="text-sm font-medium line-clamp-2">
+                    {item.title}
+                  </p>
+
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
-      {/* Información del producto */}
-      <ProductInfo product={product} />
-
-
-
-      </div>
-
-      {/* Botón volver */}
-      <div className="mt-12 border-t pt-6">
-        <Link
-          href="/"
-          className="inline-block bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md text-sm"
-        >
-          ← Volver a productos
-        </Link>
-      </div>
-
-      {/* Productos relacionados */}
-{relatedProducts.length > 0 && (
-  <div className="mt-16">
-
-    <h2 className="text-2xl font-bold mb-6">
-      Productos relacionados
-    </h2>
-
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-      {relatedProducts.map(product => (
-        <ProductCard key={product.id} product={product} />
-      ))}
-    </div>
-
-  </div>
-)}
+      )}
 
     </div>
   )

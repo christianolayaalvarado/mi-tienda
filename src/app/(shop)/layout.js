@@ -1,11 +1,7 @@
-import Navbar from "@/components/Navbar";
-
-
 export default function ShopLayout({ children }) {
   return (
-    <>
-      <Navbar />
-      <main>{children}</main>
-    </>
+
+    <main className="min-h-screen bg-gray-50">{children}</main>
+
   );
 }

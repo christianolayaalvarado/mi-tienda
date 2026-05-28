@@ -3,15 +3,19 @@
 import { useCart } from "@/context/CartContext"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import toast from "react-hot-toast"
 
 export default function CheckoutPage() {
 
   const { cartItems, clearCart } = useCart()
   const router = useRouter()
+
   const totalPrice = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   )
+
+  const [loading, setLoading] = useState(false)
 
   const [form, setForm] = useState({
     name: "",
@@ -20,6 +24,9 @@ export default function CheckoutPage() {
     address: ""
   })
 
+  // 🔥 NUEVO: método de pago
+  const [paymentMethod, setPaymentMethod] = useState("yape")
+
   function handleChange(e) {
     setForm({
       ...form,
@@ -27,14 +34,54 @@ export default function CheckoutPage() {
     })
   }
 
-  function handleSubmit(e) {
+  // 🔥 CHECKOUT REAL
+  async function handleSubmit(e) {
     e.preventDefault()
 
-    console.log("Datos del cliente:", form)
-    console.log("Productos:", cartItems)
+    if (cartItems.length === 0) {
+      toast.error("Carrito vacío")
+      return
+    }
 
-    clearCart()
-    router.push("/order-success")
+    const loadingToast = toast.loading("Procesando pedido...")
+    setLoading(true)
+
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          items: cartItems,
+          customer: form,
+          paymentMethod // 🔥 IMPORTANTE
+        })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast.dismiss(loadingToast)
+        toast.error(data.error || "Error procesando orden")
+        return
+      }
+
+      toast.dismiss(loadingToast)
+      toast.success("Orden creada correctamente")
+
+      clearCart()
+
+      // 🔥 REDIRECCIÓN CORRECTA
+      router.push(`/order-success?orderId=${data.orderId}`)
+
+    } catch (err) {
+      console.error(err)
+      toast.dismiss(loadingToast)
+      toast.error("Error en el checkout")
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (cartItems.length === 0) {
@@ -49,7 +96,6 @@ export default function CheckoutPage() {
   }
 
   return (
-
     <div className="max-w-5xl mx-auto px-6 py-12 grid md:grid-cols-2 gap-10">
 
       {/* FORMULARIO */}
@@ -102,11 +148,33 @@ export default function CheckoutPage() {
           required
         />
 
+        {/* 🔥 MÉTODO DE PAGO */}
+        <div className="mt-6">
+          <h2 className="font-semibold mb-2">Método de pago</h2>
+
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              value="yape"
+              checked={paymentMethod === "yape"}
+              onChange={() => setPaymentMethod("yape")}
+            />
+            Yape
+          </label>
+
+          {/* futuro */}
+          <label className="flex items-center gap-2 opacity-50">
+            <input type="radio" disabled />
+            Tarjeta (próximamente)
+          </label>
+        </div>
+
         <button
           type="submit"
-          className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700"
+          disabled={loading}
+          className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:opacity-50"
         >
-          Confirmar pedido
+          {loading ? "Procesando..." : "Confirmar pedido"}
         </button>
 
       </form>
@@ -133,20 +201,16 @@ export default function CheckoutPage() {
               <span>
                 S/ {(item.price * item.quantity).toFixed(2)}
               </span>
-
             </div>
           ))}
 
         </div>
 
         <div className="border-t mt-4 pt-4 flex justify-between font-semibold">
-
           <span>Total</span>
-
           <span className="text-green-700">
             S/ {totalPrice.toFixed(2)}
           </span>
-
         </div>
 
       </div>
