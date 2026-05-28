@@ -6,7 +6,6 @@ import Link from "next/link"
 import toast from "react-hot-toast"
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default function OrderSuccessPage() {
 
