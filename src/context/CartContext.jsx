@@ -65,13 +65,14 @@ export function CartProvider({ children }) {
       return [
         ...prev,
         {
-          productId: product.id,
+          id: String(product.id),                 // 🔹 aseguramos que sea string
+          productId: String(product.id),          // 🔹 siempre string
+          storeId: String(product.storeId || product.store?.id || ""), // 🔹 siempre string
           title: product.title,
           price: Number(product.price),
           image: product.images?.[0] || "/images/placeholder.png",
           quantity: Math.min(quantityToAdd, stock),
           stock,
-          storeId: product.store?.id || null,
         },
       ];
     });
@@ -83,12 +84,13 @@ export function CartProvider({ children }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id: product.id,
+            id: String(product.id),
+            productId: String(product.id),
+            storeId: String(product.storeId || product.store?.id || ""),
             title: product.title,
             price: Number(product.price),
             image: product.images?.[0] || "/images/placeholder.png",
             quantity: quantityToAdd,
-            storeId: product.store?.id || null,
           }),
         });
       } catch (err) {

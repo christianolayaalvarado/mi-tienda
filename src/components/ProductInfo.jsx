@@ -34,11 +34,15 @@ export default function ProductInfo({ product }) {
     flyToCart(mainImage, e);
 
     addToCart({
-      ...product,
-      storeId: product.store?.id || null,
-      images: product.images?.length ? product.images : ["/images/placeholder.png"],
+      id: product.id,                // 🔹 id del producto
+      productId: product.id,         // 🔹 necesario para OrderItemProduct
+      storeId: product.storeId || product.store?.id || null, // 🔹 necesario para OrderItem
+      title: product.title,
+      price: product.price,
       quantity,
+      image: product.images?.[0] || "/images/placeholder.png",
     });
+
 
     setAdded(true);
     setShowToast(true);
