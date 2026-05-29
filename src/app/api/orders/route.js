@@ -51,14 +51,17 @@ export async function POST(req) {
             storeId: item.storeId,
             paymentStatus: "unpaid",
             items: {
-              create: {
-                productId: item.productId,
-                quantity: item.quantity,
-                price: item.price,
-              },
+              create: [
+                {
+                  productId: item.productId,
+                  quantity: item.quantity,
+                  price: item.price,
+                },
+              ],
             },
           })),
         },
+
       },
     });
 
