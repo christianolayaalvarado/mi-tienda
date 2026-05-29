@@ -41,6 +41,7 @@ export default function ProductInfo({ product }) {
       price: product.price,
       quantity,
       image: product.images?.[0] || "/images/placeholder.png",
+      stock: product.stock,              // 🔹 stock total del producto
     });
 
 
