@@ -9,7 +9,6 @@ import { authOptions } from "@/lib/authOptions"
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions)
-
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -21,12 +20,16 @@ export async function POST(req) {
       return NextResponse.json({ error: "Carrito vacío" }, { status: 400 })
     }
 
+    // 🔹 Calcular total
+    const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+
     // 🔹 Crear orden principal
     const order = await prisma.order.create({
       data: {
         userId: session.user.id,
-        paymentStatus: "pending",
-        status: "created",
+        total,
+        paymentStatus: "unpaid",
+        status: "pending",
         paymentMethod: paymentMethod || "manual",
         customerName: customer?.name || session.user.name || "",
         customerEmail: customer?.email || session.user.email || "",
@@ -34,11 +37,11 @@ export async function POST(req) {
         customerAddress: customer?.address || "",
         orderItems: {
           create: items.map((item) => ({
-            storeId: item.storeId, // asegúrate que venga en cartItems
-            paymentStatus: "pending",
+            storeId: String(item.storeId), // 🔥 aseguramos string válido
+            paymentStatus: "unpaid",
             items: {
               create: {
-                productId: item.id || item.productId,
+                productId: String(item.productId || item.id), // 🔥 aseguramos string válido
                 quantity: item.quantity,
                 price: item.price,
               },
@@ -50,7 +53,7 @@ export async function POST(req) {
 
     return NextResponse.json({ success: true, orderId: order.id })
   } catch (err) {
-    console.error("🔥 ERROR CREATE ORDER:", err)
+    console.error("🔥 ERROR CREATE ORDER:", err.message, err.stack)
     return NextResponse.json({ error: "Error creando orden" }, { status: 500 })
   }
 }
@@ -80,7 +83,7 @@ export async function GET() {
 
     return NextResponse.json(orders)
   } catch (err) {
-    console.error("🔥 ERROR GET ORDERS:", err)
+    console.error("🔥 ERROR GET ORDERS:", err.message, err.stack)
     return NextResponse.json({ error: "Error obteniendo órdenes" }, { status: 500 })
   }
 }

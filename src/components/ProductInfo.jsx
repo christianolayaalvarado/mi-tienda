@@ -34,9 +34,9 @@ export default function ProductInfo({ product }) {
     flyToCart(mainImage, e);
 
     addToCart({
-      id: product.id,                // 🔹 id del producto
-      productId: product.id,         // 🔹 necesario para OrderItemProduct
-      storeId: product.storeId || product.store?.id || null, // 🔹 necesario para OrderItem
+      id: String(product.id),                // 🔹 id del producto
+      productId: String(product.id),         // 🔹 necesario para OrderItemProduct
+      storeId: String(product.storeId || product.store?.id || ""), // 🔹 necesario para OrderItem
       title: product.title,
       price: product.price,
       quantity,
