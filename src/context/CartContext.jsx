@@ -6,6 +6,9 @@ import { toast } from "react-hot-toast";
 
 const CartContext = createContext();
 
+// 🔹 Helper para validar ObjectId de Mongo
+const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
+
 export function CartProvider({ children }) {
   const { data: session } = useSession();
   const [cartItems, setCartItems] = useState([]);
@@ -45,7 +48,7 @@ export function CartProvider({ children }) {
   // ---------------- FUNCIONES ----------------
 
   const addToCart = async (product) => {
-    const stock = Number(product.stock) || 0;
+    const stock = Number(product.stock) || 1; // 🔥 default mínimo 1
     const quantityToAdd = Number(product.quantity) || 1;
 
     if (stock <= 0) {
@@ -54,20 +57,22 @@ export function CartProvider({ children }) {
     }
 
     setCartItems((prev) => {
-      const existing = prev.find((item) => item.productId === product.id);
+      const existing = prev.find((item) => item.productId === String(product.id));
       if (existing) {
         const newQuantity = Math.min(existing.quantity + quantityToAdd, stock);
         return prev.map((item) =>
-          item.productId === product.id ? { ...item, quantity: newQuantity, stock } : item
+          item.productId === String(product.id)
+            ? { ...item, quantity: newQuantity, stock }
+            : item
         );
       }
 
       return [
         ...prev,
         {
-          id: String(product.id),                 // 🔹 aseguramos que sea string
-          productId: String(product.id),          // 🔹 siempre string
-          storeId: String(product.storeId || product.store?.id || ""), // 🔹 siempre string
+          id: String(product.id),
+          productId: String(product.id),
+          storeId: String(product.storeId || product.store?.id || ""),
           title: product.title,
           price: Number(product.price),
           image: product.images?.[0] || "/images/placeholder.png",
@@ -76,17 +81,24 @@ export function CartProvider({ children }) {
         },
       ];
     });
+
     toast.success("Producto agregado al carrito 🛒");
 
     if (session) {
       try {
+        // 🔹 Validamos IDs antes de enviar al backend
+        if (!isValidObjectId(product.id) || !isValidObjectId(product.storeId)) {
+          console.warn("⚠️ ID inválido, guardado solo en local");
+          return;
+        }
+
         await fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             id: String(product.id),
             productId: String(product.id),
-            storeId: String(product.storeId || product.store?.id || ""),
+            storeId: String(product.storeId),
             title: product.title,
             price: Number(product.price),
             image: product.images?.[0] || "/images/placeholder.png",

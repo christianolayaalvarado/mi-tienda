@@ -3,10 +3,12 @@
 import { useCart } from "@/context/CartContext";
 import { useState } from "react";
 
+const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
+
 export default function ProductInfo({ product }) {
   const { addToCart, cartItems } = useCart();
 
-  const existingItem = cartItems.find((item) => item.productId === product.id);
+  const existingItem = cartItems.find((item) => item.productId === String(product.id));
 
   const mainImage = product.images?.[0] || "/images/placeholder.png";
 
@@ -33,17 +35,24 @@ export default function ProductInfo({ product }) {
 
     flyToCart(mainImage, e);
 
+    // Validar IDs (si no son válidos, guardamos localmente pero evitamos persistir en DB)
+    const productIdStr = String(product.id);
+    const storeIdStr = String(product.storeId || product.store?.id || "");
+
+    if (!isValidObjectId(productIdStr) || !isValidObjectId(storeIdStr)) {
+      console.warn("⚠️ ID inválido detectado. El producto se añadirá al carrito localmente, pero no se persistirá en la base de datos.");
+    }
+
     addToCart({
-      id: String(product.id),                // 🔹 id del producto
-      productId: String(product.id),         // 🔹 necesario para OrderItemProduct
-      storeId: String(product.storeId || product.store?.id || ""), // 🔹 necesario para OrderItem
+      id: productIdStr,
+      productId: productIdStr,
+      storeId: storeIdStr,
       title: product.title,
-      price: product.price,
+      price: Number(product.price) || 0,
       quantity,
       image: product.images?.[0] || "/images/placeholder.png",
-      stock: product.stock,              // 🔹 stock total del producto
+      stock: Number(product.stock) || 1,
     });
-
 
     setAdded(true);
     setShowToast(true);
