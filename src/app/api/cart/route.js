@@ -21,7 +21,11 @@ export async function GET() {
       include: { items: true },
     });
 
-    return NextResponse.json(cart || { items: [] });
+    if (!cart) {
+      return NextResponse.json({ items: [] });
+    }
+
+    return NextResponse.json(cart);
   } catch (err) {
     console.error("🔥 ERROR GET CART:", err.message, err.stack);
     return NextResponse.json({ error: "Error obteniendo carrito" }, { status: 500 });
@@ -51,11 +55,11 @@ export async function POST(req) {
         items: {
           create: {
             productId,
-            title,
-            price,
-            image,
-            quantity,
             storeId,
+            title,
+            price: Number(price) || 0,
+            image: image || "/images/placeholder.png",
+            quantity: Number(quantity) || 1,
           },
         },
       },
@@ -64,14 +68,15 @@ export async function POST(req) {
         items: {
           create: {
             productId,
-            title,
-            price,
-            image,
-            quantity,
             storeId,
+            title,
+            price: Number(price) || 0,
+            image: image || "/images/placeholder.png",
+            quantity: Number(quantity) || 1,
           },
         },
       },
+      include: { items: true },
     });
 
     return NextResponse.json(cart);
@@ -98,9 +103,17 @@ export async function PATCH(req) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
+    const cart = await prisma.cart.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!cart) {
+      return NextResponse.json({ error: "Carrito no encontrado" }, { status: 404 });
+    }
+
     const updated = await prisma.cartItem.updateMany({
-      where: { productId, cart: { userId: session.user.id } },
-      data: { quantity },
+      where: { cartId: cart.id, productId },
+      data: { quantity: Number(quantity) || 1 },
     });
 
     return NextResponse.json({ success: true, updated });
@@ -127,8 +140,16 @@ export async function DELETE(req) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
+    const cart = await prisma.cart.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!cart) {
+      return NextResponse.json({ error: "Carrito no encontrado" }, { status: 404 });
+    }
+
     await prisma.cartItem.deleteMany({
-      where: { productId, cart: { userId: session.user.id } },
+      where: { cartId: cart.id, productId },
     });
 
     return NextResponse.json({ success: true });
@@ -148,8 +169,16 @@ export async function PUT() {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
+    const cart = await prisma.cart.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!cart) {
+      return NextResponse.json({ error: "Carrito no encontrado" }, { status: 404 });
+    }
+
     await prisma.cartItem.deleteMany({
-      where: { cart: { userId: session.user.id } },
+      where: { cartId: cart.id },
     });
 
     return NextResponse.json({ success: true });

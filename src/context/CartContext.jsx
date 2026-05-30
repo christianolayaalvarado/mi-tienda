@@ -23,10 +23,12 @@ export function CartProvider({ children }) {
           const data = await res.json();
           const normalized = (data.items || []).map((item) => ({
             ...item,
+            productId: String(item.productId),
+            storeId: String(item.storeId || ""),
             quantity: Number(item.quantity) || 1,
             stock: Number(item.stock) || 0,
             price: Number(item.price) || 0,
-            storeId: item.storeId || null,
+            image: item.image || "/images/placeholder.png",
           }));
           setCartItems(normalized);
         } catch (err) {
@@ -48,7 +50,7 @@ export function CartProvider({ children }) {
   // ---------------- FUNCIONES ----------------
 
   const addToCart = async (product) => {
-    const stock = Number(product.stock) || 1; // 🔥 default mínimo 1
+    const stock = Number(product.stock) || 1;
     const quantityToAdd = Number(product.quantity) || 1;
 
     if (stock <= 0) {
@@ -86,7 +88,6 @@ export function CartProvider({ children }) {
 
     if (session) {
       try {
-        // 🔹 Validamos IDs antes de enviar al backend
         if (!isValidObjectId(product.id) || !isValidObjectId(product.storeId)) {
           console.warn("⚠️ ID inválido, guardado solo en local");
           return;
@@ -96,7 +97,6 @@ export function CartProvider({ children }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id: String(product.id),
             productId: String(product.id),
             storeId: String(product.storeId),
             title: product.title,
@@ -187,7 +187,7 @@ export function CartProvider({ children }) {
     }
   };
 
-  const checkout = async () => {
+  const checkout = async (customer, paymentMethod = "manual") => {
     if (!session) {
       alert("Debes iniciar sesión para comprar");
       return;
@@ -197,7 +197,11 @@ export function CartProvider({ children }) {
       await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cartItems }),
+        body: JSON.stringify({
+          items: cartItems,
+          customer,
+          paymentMethod,
+        }),
       });
       setCartItems([]);
       toast.success("Compra realizada con éxito ✅");

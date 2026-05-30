@@ -18,7 +18,9 @@ export async function GET(req, { params }) {
     }
 
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -26,14 +28,22 @@ export async function GET(req, { params }) {
         orderItems: {
           include: {
             store: true,
-            items: { include: { product: true } },
+            items: {
+              include: {
+                product: true,
+              },
+            },
           },
         },
       },
     });
 
-    if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
-    if (order.userId !== session.user.id) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    if (!order) {
+      return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
+    }
+    if (order.userId !== session.user.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
 
     return NextResponse.json(order);
   } catch (err) {
@@ -54,17 +64,29 @@ export async function DELETE(req, { params }) {
     }
 
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { orderItems: { include: { items: true } } },
+      include: {
+        orderItems: {
+          include: {
+            items: true,
+          },
+        },
+      },
     });
 
-    if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
-    if (order.userId !== session.user.id) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    if (!order) {
+      return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
+    }
+    if (order.userId !== session.user.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
 
-    // 🔥 restaurar stock
+    // 🔹 restaurar stock
     for (const orderItem of order.orderItems) {
       for (const item of orderItem.items) {
         await prisma.product.update({
@@ -74,6 +96,10 @@ export async function DELETE(req, { params }) {
       }
     }
 
+    // 🔹 eliminar hijos antes del padre
+    await prisma.orderItemProduct.deleteMany({
+      where: { orderItemId: { in: order.orderItems.map((oi) => oi.id) } },
+    });
     await prisma.orderItem.deleteMany({ where: { orderId } });
     await prisma.order.delete({ where: { id: orderId } });
 

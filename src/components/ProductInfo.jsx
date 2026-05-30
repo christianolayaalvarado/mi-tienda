@@ -8,7 +8,11 @@ const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
 export default function ProductInfo({ product }) {
   const { addToCart, cartItems } = useCart();
 
-  const existingItem = cartItems.find((item) => item.productId === String(product.id));
+  const productIdStr = String(product.id || product._id || "");
+  const storeIdCandidate = product.storeId || product.store?.id || "";
+  const storeIdStr = String(storeIdCandidate || "");
+
+  const existingItem = cartItems.find((item) => item.productId === productIdStr);
 
   const mainImage = product.images?.[0] || "/images/placeholder.png";
 
@@ -23,10 +27,16 @@ export default function ProductInfo({ product }) {
   const [stockLimit, setStockLimit] = useState(false);
   const [animateQty, setAnimateQty] = useState(false);
 
-  const selectionTotal = product.price * quantity;
+  const selectionTotal = Number(product.price || 0) * Number(quantity || 0);
 
   // ---------------- AÑADIR AL CARRITO ----------------
   const handleAdd = (e) => {
+    if (remainingStock === 0) {
+      setStockLimit(true);
+      setTimeout(() => setStockLimit(false), 2000);
+      return;
+    }
+
     if (maxInCart) {
       setStockLimit(true);
       setTimeout(() => setStockLimit(false), 2000);
@@ -36,22 +46,21 @@ export default function ProductInfo({ product }) {
     flyToCart(mainImage, e);
 
     // Validar IDs (si no son válidos, guardamos localmente pero evitamos persistir en DB)
-    const productIdStr = String(product.id);
-    const storeIdStr = String(product.storeId || product.store?.id || "");
-
     if (!isValidObjectId(productIdStr) || !isValidObjectId(storeIdStr)) {
-      console.warn("⚠️ ID inválido detectado. El producto se añadirá al carrito localmente, pero no se persistirá en la base de datos.");
+      console.warn(
+        "⚠️ ID inválido detectado. El producto se añadirá al carrito localmente, pero no se persistirá en la base de datos."
+      );
     }
 
     addToCart({
       id: productIdStr,
       productId: productIdStr,
-      storeId: storeIdStr,
-      title: product.title,
+      storeId: isValidObjectId(storeIdStr) ? storeIdStr : "",
+      title: product.title || "",
       price: Number(product.price) || 0,
-      quantity,
+      quantity: Number(quantity) || 1,
       image: product.images?.[0] || "/images/placeholder.png",
-      stock: Number(product.stock) || 1,
+      stock: Number(product.stock) || 0,
     });
 
     setAdded(true);
@@ -60,40 +69,48 @@ export default function ProductInfo({ product }) {
       setAdded(false);
       setShowToast(false);
     }, 2000);
+
+    // reset selector to 1 (keeps UX predictable)
+    setQuantity(1);
   };
 
   // ---------------- ANIMACIÓN ----------------
   function flyToCart(imageSrc, event) {
-    const cartIcon = document.querySelector("[data-cart-icon]");
-    if (!cartIcon) return;
+    try {
+      const cartIcon = document.querySelector("[data-cart-icon]");
+      if (!cartIcon || !event?.currentTarget) return;
 
-    const img = document.createElement("img");
-    img.src = imageSrc || "/images/placeholder.png";
+      const img = document.createElement("img");
+      img.src = imageSrc || "/images/placeholder.png";
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const cartRect = cartIcon.getBoundingClientRect();
+      const rect = event.currentTarget.getBoundingClientRect();
+      const cartRect = cartIcon.getBoundingClientRect();
 
-    img.style.position = "fixed";
-    img.style.left = rect.left + "px";
-    img.style.top = rect.top + "px";
-    img.style.width = "40px";
-    img.style.height = "40px";
-    img.style.objectFit = "cover";
-    img.style.borderRadius = "8px";
-    img.style.zIndex = "9999";
-    img.style.transition = "all 0.7s ease-in-out";
+      img.style.position = "fixed";
+      img.style.left = rect.left + "px";
+      img.style.top = rect.top + "px";
+      img.style.width = "40px";
+      img.style.height = "40px";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "8px";
+      img.style.zIndex = "9999";
+      img.style.transition = "all 0.7s ease-in-out";
 
-    document.body.appendChild(img);
+      document.body.appendChild(img);
 
-    requestAnimationFrame(() => {
-      img.style.left = cartRect.left + "px";
-      img.style.top = cartRect.top + "px";
-      img.style.width = "10px";
-      img.style.height = "10px";
-      img.style.opacity = "0.2";
-    });
+      requestAnimationFrame(() => {
+        img.style.left = cartRect.left + "px";
+        img.style.top = cartRect.top + "px";
+        img.style.width = "10px";
+        img.style.height = "10px";
+        img.style.opacity = "0.2";
+      });
 
-    setTimeout(() => img.remove(), 700);
+      setTimeout(() => img.remove(), 700);
+    } catch (err) {
+      // no bloquear la UX por la animación
+      console.warn("Animación flyToCart falló:", err);
+    }
   }
 
   return (
@@ -103,7 +120,7 @@ export default function ProductInfo({ product }) {
 
       {/* Precio */}
       <p className="text-green-600 text-2xl md:text-3xl mt-4 font-semibold">
-        S/ {product.price}
+        S/ {Number(product.price || 0).toFixed(2)}
       </p>
 
       {/* Stock dinámico */}
@@ -120,7 +137,7 @@ export default function ProductInfo({ product }) {
       {/* Info */}
       <div className="mt-6 space-y-1 text-sm text-gray-600">
         <p>
-          <span className="font-semibold text-gray-800">ID Producto:</span> {product.id}
+          <span className="font-semibold text-gray-800">ID Producto:</span> {productIdStr}
         </p>
         <p>
           <span className="font-semibold text-gray-800">Categoría:</span> {product.category?.name || "-"}
@@ -148,6 +165,7 @@ export default function ProductInfo({ product }) {
       {/* Selector */}
       <div className="flex items-center gap-4 mt-6 justify-center md:justify-start">
         <button
+          aria-label="Disminuir cantidad"
           disabled={quantity <= 1}
           onClick={() => {
             setQuantity((q) => Math.max(1, q - 1));
@@ -166,6 +184,7 @@ export default function ProductInfo({ product }) {
         </span>
 
         <button
+          aria-label="Aumentar cantidad"
           disabled={remainingStock === 0 || quantity >= remainingStock}
           onClick={() => {
             setQuantity((q) => Math.min(remainingStock, q + 1));
@@ -185,7 +204,7 @@ export default function ProductInfo({ product }) {
       {/* Total */}
       {quantity > 1 && (
         <p className="text-gray-700 text-sm mt-2 font-medium">
-          Total: <span className="text-green-600">S/ {selectionTotal}</span>
+          Total: <span className="text-green-600">S/ {selectionTotal.toFixed(2)}</span>
         </p>
       )}
 

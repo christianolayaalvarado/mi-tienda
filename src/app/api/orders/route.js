@@ -34,7 +34,7 @@ export async function POST(req) {
     // 🔹 Calcular total
     const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    // 🔹 Crear orden principal
+    // 🔹 Crear orden principal con hijos
     const order = await prisma.order.create({
       data: {
         userId: session.user.id,
@@ -61,9 +61,16 @@ export async function POST(req) {
             },
           })),
         },
-
       },
     });
+
+    // 🔹 Decrementar stock de productos comprados
+    for (const item of items) {
+      await prisma.product.update({
+        where: { id: item.productId },
+        data: { stock: { decrement: item.quantity } },
+      });
+    }
 
     return NextResponse.json({ success: true, orderId: order.id });
   } catch (err) {
