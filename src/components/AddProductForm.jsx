@@ -1,268 +1,280 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+
+const CLOUDINARY_CLOUD_NAME = "dqx8wx5fj";
+const UPLOAD_PRESET = "mi_tienda_unsigned";
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_FILES = 8; // opcional: límite de archivos por producto
 
 export default function AddProductForm() {
   const router = useRouter();
-  const { data: session } = useSession();
 
+  const [title, setTitle] = useState("");
+  const [price, setPrice] = useState("");
+  const [stock, setStock] = useState(1);
+  const [categoryId, setCategoryId] = useState("");
+  const [description, setDescription] = useState("");
+  const [files, setFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [form, setForm] = useState({
-    title: "",
-    price: "",
-    stock: 0,
-    categoryId: "",
-    description: "",
-    images: [],
-  });
-  const [imagesPreview, setImagesPreview] = useState([]);
-  const [errors, setErrors] = useState({});
-  const [toast, setToast] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // 🔹 Traer categorías
   useEffect(() => {
     fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data) => setCategories(data));
+      .then((r) => r.json())
+      .then((data) => setCategories(data || []))
+      .catch((err) => {
+        console.error("Error cargando categorías", err);
+        toast.error("No se pudieron cargar las categorías");
+      });
   }, []);
 
-  // 🔹 Manejo de inputs
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
-  };
+  useEffect(() => {
+    // limpiar object URLs al desmontar
+    return () => {
+      previews.forEach((p) => URL.revokeObjectURL(p));
+    };
+  }, [previews]);
 
-  // 🔹 Manejo de imágenes
-  const handleImages = (e) => {
-    const files = Array.from(e.target.files);
+  const handleFiles = (e) => {
+    const selected = Array.from(e.target.files || []);
+    if (selected.length === 0) return;
 
-    const readers = files.map(
-      (file) =>
-        new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        })
-    );
-
-    Promise.all(readers).then((base64Images) => {
-      setForm((prev) => ({
-        ...prev,
-        images: [...prev.images, ...base64Images],
-      }));
-
-      setImagesPreview((prev) => [...prev, ...base64Images]);
-    });
-  };
-
-  const removeImage = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-
-    setImagesPreview((prev) =>
-      prev.filter((_, i) => i !== index)
-    );
-  };
-
-  // 🔹 Validación
-  const validate = () => {
-    const newErrors = {};
-
-    if (!form.title.trim())
-      newErrors.title = "El nombre es obligatorio";
-
-    if (!form.price || Number(form.price) <= 0)
-      newErrors.price = "Precio inválido";
-
-    if (!form.stock || Number(form.stock) < 0)
-      newErrors.stock = "Stock inválido";
-
-    if (!form.categoryId)
-      newErrors.categoryId = "Selecciona una categoría";
-
-    if (form.images.length === 0)
-      newErrors.images = "Debes subir al menos una imagen";
-
-    return newErrors;
-  };
-
-  // 🔹 Guardar producto
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!session?.user?.id) {
-      return alert("No estás logueado");
-    }
-
-    const validationErrors = validate();
-
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
+    // limitar cantidad total
+    if (files.length + selected.length > MAX_FILES) {
+      toast.error(`Máximo ${MAX_FILES} imágenes por producto.`);
       return;
     }
 
-    const newProduct = {
-      ...form,
-      price: Number(form.price),
-      stock: Number(form.stock),
-    };
-
-    const res = await fetch("/api/products", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newProduct),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return alert(data.error || "Error al guardar el producto");
+    const filtered = selected.filter((f) => f.size <= MAX_FILE_SIZE);
+    if (selected.length !== filtered.length) {
+      toast.error("Algunas imágenes exceden 10MB y no serán añadidas.");
     }
 
-    setToast(true);
+    const newPreviews = filtered.map((f) => URL.createObjectURL(f));
+    setFiles((prev) => [...prev, ...filtered]);
+    setPreviews((prev) => [...prev, ...newPreviews]);
+  };
 
-    setTimeout(() => {
+  const removeFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => {
+      const url = prev[index];
+      if (url) URL.revokeObjectURL(url);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  // Subir un archivo a Cloudinary (unsigned preset)
+  const uploadToCloudinary = async (file) => {
+    const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", UPLOAD_PRESET);
+    fd.append("folder", "mi_tienda");
+
+    const res = await fetch(url, { method: "POST", body: fd });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Cloudinary upload failed: ${res.status} ${text}`);
+    }
+    const data = await res.json();
+    return data.secure_url;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (loading) return;
+
+    if (!title || !price || !categoryId) {
+      toast.error("Completa los campos obligatorios.");
+      return;
+    }
+
+    setLoading(true);
+    const uploadingToast = toast.loading("Subiendo imágenes...");
+
+    try {
+      // 1) Subir archivos a Cloudinary desde el cliente (paralelo controlado)
+      const uploadPromises = files.map((file) =>
+        uploadToCloudinary(file).then(
+          (url) => ({ status: "fulfilled", value: url }),
+          (err) => ({ status: "rejected", reason: err })
+        )
+      );
+
+      const results = await Promise.all(uploadPromises);
+
+      const successful = results
+        .filter((r) => r.status === "fulfilled")
+        .map((r) => r.value);
+
+      const failed = results.filter((r) => r.status === "rejected");
+      if (failed.length > 0) {
+        console.warn("Algunas imágenes fallaron al subir:", failed);
+        toast.error(`${failed.length} imagen(es) no se subieron correctamente.`);
+      }
+
+      // 2) Enviar metadata al backend (solo URLs)
+      const payload = {
+        title: title.trim(),
+        price: Number(price),
+        stock: Number(stock),
+        description: description || "",
+        categoryId,
+        images: successful, // solo URLs
+      };
+
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Error creando producto:", res.status, text);
+        toast.error(`Error creando producto: ${res.status}`);
+        toast.dismiss(uploadingToast);
+        setLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      toast.success("Producto creado ✅");
+      toast.dismiss(uploadingToast);
+
+      // limpiar y redirigir
+      setTitle("");
+      setPrice("");
+      setStock(1);
+      setDescription("");
+      setFiles([]);
+      previews.forEach((p) => URL.revokeObjectURL(p));
+      setPreviews([]);
       router.push("/dashboard/products");
-    }, 1500);
+    } catch (err) {
+      console.error("Error en creación:", err);
+      toast.error("Error creando producto");
+      toast.dismiss(uploadingToast);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">
-        Agregar nuevo producto
-      </h1>
+    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto p-4 space-y-4">
+      <h2 className="text-xl font-bold">Nuevo producto</h2>
 
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-4"
-      >
+      <div>
+        <label className="block">Título *</label>
         <input
-          name="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="border p-2 w-full"
           placeholder="Nombre del producto"
-          className="border p-3 rounded"
-          value={form.title}
-          onChange={handleChange}
         />
-        {errors.title && (
-          <p className="text-red-500 text-sm">
-            {errors.title}
-          </p>
-        )}
+      </div>
 
-        <input
-          name="price"
-          type="number"
-          placeholder="Precio"
-          className="border p-3 rounded"
-          value={form.price}
-          onChange={handleChange}
-        />
-        {errors.price && (
-          <p className="text-red-500 text-sm">
-            {errors.price}
-          </p>
-        )}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label>Precio *</label>
+          <input
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="border p-2 w-full"
+            min="0"
+            step="0.01"
+          />
+        </div>
+        <div>
+          <label>Stock *</label>
+          <input
+            type="number"
+            value={stock}
+            onChange={(e) => setStock(e.target.value)}
+            className="border p-2 w-full"
+            min="0"
+          />
+        </div>
+      </div>
 
-        <input
-          name="stock"
-          type="number"
-          placeholder="Stock"
-          className="border p-3 rounded"
-          value={form.stock}
-          onChange={handleChange}
-        />
-        {errors.stock && (
-          <p className="text-red-500 text-sm">
-            {errors.stock}
-          </p>
-        )}
-
+      <div>
+        <label>Categoría *</label>
         <select
-          name="categoryId"
-          className="border p-3 rounded"
-          value={form.categoryId}
-          onChange={handleChange}
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          className="border p-2 w-full"
         >
-          <option value="">
-            Seleccionar categoría
-          </option>
-
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
+          <option value="">Seleccione</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
             </option>
           ))}
         </select>
+      </div>
 
-        {errors.categoryId && (
-          <p className="text-red-500 text-sm">
-            {errors.categoryId}
-          </p>
-        )}
-
+      <div>
+        <label>Descripción</label>
         <textarea
-          name="description"
-          placeholder="Descripción"
-          className="border p-3 rounded min-h-[120px]"
-          value={form.description}
-          onChange={handleChange}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="border p-2 w-full"
         />
+      </div>
 
+      <div>
+        <label>Imágenes (máx 10MB cada una)</label>
         <input
           type="file"
           multiple
           accept="image/*"
-          onChange={handleImages}
+          onChange={handleFiles}
+          className="border p-2 w-full"
+          disabled={files.length >= MAX_FILES}
         />
-
-        {errors.images && (
-          <p className="text-red-500 text-sm">
-            {errors.images}
-          </p>
-        )}
-
-        {imagesPreview.length > 0 && (
-          <div className="grid grid-cols-3 gap-3 mt-2">
-            {imagesPreview.map((img, i) => (
-              <div
-                key={i}
-                className="relative w-full aspect-square border rounded overflow-hidden"
+        <div className="flex gap-2 mt-2 flex-wrap">
+          {previews.map((p, i) => (
+            <div key={i} className="relative">
+              <img src={p} className="w-24 h-24 object-cover rounded" alt={`preview-${i}`} />
+              <button
+                type="button"
+                onClick={() => removeFile(i)}
+                className="absolute top-0 right-0 bg-red-500 text-white w-6 h-6 text-xs rounded-full"
               >
-                <img
-                  src={img}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
+                X
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
-                <button
-                  type="button"
-                  onClick={() => removeImage(i)}
-                  className="absolute top-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded hover:bg-black"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {toast && (
-          <div className="mt-3 p-3 bg-green-100 border border-green-300 text-green-800 rounded text-sm">
-            Producto guardado correctamente
-          </div>
-        )}
-
-        <button className="bg-lime-600 text-white p-3 rounded hover:bg-lime-700">
-          Guardar producto
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-60"
+        >
+          {loading ? "Guardando..." : "Crear producto"}
         </button>
-      </form>
-    </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            files.forEach((_, i) => removeFile(i));
+            setFiles([]);
+            setPreviews([]);
+          }}
+          className="bg-gray-200 px-4 py-2 rounded"
+        >
+          Limpiar imágenes
+        </button>
+      </div>
+    </form>
   );
 }
