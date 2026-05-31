@@ -17,6 +17,66 @@ const groupByStore = (items) => {
 // Helper: generar orderNumber (formato ORD-YYYYMMDD-XXXX)
 const formatDatePart = (n) => String(n).padStart(2, "0");
 
+// ==============================
+// GET /api/orders  -> listar órdenes del comprador (user)
+// ==============================
+export async function GET(req) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const orders = await prisma.order.findMany({
+      where: { userId: session.user.id },
+      include: {
+        orderItems: {
+          include: {
+            store: true,
+            items: {
+              include: { product: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const normalized = orders.map((o) => ({
+      id: o.id || (o._id && String(o._id)),
+      orderNumber: o.orderNumber || null,
+      createdAt: o.createdAt,
+      total: o.total,
+      paymentStatus: o.paymentStatus,
+      paymentMethod: o.paymentMethod,
+      customerName: o.customerName,
+      customerEmail: o.customerEmail,
+      documentNumber: o.documentNumber || null,
+      orderItems: (o.orderItems || []).map((oi) => ({
+        id: oi.id || (oi._id && String(oi._id)),
+        storeId: oi.storeId,
+        store: oi.store ? { id: oi.store.id, name: oi.store.name } : null,
+        paymentStatus: oi.paymentStatus,
+        items: (oi.items || []).map((it) => ({
+          id: it.id || (it._id && String(it._id)),
+          productId: it.productId,
+          product: it.product ? { id: it.product.id, title: it.product.title } : null,
+          quantity: it.quantity,
+          price: it.price,
+        })),
+      })),
+    }));
+
+    return NextResponse.json({ orders: normalized });
+  } catch (err) {
+    console.error("GET /api/orders error:", err);
+    return NextResponse.json({ error: "Error obteniendo órdenes" }, { status: 500 });
+  }
+}
+
+// ==============================
+// POST /api/orders  -> crear orden (buyer checkout)
+// ==============================
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
@@ -31,14 +91,14 @@ export async function POST(req) {
       return NextResponse.json({ error: "No hay items en la orden" }, { status: 400 });
     }
 
-    // Obtener usuario y su tienda
+    // Obtener usuario y su tienda (vendedor) si aplica
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       include: { stores: true },
     });
 
-    if (!user || !user.stores || user.stores.length === 0) {
-      return NextResponse.json({ error: "No tienes tienda creada" }, { status: 400 });
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 400 });
     }
 
     const userId = user.id;
@@ -55,7 +115,7 @@ export async function POST(req) {
       const d = formatDatePart(now.getDate());
       const prefix = `ORD-${y}${m}${d}`;
 
-      // contar órdenes del día para secuencia (puedes optimizar con contador dedicado)
+      // contar órdenes del día para secuencia
       const startOfDay = new Date(Date.UTC(y, now.getMonth(), now.getDate(), 0, 0, 0));
       const endOfDay = new Date(Date.UTC(y, now.getMonth(), now.getDate(), 23, 59, 59, 999));
 
