@@ -14,10 +14,15 @@ const groupByStore = (items) => {
   return Array.from(map.entries()).map(([storeId, items]) => ({ storeId, items }));
 };
 
+// Helper: generar orderNumber (formato ORD-YYYYMMDD-XXXX)
+const formatDatePart = (n) => String(n).padStart(2, "0");
+
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
 
     const body = await req.json();
     const { items, customer = {}, paymentMethod = "manual", total } = body;
@@ -43,10 +48,37 @@ export async function POST(req) {
 
     // Ejecutar en transacción: crear orden con hijos y decrementar stock
     const createdOrder = await prisma.$transaction(async (tx) => {
+      // Generar orderNumber basado en la fecha y la cantidad de órdenes del día
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = formatDatePart(now.getMonth() + 1);
+      const d = formatDatePart(now.getDate());
+      const prefix = `ORD-${y}${m}${d}`;
+
+      // contar órdenes del día para secuencia (puedes optimizar con contador dedicado)
+      const startOfDay = new Date(Date.UTC(y, now.getMonth(), now.getDate(), 0, 0, 0));
+      const endOfDay = new Date(Date.UTC(y, now.getMonth(), now.getDate(), 23, 59, 59, 999));
+
+      const countToday = await tx.order.count({
+        where: {
+          createdAt: {
+            gte: startOfDay,
+            lt: endOfDay,
+          },
+        },
+      });
+
+      const seq = String(countToday + 1).padStart(4, "0");
+      const orderNumber = `${prefix}-${seq}`;
+
+      // Crear la orden con orderNumber y los orderItems anidados
       const order = await tx.order.create({
         data: {
           userId,
-          total: Number(total) || items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0),
+          orderNumber,
+          total:
+            Number(total) ||
+            items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0),
           status: "pending",
           paymentStatus: "unpaid",
           paymentMethod,
@@ -77,7 +109,7 @@ export async function POST(req) {
         },
       });
 
-      // Decrementar stock por cada producto
+      // Decrementar stock por cada producto (dentro de la misma transacción)
       for (const it of items) {
         try {
           await tx.product.update({
@@ -93,7 +125,14 @@ export async function POST(req) {
       return order;
     });
 
-    return NextResponse.json(createdOrder, { status: 201 });
+    // Normalizar id y devolver orderNumber para que el frontend lo use con seguridad
+    const response = {
+      id: createdOrder.id || (createdOrder._id && String(createdOrder._id)),
+      order: createdOrder,
+      orderNumber: createdOrder.orderNumber || null,
+    };
+
+    return NextResponse.json(response, { status: 201 });
   } catch (err) {
     console.error("POST /api/orders error:", err?.message || err, err?.stack);
     return NextResponse.json({ error: "Error creando orden" }, { status: 500 });

@@ -21,13 +21,14 @@ export async function GET() {
       include: { items: true },
     });
 
+    // Normalizar respuesta: siempre devolver { items: [] } cuando no hay carrito
     if (!cart) {
       return NextResponse.json({ items: [] });
     }
 
     return NextResponse.json(cart);
   } catch (err) {
-    console.error("🔥 ERROR GET CART:", err.message, err.stack);
+    console.error("🔥 ERROR GET CART:", err);
     return NextResponse.json({ error: "Error obteniendo carrito" }, { status: 500 });
   }
 }
@@ -43,45 +44,74 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { productId, title, price, image, quantity, storeId } = body;
+    const { productId, title, price, image, quantity = 1, storeId } = body;
 
     if (!isValidObjectId(productId) || !isValidObjectId(storeId)) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const cart = await prisma.cart.upsert({
+    // Buscar carrito del usuario
+    let cart = await prisma.cart.findUnique({
       where: { userId: session.user.id },
-      update: {
-        items: {
-          create: {
-            productId,
-            storeId,
-            title,
-            price: Number(price) || 0,
-            image: image || "/images/placeholder.png",
-            quantity: Number(quantity) || 1,
-          },
-        },
-      },
-      create: {
-        userId: session.user.id,
-        items: {
-          create: {
-            productId,
-            storeId,
-            title,
-            price: Number(price) || 0,
-            image: image || "/images/placeholder.png",
-            quantity: Number(quantity) || 1,
-          },
-        },
-      },
       include: { items: true },
     });
 
-    return NextResponse.json(cart);
+    // Si no existe carrito, crearlo con el primer item
+    if (!cart) {
+      cart = await prisma.cart.create({
+        data: {
+          userId: session.user.id,
+          items: {
+            create: {
+              productId,
+              storeId,
+              title,
+              price: Number(price) || 0,
+              image: image || "/images/placeholder.png",
+              quantity: Number(quantity) || 1,
+            },
+          },
+        },
+        include: { items: true },
+      });
+
+      return NextResponse.json(cart);
+    }
+
+    // Si el carrito existe, verificar si ya hay un item con ese productId
+    const existingItem = cart.items.find((it) => String(it.productId) === String(productId));
+
+    if (existingItem) {
+      // Actualizar cantidad (sumar)
+      const newQty = Number(existingItem.quantity || 0) + Number(quantity || 1);
+      await prisma.cartItem.update({
+        where: { id: existingItem.id },
+        data: { quantity: newQty },
+      });
+    } else {
+      // Crear nuevo item en el carrito existente
+      await prisma.cartItem.create({
+        data: {
+          cartId: cart.id,
+          productId,
+          storeId,
+          title,
+          price: Number(price) || 0,
+          image: image || "/images/placeholder.png",
+          quantity: Number(quantity) || 1,
+        },
+      });
+    }
+
+    // Devolver carrito actualizado
+    const updatedCart = await prisma.cart.findUnique({
+      where: { userId: session.user.id },
+      include: { items: true },
+    });
+
+    return NextResponse.json(updatedCart);
   } catch (err) {
-    console.error("🔥 ERROR POST CART:", err.message, err.stack);
+    console.error("🔥 ERROR POST CART:", err);
     return NextResponse.json({ error: "Error agregando producto al carrito" }, { status: 500 });
   }
 }
@@ -105,20 +135,28 @@ export async function PATCH(req) {
 
     const cart = await prisma.cart.findUnique({
       where: { userId: session.user.id },
+      include: { items: true },
     });
 
+    // Si no hay carrito, devolver success (sin error) para que el cliente no rompa
     if (!cart) {
-      return NextResponse.json({ error: "Carrito no encontrado" }, { status: 404 });
+      return NextResponse.json({ success: true });
     }
 
-    const updated = await prisma.cartItem.updateMany({
-      where: { cartId: cart.id, productId },
+    const item = cart.items.find((it) => String(it.productId) === String(productId));
+    if (!item) {
+      // Nada que actualizar
+      return NextResponse.json({ success: true });
+    }
+
+    const updated = await prisma.cartItem.update({
+      where: { id: item.id },
       data: { quantity: Number(quantity) || 1 },
     });
 
     return NextResponse.json({ success: true, updated });
   } catch (err) {
-    console.error("🔥 ERROR PATCH CART:", err.message, err.stack);
+    console.error("🔥 ERROR PATCH CART:", err);
     return NextResponse.json({ error: "Error actualizando cantidad" }, { status: 500 });
   }
 }
@@ -142,19 +180,27 @@ export async function DELETE(req) {
 
     const cart = await prisma.cart.findUnique({
       where: { userId: session.user.id },
+      include: { items: true },
     });
 
+    // Si no hay carrito, devolver success para evitar 404/500 en cliente
     if (!cart) {
-      return NextResponse.json({ error: "Carrito no encontrado" }, { status: 404 });
+      return NextResponse.json({ success: true });
     }
 
     await prisma.cartItem.deleteMany({
       where: { cartId: cart.id, productId },
     });
 
-    return NextResponse.json({ success: true });
+    // Devolver carrito actualizado (opcional)
+    const updatedCart = await prisma.cart.findUnique({
+      where: { userId: session.user.id },
+      include: { items: true },
+    });
+
+    return NextResponse.json({ success: true, cart: updatedCart });
   } catch (err) {
-    console.error("🔥 ERROR DELETE CART:", err.message, err.stack);
+    console.error("🔥 ERROR DELETE CART:", err);
     return NextResponse.json({ error: "Error eliminando producto" }, { status: 500 });
   }
 }
@@ -173,8 +219,9 @@ export async function PUT() {
       where: { userId: session.user.id },
     });
 
+    // Si no hay carrito, devolver success (no es un error)
     if (!cart) {
-      return NextResponse.json({ error: "Carrito no encontrado" }, { status: 404 });
+      return NextResponse.json({ success: true });
     }
 
     await prisma.cartItem.deleteMany({
@@ -183,7 +230,7 @@ export async function PUT() {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("🔥 ERROR CLEAR CART:", err.message, err.stack);
+    console.error("🔥 ERROR CLEAR CART:", err);
     return NextResponse.json({ error: "Error limpiando carrito" }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 const CartContext = createContext();
 
@@ -11,6 +12,7 @@ const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
 
 export function CartProvider({ children }) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [cartItems, setCartItems] = useState([]);
   const isSyncing = useRef(false); // evita loops de actualización
 
@@ -20,6 +22,12 @@ export function CartProvider({ children }) {
       if (session) {
         try {
           const res = await fetch("/api/cart");
+          if (!res.ok) {
+            const text = await res.text();
+            console.warn("No se pudo cargar carrito desde DB:", res.status, text);
+            setCartItems([]);
+            return;
+          }
           const data = await res.json();
           const normalized = (data.items || []).map((item) => ({
             ...item,
@@ -33,10 +41,17 @@ export function CartProvider({ children }) {
           setCartItems(normalized);
         } catch (err) {
           console.error("Error cargando carrito desde DB:", err);
+          setCartItems([]);
         }
       } else {
         const local = localStorage.getItem("cart");
-        if (local) setCartItems(JSON.parse(local));
+        if (local) {
+          try {
+            setCartItems(JSON.parse(local));
+          } catch {
+            setCartItems([]);
+          }
+        }
       }
     };
     loadCart();
@@ -93,7 +108,7 @@ export function CartProvider({ children }) {
           return;
         }
 
-        await fetch("/api/cart", {
+        const res = await fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -105,6 +120,11 @@ export function CartProvider({ children }) {
             quantity: quantityToAdd,
           }),
         });
+
+        if (!res.ok) {
+          const text = await res.text();
+          console.warn("No se pudo persistir en DB:", res.status, text);
+        }
       } catch (err) {
         console.error("Error agregando producto en DB:", err);
       }
@@ -117,11 +137,15 @@ export function CartProvider({ children }) {
 
     if (session) {
       try {
-        await fetch("/api/cart", {
+        const res = await fetch("/api/cart", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ productId }),
         });
+        if (!res.ok) {
+          const text = await res.text();
+          console.warn("No se pudo eliminar del carrito en DB:", res.status, text);
+        }
       } catch (err) {
         console.error("Error eliminando producto en DB:", err);
       }
@@ -139,11 +163,15 @@ export function CartProvider({ children }) {
 
     if (session) {
       try {
-        await fetch("/api/cart", {
+        const res = await fetch("/api/cart", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ productId, quantity: newQuantity }),
         });
+        if (!res.ok) {
+          const text = await res.text();
+          console.warn("No se pudo actualizar cantidad en DB:", res.status, text);
+        }
       } catch (err) {
         console.error("Error actualizando cantidad en DB:", err);
       }
@@ -180,31 +208,74 @@ export function CartProvider({ children }) {
 
     if (session) {
       try {
-        await fetch("/api/cart", { method: "PUT" });
+        const res = await fetch("/api/cart", { method: "PUT" });
+        if (!res.ok) {
+          const text = await res.text();
+          console.warn("No se pudo limpiar carrito en backend:", res.status, text);
+        }
       } catch (err) {
         console.error("Error limpiando carrito en DB:", err);
       }
     }
   };
 
-  const checkout = async (customer, paymentMethod = "manual") => {
+  // ---------------- CHECKOUT ROBUSTO ----------------
+  const checkout = async (customer = {}, paymentMethod = "manual") => {
     if (!session) {
       alert("Debes iniciar sesión para comprar");
       return;
     }
 
     try {
-      await fetch("/api/orders", {
+      const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: cartItems,
           customer,
           paymentMethod,
+          total: subtotal,
         }),
       });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Error creando orden:", res.status, text);
+        toast.error(`Error creando orden: ${res.status}`);
+        return;
+      }
+
+      const data = await res.json();
+
+      // Normalizar extracción de orderId (según lo que devuelva tu backend)
+      const orderId =
+        data?.id ||
+        data?._id ||
+        data?.order?.id ||
+        data?.order?._id ||
+        (data?.order && (data.order.id || data.order._id));
+
+      // Limpiar carrito local inmediatamente
       setCartItems([]);
       toast.success("Compra realizada con éxito ✅");
+
+      // Intentar limpiar carrito en backend (no bloquear la navegación)
+      try {
+        const clearRes = await fetch("/api/cart", { method: "PUT" });
+        if (!clearRes.ok) {
+          const t = await clearRes.text();
+          console.warn("No se pudo limpiar carrito en backend:", clearRes.status, t);
+        }
+      } catch (err) {
+        console.warn("Error limpiando carrito en backend:", err);
+      }
+
+      // Redirigir al detalle de la orden si tenemos id, si no ir a lista
+      if (orderId) {
+        router.push(`/dashboard/orders/${orderId}`);
+      } else {
+        router.push("/dashboard/orders");
+      }
     } catch (err) {
       console.error("Error en la compra:", err);
       toast.error("Error en la compra");
