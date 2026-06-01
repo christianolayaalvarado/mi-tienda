@@ -1,86 +1,112 @@
-"use client"
+"use client";
 
-import { useCart } from "@/context/CartContext"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import toast from "react-hot-toast"
+import { useCart } from "@/context/CartContext";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function CheckoutPage() {
+  const { cartItems, clearCart } = useCart();
+  const router = useRouter();
 
-  const { cartItems, clearCart } = useCart()
-  const router = useRouter()
+  const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const totalPrice = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  )
-
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
-    address: ""
-  })
+    address: "",
+  });
 
-  // 🔥 NUEVO: método de pago
-  const [paymentMethod, setPaymentMethod] = useState("yape")
+  // método de pago
+  const [paymentMethod, setPaymentMethod] = useState("yape");
 
   function handleChange(e) {
     setForm({
       ...form,
-      [e.target.name]: e.target.value
-    })
+      [e.target.name]: e.target.value,
+    });
   }
 
-  // 🔥 CHECKOUT REAL
+  // CHECKOUT REAL
   async function handleSubmit(e) {
-    e.preventDefault()
+    e.preventDefault();
 
     if (cartItems.length === 0) {
-      toast.error("Carrito vacío")
-      return
+      toast.error("Carrito vacío");
+      return;
     }
 
-    const loadingToast = toast.loading("Procesando pedido...")
-    setLoading(true)
+    setLoading(true);
+    const loadingToast = toast.loading("Procesando pedido...");
 
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: cartItems,
           customer: form,
-          paymentMethod // 🔥 IMPORTANTE
-        })
-      })
+          paymentMethod,
+          total: totalPrice,
+        }),
+      });
 
-      const data = await res.json()
-
+      // Si no OK, intentar leer mensaje de error y mostrarlo
       if (!res.ok) {
-        toast.dismiss(loadingToast)
-        toast.error(data.error || "Error procesando orden")
-        return
+        let errText = "Error procesando orden";
+        try {
+          const errJson = await res.json();
+          errText = errJson?.error || JSON.stringify(errJson) || errText;
+        } catch {
+          try {
+            errText = await res.text();
+          } catch {}
+        }
+        toast.dismiss(loadingToast);
+        toast.error(errText);
+        setLoading(false);
+        return;
       }
 
-      toast.dismiss(loadingToast)
-      toast.success("Orden creada correctamente")
+      // Parsear respuesta segura
+      const data = await res.json();
 
-      clearCart()
+      // Extraer orderId de varias formas posibles
+      const orderId =
+        data?.id ||
+        data?.order?.id ||
+        data?.order?._id ||
+        data?.orderId ||
+        data?.order?._id?.toString() ||
+        data?.orderNumber; // fallback a orderNumber si no hay id
 
-      // 🔥 REDIRECCIÓN CORRECTA
-      router.push(`/order-success?orderId=${data.orderId}`)
+      toast.dismiss(loadingToast);
+      toast.success("Orden creada correctamente");
 
+      // Limpiar carrito local y backend (clearCart maneja backend internamente)
+      try {
+        await clearCart();
+      } catch (err) {
+        // clearCart ya muestra warnings si falla; no bloqueamos la navegación
+        console.warn("Warning: clearCart falló", err);
+      }
+
+      // Redirigir: si tenemos orderId, ir a página de éxito con id; si no, a lista de órdenes
+      if (orderId) {
+        // Si orderId parece un orderNumber (no ObjectId), igualmente lo pasamos
+        router.push(`/order-success?orderId=${encodeURIComponent(orderId)}`);
+      } else {
+        router.push("/dashboard/orders");
+      }
     } catch (err) {
-      console.error(err)
-      toast.dismiss(loadingToast)
-      toast.error("Error en el checkout")
+      console.error("Checkout error:", err);
+      toast.dismiss(loadingToast);
+      toast.error("Error en el checkout");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -88,25 +114,16 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-4xl mx-auto px-6 py-12">
         <h1 className="text-2xl font-bold mb-4">Checkout</h1>
-        <p className="text-gray-500">
-          No hay productos en el carrito.
-        </p>
+        <p className="text-gray-500">No hay productos en el carrito.</p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12 grid md:grid-cols-2 gap-10">
-
       {/* FORMULARIO */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4"
-      >
-
-        <h1 className="text-2xl font-bold mb-4">
-          Datos del cliente
-        </h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <h1 className="text-2xl font-bold mb-4">Datos del cliente</h1>
 
         <input
           type="text"
@@ -148,7 +165,7 @@ export default function CheckoutPage() {
           required
         />
 
-        {/* 🔥 MÉTODO DE PAGO */}
+        {/* MÉTODO DE PAGO */}
         <div className="mt-6">
           <h2 className="font-semibold mb-2">Método de pago</h2>
 
@@ -162,7 +179,6 @@ export default function CheckoutPage() {
             Yape
           </label>
 
-          {/* futuro */}
           <label className="flex items-center gap-2 opacity-50">
             <input type="radio" disabled />
             Tarjeta (próximamente)
@@ -176,45 +192,29 @@ export default function CheckoutPage() {
         >
           {loading ? "Procesando..." : "Confirmar pedido"}
         </button>
-
       </form>
-
 
       {/* RESUMEN DEL PEDIDO */}
       <div className="border rounded-xl p-6 h-fit">
-
-        <h2 className="text-lg font-semibold mb-4">
-          Tu pedido
-        </h2>
+        <h2 className="text-lg font-semibold mb-4">Tu pedido</h2>
 
         <div className="space-y-3">
-
-          {cartItems.map(item => (
-            <div
-              key={item.id}
-              className="flex justify-between text-sm"
-            >
+          {cartItems.map((item) => (
+            <div key={item.id} className="flex justify-between text-sm">
               <span>
-                {item.name} × {item.quantity}
+                {item.title || item.name || item.productTitle || "Producto"} × {item.quantity}
               </span>
 
-              <span>
-                S/ {(item.price * item.quantity).toFixed(2)}
-              </span>
+              <span>S/ {(item.price * item.quantity).toFixed(2)}</span>
             </div>
           ))}
-
         </div>
 
         <div className="border-t mt-4 pt-4 flex justify-between font-semibold">
           <span>Total</span>
-          <span className="text-green-700">
-            S/ {totalPrice.toFixed(2)}
-          </span>
+          <span className="text-green-700">S/ {totalPrice.toFixed(2)}</span>
         </div>
-
       </div>
-
     </div>
-  )
+  );
 }

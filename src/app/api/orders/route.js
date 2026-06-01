@@ -43,7 +43,7 @@ export async function GET(req) {
     });
 
     const normalized = orders.map((o) => ({
-      id: o.id || (o._id && String(o._id)),
+      id: o.id,
       orderNumber: o.orderNumber || null,
       createdAt: o.createdAt,
       total: o.total,
@@ -53,12 +53,12 @@ export async function GET(req) {
       customerEmail: o.customerEmail,
       documentNumber: o.documentNumber || null,
       orderItems: (o.orderItems || []).map((oi) => ({
-        id: oi.id || (oi._id && String(oi._id)),
+        id: oi.id,
         storeId: oi.storeId,
         store: oi.store ? { id: oi.store.id, name: oi.store.name } : null,
         paymentStatus: oi.paymentStatus,
         items: (oi.items || []).map((it) => ({
-          id: it.id || (it._id && String(it._id)),
+          id: it.id,
           productId: it.productId,
           product: it.product ? { id: it.product.id, title: it.product.title } : null,
           quantity: it.quantity,
@@ -91,7 +91,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "No hay items en la orden" }, { status: 400 });
     }
 
-    // Obtener usuario y su tienda (vendedor) si aplica
+    // Obtener usuario (comprador)
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       include: { stores: true },
@@ -185,14 +185,37 @@ export async function POST(req) {
       return order;
     });
 
+    // Recuperar la orden completa con relaciones para devolver al cliente
+    const fullOrder = await prisma.order.findUnique({
+      where: { id: createdOrder.id },
+      include: {
+        orderItems: {
+          include: {
+            store: true,
+            items: {
+              include: { product: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!fullOrder) {
+      // Esto es raro, pero manejamos el caso
+      return NextResponse.json({ error: "Orden creada pero no encontrada" }, { status: 500 });
+    }
+
     // Normalizar id y devolver orderNumber para que el frontend lo use con seguridad
     const response = {
-      id: createdOrder.id || (createdOrder._id && String(createdOrder._id)),
-      order: createdOrder,
-      orderNumber: createdOrder.orderNumber || null,
+      id: fullOrder.id,
+      order: fullOrder,
+      orderNumber: fullOrder.orderNumber || null,
     };
 
-    return NextResponse.json(response, { status: 201 });
+    return NextResponse.json(response, {
+      status: 201,
+      headers: { Location: `/api/orders/${fullOrder.id}` },
+    });
   } catch (err) {
     console.error("POST /api/orders error:", err?.message || err, err?.stack);
     return NextResponse.json({ error: "Error creando orden" }, { status: 500 });
