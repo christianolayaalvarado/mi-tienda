@@ -1,55 +1,71 @@
-import { NextResponse } from "next/server"
-import prisma from "@/lib/prisma"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/authOptions"
-import cloudinary from "@/lib/cloudinary"
+// app/api/orders/[id]/upload-proof/route.js
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 
-const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id)
+const isValidObjectId = (id) => typeof id === "string" && id.length > 0;
 
 export async function POST(req, context) {
   try {
-    const { params } = await context
-    const orderId = params?.id
+    // await context.params porque params puede ser una Promise
+    const params = await context.params;
+    const orderId = params?.id;
 
     if (!orderId || !isValidObjectId(orderId)) {
-      return NextResponse.json({ error: "ID inválido" }, { status: 400 })
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const session = await getServerSession(authOptions)
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } })
-    if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 })
-    if (order.userId !== session.user.id) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
-
-    const formData = await req.formData()
-    const file = formData.get("file")
-    if (!file || typeof file === "string") {
-      return NextResponse.json({ error: "Archivo inválido" }, { status: 400 })
+    // Intentar leer formData (si el cliente envía FormData)
+    let formData;
+    try {
+      formData = await req.formData();
+    } catch (e) {
+      formData = null;
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    // Si no hay formData, intentar JSON con proofUrl
+    if (!formData) {
+      const body = await req.json().catch(() => ({}));
+      const proofUrl = body?.proofUrl;
+      if (!proofUrl) {
+        return NextResponse.json({ error: "No se recibió comprobante" }, { status: 400 });
+      }
 
-    const uploadResult = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: "payment_proofs" },
-        (error, result) => (error ? reject(error) : resolve(result))
-      )
-      stream.end(buffer)
-    })
+      const updated = await prisma.order.update({
+        where: { id: orderId },
+        data: { paymentProof: proofUrl, paymentStatus: "pending_verification" },
+      });
 
-    await prisma.order.update({
+      return NextResponse.json({ success: true, order: updated });
+    }
+
+    // Si hay formData, extraer el archivo
+    const file = formData.get("file");
+    if (!file) {
+      return NextResponse.json({ error: "No se encontró el archivo en formData" }, { status: 400 });
+    }
+
+    // Aquí deberías subir el archivo a un storage real (S3, Cloudinary, Supabase, etc.)
+    // Por ahora guardamos metadata (nombre y mime) en la orden como placeholder.
+    const filename = file.name || `proof-${Date.now()}`;
+    const mime = file.type || "application/octet-stream";
+
+    const updated = await prisma.order.update({
       where: { id: orderId },
       data: {
-        paymentProof: uploadResult.secure_url,
+        paymentProof: filename,
+        paymentProofMime: mime,
         paymentStatus: "pending_verification",
       },
-    })
+    });
 
-    return NextResponse.json({ success: true, url: uploadResult.secure_url })
-  } catch (error) {
-    console.error("🔥 ERROR UPLOAD PROOF:", error)
-    return NextResponse.json({ error: "Error subiendo comprobante" }, { status: 500 })
+    return NextResponse.json({ success: true, order: updated });
+  } catch (err) {
+    console.error("🔥 ERROR UPLOAD PROOF (upload-proof route):", err?.message || err, err?.stack);
+    return NextResponse.json({ error: "Error subiendo comprobante" }, { status: 500 });
   }
 }

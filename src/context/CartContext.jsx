@@ -1,309 +1,267 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
-import { toast } from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import toast from "react-hot-toast";
+
+/**
+ * CartContext.jsx
+ * - Endpoints usados:
+ *   GET  /api/cart      -> { cart: null | { id, userId, items: [...] } }
+ *   POST /api/cart      -> { cart }
+ *   DELETE /api/cart    -> { success: true }
+ *
+ * Ajusta los nombres de campos si tu esquema difiere.
+ */
 
 const CartContext = createContext();
 
-// 🔹 Helper para validar ObjectId de Mongo
-const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
-
 export function CartProvider({ children }) {
-  const { data: session } = useSession();
-  const router = useRouter();
-  const [cartItems, setCartItems] = useState([]);
-  const isSyncing = useRef(false); // evita loops de actualización
+  const [cartItems, setCartItems] = useState([]); // { id?, productId, storeId, name, price, quantity, ... }
+  const [loading, setLoading] = useState(false);
+  const [persisting, setPersisting] = useState(false);
 
-  // ---------------- CARGAR DESDE DB O LOCAL ----------------
-  useEffect(() => {
-    const loadCart = async () => {
-      if (session) {
-        try {
-          const res = await fetch("/api/cart");
-          if (!res.ok) {
-            const text = await res.text();
-            console.warn("No se pudo cargar carrito desde DB:", res.status, text);
-            setCartItems([]);
-            return;
-          }
-          const data = await res.json();
-          const normalized = (data.items || []).map((item) => ({
-            ...item,
-            productId: String(item.productId),
-            storeId: String(item.storeId || ""),
-            quantity: Number(item.quantity) || 1,
-            stock: Number(item.stock) || 0,
-            price: Number(item.price) || 0,
-            image: item.image || "/images/placeholder.png",
-          }));
-          setCartItems(normalized);
-        } catch (err) {
-          console.error("Error cargando carrito desde DB:", err);
-          setCartItems([]);
-        }
-      } else {
-        const local = localStorage.getItem("cart");
-        if (local) {
-          try {
-            setCartItems(JSON.parse(local));
-          } catch {
-            setCartItems([]);
-          }
-        }
-      }
-    };
-    loadCart();
-  }, [session]);
+  // --- Helpers ---
+  const validateItemShape = (it) => {
+    return (
+      it &&
+      (typeof it.productId === "string" || typeof it.productId === "number") &&
+      (typeof it.storeId === "string" || typeof it.storeId === "number") &&
+      typeof it.quantity === "number" &&
+      it.quantity > 0 &&
+      typeof it.price !== "undefined"
+    );
+  };
 
-  // ---------------- GUARDAR EN LOCAL ----------------
-  useEffect(() => {
-    if (!session) localStorage.setItem("cart", JSON.stringify(cartItems));
-  }, [cartItems, session]);
-
-  // ---------------- FUNCIONES ----------------
-
-  const addToCart = async (product) => {
-    const stock = Number(product.stock) || 1;
-    const quantityToAdd = Number(product.quantity) || 1;
-
-    if (stock <= 0) {
-      toast.error("Sin stock disponible ❌");
-      return;
+  const saveLocal = (items) => {
+    try {
+      localStorage.setItem("mi_tienda_cart", JSON.stringify(items));
+    } catch (e) {
+      console.warn("No se pudo guardar carrito en localStorage", e);
     }
+  };
 
-    setCartItems((prev) => {
-      const existing = prev.find((item) => item.productId === String(product.id));
-      if (existing) {
-        const newQuantity = Math.min(existing.quantity + quantityToAdd, stock);
-        return prev.map((item) =>
-          item.productId === String(product.id)
-            ? { ...item, quantity: newQuantity, stock }
-            : item
-        );
+  const loadLocal = () => {
+    try {
+      const raw = localStorage.getItem("mi_tienda_cart");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.warn("Error leyendo carrito local", e);
+      return [];
+    }
+  };
+
+  // --- API calls ---
+  const fetchCart = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/cart", { method: "GET" });
+      if (!res.ok) {
+        const text = await res.text().catch(() => null);
+        console.error("GET /api/cart failed:", res.status, text);
+        // fallback a localStorage
+        const local = loadLocal();
+        setCartItems(local);
+        return { cart: null, fallback: true };
       }
+      const data = await res.json();
+      const items = (data?.cart?.items || []).map((it) => ({
+        id: it.id,
+        productId: it.productId,
+        storeId: it.storeId,
+        name: it.product?.title || it.name || "",
+        price: it.price,
+        quantity: it.quantity,
+      }));
+      setCartItems(items);
+      saveLocal(items);
+      return { cart: data?.cart || null, fallback: false };
+    } catch (err) {
+      console.error("Error fetching cart:", err);
+      const local = loadLocal();
+      setCartItems(local);
+      return { cart: null, fallback: true };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-      return [
-        ...prev,
-        {
-          id: String(product.id),
-          productId: String(product.id),
-          storeId: String(product.storeId || product.store?.id || ""),
-          title: product.title,
-          price: Number(product.price),
-          image: product.images?.[0] || "/images/placeholder.png",
-          quantity: Math.min(quantityToAdd, stock),
-          stock,
-        },
-      ];
-    });
-
-    toast.success("Producto agregado al carrito 🛒");
-
-    if (session) {
+  const persistCart = useCallback(
+    async (items) => {
+      // items: array of cart items
+      setPersisting(true);
       try {
-        if (!isValidObjectId(product.id) || !isValidObjectId(product.storeId)) {
-          console.warn("⚠️ ID inválido, guardado solo en local");
-          return;
+        if (!Array.isArray(items)) {
+          throw new Error("Items inválidos");
+        }
+        // Validar items antes de enviar
+        const invalid = items.find((it) => !validateItemShape(it));
+        if (invalid) {
+          throw new Error("Algún item tiene campos faltantes (productId, storeId, price, quantity)");
         }
 
         const res = await fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            productId: String(product.id),
-            storeId: String(product.storeId),
-            title: product.title,
-            price: Number(product.price),
-            image: product.images?.[0] || "/images/placeholder.png",
-            quantity: quantityToAdd,
-          }),
+          body: JSON.stringify({ items }),
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          console.warn("No se pudo persistir en DB:", res.status, text);
+          const text = await res.text().catch(() => null);
+          console.error("POST /api/cart failed:", res.status, text);
+          throw new Error(text || "Error persistiendo carrito");
         }
+
+        const data = await res.json();
+        const serverItems = (data?.cart?.items || []).map((it) => ({
+          id: it.id,
+          productId: it.productId,
+          storeId: it.storeId,
+          name: it.product?.title || it.name || "",
+          price: it.price,
+          quantity: it.quantity,
+        }));
+        setCartItems(serverItems);
+        saveLocal(serverItems);
+        return { success: true, cart: data?.cart || null };
       } catch (err) {
-        console.error("Error agregando producto en DB:", err);
+        console.error("No se pudo persistir en DB:", err?.message || err);
+        toast.error(err?.message || "No se pudo persistir carrito");
+        // fallback: guardar localmente
+        saveLocal(items);
+        setCartItems(items);
+        return { success: false, error: err?.message || String(err) };
+      } finally {
+        setPersisting(false);
       }
-    }
-  };
-
-  const removeFromCart = async (productId) => {
-    setCartItems((prev) => prev.filter((item) => item.productId !== productId));
-    toast.success("Producto eliminado 🗑️");
-
-    if (session) {
-      try {
-        const res = await fetch("/api/cart", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ productId }),
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          console.warn("No se pudo eliminar del carrito en DB:", res.status, text);
-        }
-      } catch (err) {
-        console.error("Error eliminando producto en DB:", err);
-      }
-    }
-  };
-
-  const updateQuantity = async (productId, newQuantity) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.productId === productId
-          ? { ...item, quantity: Math.min(newQuantity, item.stock) }
-          : item
-      )
-    );
-
-    if (session) {
-      try {
-        const res = await fetch("/api/cart", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ productId, quantity: newQuantity }),
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          console.warn("No se pudo actualizar cantidad en DB:", res.status, text);
-        }
-      } catch (err) {
-        console.error("Error actualizando cantidad en DB:", err);
-      }
-    }
-  };
-
-  const increaseQuantity = (productId) => {
-    const item = cartItems.find((i) => i.productId === productId);
-    if (!item) return;
-
-    if (item.quantity >= item.stock) {
-      toast.error("Has alcanzado el stock máximo 📦");
-      return;
-    }
-
-    updateQuantity(productId, item.quantity + 1);
-  };
-
-  const decreaseQuantity = (productId) => {
-    const item = cartItems.find((i) => i.productId === productId);
-    if (!item) return;
-
-    const newQuantity = item.quantity - 1;
-    if (newQuantity <= 0) {
-      removeFromCart(productId);
-    } else {
-      updateQuantity(productId, newQuantity);
-    }
-  };
-
-  const clearCart = async () => {
-    setCartItems([]);
-    toast.success("Carrito limpiado 🧹");
-
-    if (session) {
-      try {
-        const res = await fetch("/api/cart", { method: "PUT" });
-        if (!res.ok) {
-          const text = await res.text();
-          console.warn("No se pudo limpiar carrito en backend:", res.status, text);
-        }
-      } catch (err) {
-        console.error("Error limpiando carrito en DB:", err);
-      }
-    }
-  };
-
-  // ---------------- CHECKOUT ROBUSTO ----------------
-  const checkout = async (customer = {}, paymentMethod = "manual") => {
-    if (!session) {
-      alert("Debes iniciar sesión para comprar");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cartItems,
-          customer,
-          paymentMethod,
-          total: subtotal,
-        }),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("Error creando orden:", res.status, text);
-        toast.error(`Error creando orden: ${res.status}`);
-        return;
-      }
-
-      const data = await res.json();
-
-      // Normalizar extracción de orderId (según lo que devuelva tu backend)
-      const orderId =
-        data?.id ||
-        data?._id ||
-        data?.order?.id ||
-        data?.order?._id ||
-        (data?.order && (data.order.id || data.order._id));
-
-      // Limpiar carrito local inmediatamente
-      setCartItems([]);
-      toast.success("Compra realizada con éxito ✅");
-
-      // Intentar limpiar carrito en backend (no bloquear la navegación)
-      try {
-        const clearRes = await fetch("/api/cart", { method: "PUT" });
-        if (!clearRes.ok) {
-          const t = await clearRes.text();
-          console.warn("No se pudo limpiar carrito en backend:", clearRes.status, t);
-        }
-      } catch (err) {
-        console.warn("Error limpiando carrito en backend:", err);
-      }
-
-      // Redirigir al detalle de la orden si tenemos id, si no ir a lista
-      if (orderId) {
-        router.push(`/dashboard/orders/${orderId}`);
-      } else {
-        router.push("/dashboard/orders");
-      }
-    } catch (err) {
-      console.error("Error en la compra:", err);
-      toast.error("Error en la compra");
-    }
-  };
-
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  return (
-    <CartContext.Provider
-      value={{
-        cartItems,
-        addToCart,
-        removeFromCart,
-        increaseQuantity,
-        decreaseQuantity,
-        clearCart,
-        checkout,
-        totalItems,
-        subtotal,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+    },
+    []
   );
+
+  const clearCart = useCallback(async () => {
+    // Limpia local y backend; devuelve promesa para que el caller espere
+    setLoading(true);
+    try {
+      // Primero limpiar local
+      setCartItems([]);
+      saveLocal([]);
+
+      // Intentar limpiar en backend con DELETE
+      const res = await fetch("/api/cart", { method: "DELETE" });
+      if (!res.ok) {
+        const text = await res.text().catch(() => null);
+        console.error("DELETE /api/cart failed:", res.status, text);
+        // No lanzar error para no bloquear UX; devolver fallo para logging
+        toast.error("No se pudo limpiar carrito en backend");
+        return { success: false, status: res.status, text };
+      }
+      return { success: true };
+    } catch (err) {
+      console.error("Error clearing cart:", err);
+      toast.error("Error limpiando carrito");
+      return { success: false, error: err?.message || String(err) };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // --- Mutators ---
+  const addToCart = useCallback(
+    async (product, qty = 1) => {
+      // product: { productId, storeId, price, name, ... }
+      try {
+        if (!product || !product.productId || !product.storeId) {
+          throw new Error("Producto inválido");
+        }
+        const existing = cartItems.find((it) => String(it.productId) === String(product.productId) && String(it.storeId) === String(product.storeId));
+        let next;
+        if (existing) {
+          next = cartItems.map((it) =>
+            String(it.productId) === String(product.productId) && String(it.storeId) === String(product.storeId)
+              ? { ...it, quantity: it.quantity + qty }
+              : it
+          );
+        } else {
+          next = [
+            ...cartItems,
+            {
+              productId: product.productId,
+              storeId: product.storeId,
+              name: product.name || product.title || "",
+              price: Number(product.price) || 0,
+              quantity: Number(qty) || 1,
+            },
+          ];
+        }
+        setCartItems(next);
+        saveLocal(next);
+        // Persistir en background (no bloquear)
+        persistCart(next).catch(() => {});
+        return { success: true, cart: next };
+      } catch (err) {
+        console.error("addToCart error:", err);
+        toast.error(err?.message || "No se pudo agregar al carrito");
+        return { success: false, error: err?.message || String(err) };
+      }
+    },
+    [cartItems, persistCart]
+  );
+
+  const removeFromCart = useCallback(
+    async (productId, storeId) => {
+      const next = cartItems.filter((it) => !(String(it.productId) === String(productId) && String(it.storeId) === String(storeId)));
+      setCartItems(next);
+      saveLocal(next);
+      persistCart(next).catch(() => {});
+      return { success: true, cart: next };
+    },
+    [cartItems, persistCart]
+  );
+
+  const updateQuantity = useCallback(
+    async (productId, storeId, quantity) => {
+      if (typeof quantity !== "number" || quantity <= 0) {
+        return removeFromCart(productId, storeId);
+      }
+      const next = cartItems.map((it) =>
+        String(it.productId) === String(productId) && String(it.storeId) === String(storeId) ? { ...it, quantity } : it
+      );
+      setCartItems(next);
+      saveLocal(next);
+      persistCart(next).catch(() => {});
+      return { success: true, cart: next };
+    },
+    [cartItems, persistCart, removeFromCart]
+  );
+
+  // --- Init: cargar carrito desde backend o local ---
+  useEffect(() => {
+    // Al montar, intentar cargar desde backend; si falla, usar localStorage
+    fetchCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- Expose context value ---
+  const value = {
+    cartItems,
+    loading,
+    persisting,
+    fetchCart,
+    persistCart,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    getTotal: () => cartItems.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0),
+    getCount: () => cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0),
+  };
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {
-  return useContext(CartContext);
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error("useCart must be used within CartProvider");
+  return ctx;
 }

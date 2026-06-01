@@ -97,11 +97,13 @@ model Order {
   paymentStatus  String      @default("unpaid")  // unpaid, paid, refunded, pending_verification
   paymentMethod  String?     // yape, tarjeta, etc.
   paymentProof   String?
+  paymentProofMime String?
   paidAt         DateTime?
   customerName   String?
   customerEmail  String?
   customerPhone  String?
   customerAddress String?
+  orderNumber    String?
   orderItems     OrderItem[]
   createdAt      DateTime    @default(now())
 }
