@@ -82,6 +82,7 @@ model CartItem {
   price     Float
   quantity  Int
   image     String
+  storeId   String?
   createdAt DateTime  @default(now())
 
   @@index([cartId])

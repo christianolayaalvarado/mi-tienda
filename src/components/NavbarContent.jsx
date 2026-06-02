@@ -9,12 +9,26 @@ import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 
 export default function NavbarContent() {
-  console.log("🌟 Navbar renderizada");
-  
+  // Debug ligero
+  // console.log("🌟 Navbar renderizada");
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
-  const { cartItems, totalItems, subtotal, increaseQuantity, decreaseQuantity, removeFromCart } = useCart();
+
+  // Usar las funciones que expone CartContext
+  const {
+    cartItems = [],
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    getTotal,
+    getCount,
+  } = useCart();
+
+  // subtotal y totalItems calculados a partir del contexto (defensivo)
+  const subtotal = Number(getTotal?.() ?? 0);
+  const totalItems = Number(getCount?.() ?? cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0));
 
   const currentSearch = searchParams.get("search") || "";
   const currentCategory = searchParams.get("category") || "";
@@ -40,8 +54,11 @@ export default function NavbarContent() {
   }, [search]);
 
   useEffect(() => {
+    // Evitar push en SSR o antes de montar
+    if (!mounted) return;
     router.push(buildURL({ searchVal: debouncedSearch, categoryVal: currentCategory, sortVal: currentSort, pageVal: "1" }));
-  }, [debouncedSearch, currentCategory, currentSort]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, currentCategory, currentSort, mounted]);
 
   useEffect(() => setSearch(currentSearch), [currentSearch]);
   useEffect(() => setMounted(true), []);
@@ -61,7 +78,7 @@ export default function NavbarContent() {
     setAnimateCart(true);
     const timer = setTimeout(() => setAnimateCart(false), 500);
     return () => clearTimeout(timer);
-  }, [totalItems]);
+  }, [totalItems, mounted]);
 
   // ---------------- CERRAR CARRITO CLICK OUTSIDE ----------------
   useEffect(() => {
@@ -71,6 +88,26 @@ export default function NavbarContent() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // ---------------- HELPERS para cantidad ----------------
+  const increaseQuantity = (productId) => {
+    const item = cartItems.find((it) => String(it.productId) === String(productId));
+    if (!item) return;
+    const newQty = (Number(item.quantity) || 0) + 1;
+    updateQuantity(item.productId, item.storeId ?? undefined, newQty);
+  };
+
+  const decreaseQuantity = (productId) => {
+    const item = cartItems.find((it) => String(it.productId) === String(productId));
+    if (!item) return;
+    const newQty = (Number(item.quantity) || 0) - 1;
+    if (newQty <= 0) {
+      // eliminar si llega a 0
+      removeFromCart(item.productId, item.storeId ?? undefined);
+    } else {
+      updateQuantity(item.productId, item.storeId ?? undefined, newQty);
+    }
+  };
 
   // ---------------- RENDER ----------------
   return (
@@ -89,10 +126,16 @@ export default function NavbarContent() {
         </div>
 
         {/* Carrito */}
-        <div data-cart-icon onClick={() => setCartOpen(!cartOpen)} className="text-sm font-medium cursor-pointer relative">
+        <div
+          data-cart-icon
+          onClick={() => setCartOpen((s) => !s)}
+          className="text-sm font-medium cursor-pointer relative select-none"
+        >
           🛒 Carrito
           {mounted && totalItems > 0 && (
-            <span className={`absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center ${animateCart ? "scale-125" : "scale-100"} transition-transform duration-300`}>
+            <span
+              className={`absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center ${animateCart ? "scale-125" : "scale-100"} transition-transform duration-300`}
+            >
               {totalItems}
             </span>
           )}
@@ -123,40 +166,40 @@ export default function NavbarContent() {
         {cartOpen && (
           <div ref={cartRef} className="absolute right-0 top-10 w-80 bg-white shadow-xl border rounded-lg p-4 z-50">
             <h3 className="font-semibold mb-3">Carrito</h3>
-            {cartItems.length === 0 && <p className="text-sm text-gray-500">El carrito está vacío</p>}
+            {(!cartItems || cartItems.length === 0) && <p className="text-sm text-gray-500">El carrito está vacío</p>}
 
             {cartItems.map((item) => (
-              <div key={item.productId} className="flex items-center gap-3 py-2 border-b last:border-none hover:bg-gray-50 rounded-lg px-2 transition">
+              <div key={item.id ?? item.productId} className="flex items-center gap-3 py-2 border-b last:border-none hover:bg-gray-50 rounded-lg px-2 transition">
                 <Link href={`/product/${item.productId}`} className="w-16 h-16 relative block">
-                  <Image src={item.image || "/images/placeholder.png"} alt={item.title} width={64} height={64} className="object-cover rounded"/>
+                  <Image src={item.image || "/images/placeholder.png"} alt={item.title || "Producto"} width={64} height={64} className="object-cover rounded"/>
                 </Link>
                 <div className="flex-1 text-sm">
                   <Link href={`/product/${item.productId}`}>
                     <p className="truncate font-medium hover:text-green-600 cursor-pointer">{item.title}</p>
                   </Link>
-                  <p className="text-gray-500 text-xs">S/ {item.price} × {item.quantity}</p>
+                  <p className="text-gray-500 text-xs">S/ {Number(item.price || 0).toFixed(2)} × {item.quantity}</p>
 
                   <div className="flex items-center gap-2 mt-1">
                     <button onClick={() => decreaseQuantity(item.productId)} className="px-2 bg-gray-200 rounded hover:bg-gray-300">−</button>
                     <span className="text-xs w-4 text-center">{item.quantity}</span>
                     <button
                       onClick={() => increaseQuantity(item.productId)}
-                      disabled={item.quantity >= item.stock}
+                      disabled={item.quantity >= (item.stock ?? Infinity)}
                       className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40"
                     >+</button>
                   </div>
                 </div>
-                <button onClick={() => removeFromCart(item.productId)} className="p-1 rounded hover:bg-red-100 transition">
+                <button onClick={() => removeFromCart(item.productId, item.storeId ?? undefined)} className="p-1 rounded hover:bg-red-100 transition">
                   <Trash2 size={20} className="text-gray-500 hover:text-red-600" />
                 </button>
               </div>
             ))}
 
-            {cartItems.length > 0 && (
+            {cartItems && cartItems.length > 0 && (
               <>
                 <div className="flex justify-between items-center mt-3 pt-3 border-t text-sm font-semibold">
                   <span>Subtotal</span>
-                  <span>S/ {subtotal.toFixed(2)}</span>
+                  <span>S/ {(subtotal ?? 0).toFixed(2)}</span>
                 </div>
                 <button onClick={() => { setCartOpen(false); router.push("/cart"); }} className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
                   Ver carrito

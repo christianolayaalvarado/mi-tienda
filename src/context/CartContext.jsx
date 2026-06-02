@@ -10,25 +10,24 @@ import toast from "react-hot-toast";
  *   POST /api/cart      -> { cart }
  *   DELETE /api/cart    -> { success: true }
  *
- * Ajusta los nombres de campos si tu esquema difiere.
+ * Nota: el endpoint POST /api/cart en el servidor enriquece los items
+ * consultando Product en DB, por eso aquí enviamos solo { productId, quantity }.
  */
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState([]); // { id?, productId, storeId, name, price, quantity, ... }
+  const [cartItems, setCartItems] = useState([]); // { id?, productId, storeId?, name?, price?, quantity, ... }
   const [loading, setLoading] = useState(false);
   const [persisting, setPersisting] = useState(false);
 
   // --- Helpers ---
-  const validateItemShape = (it) => {
+  const validateLocalItem = (it) => {
     return (
       it &&
       (typeof it.productId === "string" || typeof it.productId === "number") &&
-      (typeof it.storeId === "string" || typeof it.storeId === "number") &&
       typeof it.quantity === "number" &&
-      it.quantity > 0 &&
-      typeof it.price !== "undefined"
+      it.quantity > 0
     );
   };
 
@@ -60,7 +59,6 @@ export function CartProvider({ children }) {
       if (!res.ok) {
         const text = await res.text().catch(() => null);
         console.error("GET /api/cart failed:", res.status, text);
-        // fallback a localStorage
         const local = loadLocal();
         setCartItems(local);
         return { cart: null, fallback: true };
@@ -70,7 +68,7 @@ export function CartProvider({ children }) {
         id: it.id,
         productId: it.productId,
         storeId: it.storeId,
-        name: it.product?.title || it.name || "",
+        name: it.product?.title || it.title || it.name || "",
         price: it.price,
         quantity: it.quantity,
       }));
@@ -89,22 +87,25 @@ export function CartProvider({ children }) {
 
   const persistCart = useCallback(
     async (items) => {
-      // items: array of cart items
+      // items: array of cart items (local shape)
       setPersisting(true);
       try {
         if (!Array.isArray(items)) {
           throw new Error("Items inválidos");
         }
-        // Validar items antes de enviar
-        const invalid = items.find((it) => !validateItemShape(it));
+        // Validar forma mínima: productId + quantity
+        const invalid = items.find((it) => !validateLocalItem(it));
         if (invalid) {
-          throw new Error("Algún item tiene campos faltantes (productId, storeId, price, quantity)");
+          throw new Error("Algún item tiene campos faltantes (productId, quantity)");
         }
+
+        // Enviar solo lo mínimo que el servidor necesita; el servidor enriquecerá los items
+        const payload = items.map((it) => ({ productId: it.productId, quantity: Number(it.quantity) || 1 }));
 
         const res = await fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items }),
+          body: JSON.stringify({ items: payload }),
         });
 
         if (!res.ok) {
@@ -118,7 +119,7 @@ export function CartProvider({ children }) {
           id: it.id,
           productId: it.productId,
           storeId: it.storeId,
-          name: it.product?.title || it.name || "",
+          name: it.product?.title || it.title || it.name || "",
           price: it.price,
           quantity: it.quantity,
         }));
@@ -140,10 +141,9 @@ export function CartProvider({ children }) {
   );
 
   const clearCart = useCallback(async () => {
-    // Limpia local y backend; devuelve promesa para que el caller espere
     setLoading(true);
     try {
-      // Primero limpiar local
+      // Limpiar local primero
       setCartItems([]);
       saveLocal([]);
 
@@ -152,7 +152,6 @@ export function CartProvider({ children }) {
       if (!res.ok) {
         const text = await res.text().catch(() => null);
         console.error("DELETE /api/cart failed:", res.status, text);
-        // No lanzar error para no bloquear UX; devolver fallo para logging
         toast.error("No se pudo limpiar carrito en backend");
         return { success: false, status: res.status, text };
       }
@@ -169,16 +168,20 @@ export function CartProvider({ children }) {
   // --- Mutators ---
   const addToCart = useCallback(
     async (product, qty = 1) => {
-      // product: { productId, storeId, price, name, ... }
+      // product: { id | productId, storeId?, price?, name?, ... }
       try {
-        if (!product || !product.productId || !product.storeId) {
-          throw new Error("Producto inválido");
+        const productId = product.productId ?? product.id;
+        const storeId = product.storeId ?? product.store?.id ?? product.storeId;
+        if (!productId) {
+          throw new Error("Producto inválido (falta productId)");
         }
-        const existing = cartItems.find((it) => String(it.productId) === String(product.productId) && String(it.storeId) === String(product.storeId));
+        const existing = cartItems.find(
+          (it) => String(it.productId) === String(productId) && (it.storeId ? String(it.storeId) === String(storeId) : true)
+        );
         let next;
         if (existing) {
           next = cartItems.map((it) =>
-            String(it.productId) === String(product.productId) && String(it.storeId) === String(product.storeId)
+            String(it.productId) === String(productId) && (it.storeId ? String(it.storeId) === String(storeId) : true)
               ? { ...it, quantity: it.quantity + qty }
               : it
           );
@@ -186,8 +189,8 @@ export function CartProvider({ children }) {
           next = [
             ...cartItems,
             {
-              productId: product.productId,
-              storeId: product.storeId,
+              productId,
+              storeId,
               name: product.name || product.title || "",
               price: Number(product.price) || 0,
               quantity: Number(qty) || 1,
@@ -237,7 +240,6 @@ export function CartProvider({ children }) {
 
   // --- Init: cargar carrito desde backend o local ---
   useEffect(() => {
-    // Al montar, intentar cargar desde backend; si falla, usar localStorage
     fetchCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

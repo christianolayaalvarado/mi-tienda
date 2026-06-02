@@ -24,8 +24,10 @@ function formatDate(iso) {
 function normalizeOrderResponse(data) {
   // Acepta varias formas: { id, order, orderNumber } o el objeto order directo
   const raw = data?.order ? data.order : data;
+  const id = raw?.id || raw?._id || data?.id || data?.orderId || data?.orderNumber || null;
+  const paymentProof = raw?.paymentProof || null;
   return {
-    id: raw?.id || raw?._id || data?.id || data?.orderId || data?.orderNumber || null,
+    id,
     orderNumber: raw?.orderNumber || data?.orderNumber || null,
     createdAt: raw?.createdAt || raw?.created_at || null,
     total: raw?.total || 0,
@@ -34,7 +36,8 @@ function normalizeOrderResponse(data) {
     customerName: raw?.customerName || raw?.customer?.name || "",
     customerEmail: raw?.customerEmail || raw?.customer?.email || "",
     documentNumber: raw?.documentNumber || null,
-    paymentProof: raw?.paymentProof || null,
+    paymentProof,
+    paymentProofMime: raw?.paymentProofMime || null,
     // Convertir orderItems en "stores" para mantener la UI actual
     stores: (raw?.orderItems || []).map((oi) => ({
       id: oi.storeId || oi.store?.id || oi.id,
@@ -51,7 +54,6 @@ function normalizeOrderResponse(data) {
   };
 }
 
-// Componente con toda la lógica
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -71,7 +73,6 @@ function OrderSuccessContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
-  // cargar orden
   const fetchOrder = async () => {
     if (!orderId) return;
     setLoading(true);
@@ -102,7 +103,8 @@ function OrderSuccessContent() {
 
   // seleccionar archivo
   const handleFileChange = (e) => {
-    setProofFile(e.target.files?.[0] || null);
+    const file = e.target.files?.[0] || null;
+    setProofFile(file);
   };
 
   // subir comprobante
@@ -112,27 +114,65 @@ function OrderSuccessContent() {
       toast.error("Selecciona un archivo");
       return;
     }
+
+    // Cliente: validaciones rápidas (coinciden con servidor)
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    const maxBytes = 8 * 1024 * 1024; // 8MB
+    if (!allowed.includes(proofFile.type)) {
+      toast.error("Tipo de archivo no permitido. Usa JPG, PNG o WEBP.");
+      return;
+    }
+    if (proofFile.size > maxBytes) {
+      toast.error("Archivo demasiado grande. Máximo 8 MB.");
+      return;
+    }
+
     setUploading(true);
     const loadingToast = toast.loading("Subiendo comprobante...");
     try {
       const formData = new FormData();
       formData.append("file", proofFile);
+
       const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/upload-proof`, {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) {
-        const text = await res.text().catch(() => null);
-        throw new Error(text || "Error subiendo comprobante");
+
+      const text = await res.text().catch(() => null);
+      // Intentar parsear JSON si existe
+      let json;
+      try {
+        json = text ? JSON.parse(text) : null;
+      } catch {
+        json = null;
       }
+
+      if (!res.ok) {
+        console.error("Upload proof failed:", res.status, text);
+        const message = (json && json.error) || text || "Error subiendo comprobante";
+        throw new Error(message);
+      }
+
+      // Si el endpoint devuelve url en JSON, actualizar estado local para mostrar enlace
+      const returnedUrl = (json && (json.url || (json.order && json.order.paymentProof))) || null;
+
       toast.dismiss(loadingToast);
-      toast.success("Comprobante enviado");
+      toast.success("Comprobante enviado correctamente");
+
+      // Limpiar input
       setProofFile(null);
-      fetchOrder();
+
+      // Si recibimos URL, actualizar order en UI sin recargar
+      if (returnedUrl) {
+        setOrder((prev) => ({ ...prev, paymentProof: returnedUrl, paymentStatus: "pending_verification" }));
+      } else {
+        // fallback: recargar orden desde servidor
+        await fetchOrder();
+      }
     } catch (err) {
       console.error("Upload proof error:", err);
       toast.dismiss(loadingToast);
-      toast.error("Error subiendo comprobante");
+      toast.error(err?.message || "Error subiendo comprobante");
     } finally {
       setUploading(false);
     }
@@ -161,7 +201,30 @@ function OrderSuccessContent() {
             </span>
           </p>
 
-          {/* YAPE */}
+          {/* Si ya existe comprobante global en la orden, mostrarlo */}
+          {order.paymentProof && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-700 font-medium">Comprobante enviado</p>
+              <div className="flex items-center gap-3 mt-2">
+                <a
+                  href={order.paymentProof}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-600 underline break-all"
+                >
+                  Ver comprobante
+                </a>
+                {/* Miniatura si es imagen */}
+                {order.paymentProofMime && order.paymentProofMime.startsWith("image") && (
+                  <a href={order.paymentProof} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 overflow-hidden rounded">
+                    <img src={order.paymentProof} alt="Comprobante" className="object-cover w-full h-full" />
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* YAPE: mostrar formulario solo si la tienda no está marcada como pagada */}
           {store.paymentStatus !== "paid" && (
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-semibold mb-2">Pagar con Yape</h3>
@@ -171,8 +234,17 @@ function OrderSuccessContent() {
 
               {/* SUBIR COMPROBANTE */}
               <form onSubmit={handleUploadProof} className="mt-4">
-                <input type="file" onChange={handleFileChange} required className="mb-2" />
-                <button type="submit" disabled={uploading} className="bg-purple-600 text-white px-4 py-2 rounded w-full">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleFileChange}
+                  className="mb-2"
+                />
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="bg-purple-600 text-white px-4 py-2 rounded w-full"
+                >
                   {uploading ? "Subiendo..." : "Enviar comprobante"}
                 </button>
               </form>
@@ -214,7 +286,6 @@ function OrderSuccessContent() {
   );
 }
 
-// Envolver en Suspense para useSearchParams
 export default function OrderSuccessPage() {
   return (
     <Suspense fallback={<p className="p-6 text-gray-600">Cargando...</p>}>

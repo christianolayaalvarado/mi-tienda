@@ -8,16 +8,18 @@ const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
 export default function ProductInfo({ product }) {
   const { addToCart, cartItems } = useCart();
 
-  const productIdStr = String(product.id || product._id || "");
-  const storeIdCandidate = product.storeId || product.store?.id || "";
-  const storeIdStr = String(storeIdCandidate || "");
+  // Normalizar IDs a string
+  const productIdStr = String(product.id ?? product._id ?? "");
+  const storeIdCandidate = product.storeId ?? product.store?.id ?? "";
+  const storeIdStr = String(storeIdCandidate ?? "");
 
-  const existingItem = cartItems.find((item) => item.productId === productIdStr);
+  // Buscar item existente comparando como strings
+  const existingItem = cartItems.find((item) => String(item.productId) === productIdStr);
 
   const mainImage = product.images?.[0] || "/images/placeholder.png";
 
-  const maxAvailable = Number(product.stock) || 0;
-  const alreadyInCart = Number(existingItem?.quantity) || 0;
+  const maxAvailable = Number(product.stock || 0);
+  const alreadyInCart = Number(existingItem?.quantity || 0);
   const remainingStock = Math.max(maxAvailable - alreadyInCart, 0);
   const maxInCart = alreadyInCart >= maxAvailable;
 
@@ -26,52 +28,74 @@ export default function ProductInfo({ product }) {
   const [showToast, setShowToast] = useState(false);
   const [stockLimit, setStockLimit] = useState(false);
   const [animateQty, setAnimateQty] = useState(false);
+  const [adding, setAdding] = useState(false); // evita clicks repetidos
 
   const selectionTotal = Number(product.price || 0) * Number(quantity || 0);
 
   // ---------------- AÑADIR AL CARRITO ----------------
-  const handleAdd = (e) => {
-    if (remainingStock === 0) {
-      setStockLimit(true);
-      setTimeout(() => setStockLimit(false), 2000);
-      return;
+  const handleAdd = async (e) => {
+    try {
+      if (adding) return;
+      if (remainingStock === 0) {
+        setStockLimit(true);
+        setTimeout(() => setStockLimit(false), 2000);
+        return;
+      }
+
+      if (maxInCart) {
+        setStockLimit(true);
+        setTimeout(() => setStockLimit(false), 2000);
+        return;
+      }
+
+      // Ejecutar animación (no bloqueante)
+      flyToCart(mainImage, e);
+
+      // Validar IDs (si no son válidos, persistiremos localmente; CartContext hace fallback)
+      const validProductId = isValidObjectId(productIdStr) ? productIdStr : "";
+      const validStoreId = isValidObjectId(storeIdStr) ? storeIdStr : "";
+
+      if (!validProductId || !validStoreId) {
+        console.warn(
+          "⚠️ ID inválido detectado. El producto se añadirá al carrito localmente, pero puede que no se persista en la base de datos."
+        );
+      }
+
+      setAdding(true);
+
+      // Llamada a addToCart: enviamos productId y storeId (CartContext persiste lo mínimo)
+      const payload = {
+        productId: validProductId || productIdStr, // si no es válido, igual enviamos string para UX local
+        storeId: validStoreId || storeIdStr || undefined,
+        // Campos opcionales para UI local inmediato
+        name: product.title || product.name || "",
+        price: Number(product.price) || 0,
+        image: mainImage,
+        quantity: Number(quantity) || 1,
+      };
+
+      const result = await addToCart(payload, Number(quantity) || 1);
+      if (!result || result.success === false) {
+        // addToCart ya muestra toast; aquí solo revertimos estado si falla
+        setAdding(false);
+        return;
+      }
+
+      setAdded(true);
+      setShowToast(true);
+      setTimeout(() => {
+        setAdded(false);
+        setShowToast(false);
+      }, 2000);
+
+      // reset selector to 1 (UX predecible)
+      setQuantity(1);
+    } catch (err) {
+      console.error("handleAdd error:", err);
+      toast?.error?.(err?.message || "Error agregando al carrito");
+    } finally {
+      setAdding(false);
     }
-
-    if (maxInCart) {
-      setStockLimit(true);
-      setTimeout(() => setStockLimit(false), 2000);
-      return;
-    }
-
-    flyToCart(mainImage, e);
-
-    // Validar IDs (si no son válidos, guardamos localmente pero evitamos persistir en DB)
-    if (!isValidObjectId(productIdStr) || !isValidObjectId(storeIdStr)) {
-      console.warn(
-        "⚠️ ID inválido detectado. El producto se añadirá al carrito localmente, pero no se persistirá en la base de datos."
-      );
-    }
-
-    addToCart({
-      id: productIdStr,
-      productId: productIdStr,
-      storeId: isValidObjectId(storeIdStr) ? storeIdStr : "",
-      title: product.title || "",
-      price: Number(product.price) || 0,
-      quantity: Number(quantity) || 1,
-      image: product.images?.[0] || "/images/placeholder.png",
-      stock: Number(product.stock) || 0,
-    });
-
-    setAdded(true);
-    setShowToast(true);
-    setTimeout(() => {
-      setAdded(false);
-      setShowToast(false);
-    }, 2000);
-
-    // reset selector to 1 (keeps UX predictable)
-    setQuantity(1);
   };
 
   // ---------------- ANIMACIÓN ----------------
@@ -79,6 +103,10 @@ export default function ProductInfo({ product }) {
     try {
       const cartIcon = document.querySelector("[data-cart-icon]");
       if (!cartIcon || !event?.currentTarget) return;
+
+      // Preload image to avoid blank img during animation
+      const preload = new Image();
+      preload.src = imageSrc || "/images/placeholder.png";
 
       const img = document.createElement("img");
       img.src = imageSrc || "/images/placeholder.png";
@@ -95,8 +123,13 @@ export default function ProductInfo({ product }) {
       img.style.borderRadius = "8px";
       img.style.zIndex = "9999";
       img.style.transition = "all 0.7s ease-in-out";
+      img.style.pointerEvents = "none";
 
       document.body.appendChild(img);
+
+      // Forzar reflow antes de animar
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      img.offsetWidth;
 
       requestAnimationFrame(() => {
         img.style.left = cartRect.left + "px";
@@ -104,11 +137,19 @@ export default function ProductInfo({ product }) {
         img.style.width = "10px";
         img.style.height = "10px";
         img.style.opacity = "0.2";
+        img.style.transform = "translateZ(0)";
       });
 
-      setTimeout(() => img.remove(), 700);
+      setTimeout(() => {
+        try {
+          img.remove();
+        } catch (e) {
+          // ignore
+        }
+      }, 700);
     } catch (err) {
       // no bloquear la UX por la animación
+      // eslint-disable-next-line no-console
       console.warn("Animación flyToCart falló:", err);
     }
   }
@@ -211,12 +252,16 @@ export default function ProductInfo({ product }) {
       {/* BOTÓN */}
       <button
         onClick={handleAdd}
-        disabled={remainingStock === 0 || maxInCart}
+        disabled={remainingStock === 0 || maxInCart || adding}
         className={`mt-8 px-6 py-3 rounded-lg ${
-          remainingStock === 0 || maxInCart ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"
+          remainingStock === 0 || maxInCart || adding
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-600 text-white hover:bg-green-700"
         }`}
       >
-        {remainingStock === 0
+        {adding
+          ? "Agregando..."
+          : remainingStock === 0
           ? "Producto agotado"
           : maxInCart
           ? "Ya tienes el máximo en carrito"
@@ -242,9 +287,7 @@ export default function ProductInfo({ product }) {
           <div className="text-red-500 text-xl">!</div>
           <div className="text-sm">
             <p className="font-semibold">Stock máximo alcanzado</p>
-            <p className="text-gray-500 text-xs">
-              Ya tienes todas las unidades disponibles en el carrito
-            </p>
+            <p className="text-gray-500 text-xs">Ya tienes todas las unidades disponibles en el carrito</p>
           </div>
         </div>
       )}
