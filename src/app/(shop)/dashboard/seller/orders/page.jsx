@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ReasonModal from "@/components/ReasonModal";
 
 function formatDate(iso) {
   try {
@@ -22,6 +23,9 @@ export default function SellerOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [session, setSession] = useState(null); // para conocer role del usuario
+
+  // Estado para el modal de eliminación
+  const [deleteTarget, setDeleteTarget] = useState(null); // { orderId }
 
   const normalize = (rawOrders = []) =>
     (rawOrders || []).map((o) => ({
@@ -139,6 +143,28 @@ export default function SellerOrdersPage() {
     }
   };
 
+  // Eliminar orden (soft-delete) usando la razón provista por el modal
+  const handleDeleteOrder = async (orderId, reason) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason || "", mode: "soft" }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error || json?.message || "Error eliminando orden");
+      }
+      // cerrar modal y refrescar
+      setDeleteTarget(null);
+      await refreshOrders();
+      alert("Orden eliminada correctamente");
+    } catch (err) {
+      console.error("Error eliminando orden:", err);
+      alert(err?.message || "No se pudo eliminar la orden");
+    }
+  };
+
   if (loading) return <p className="p-6 text-gray-600">Cargando ventas...</p>;
   if (error) return <p className="p-6 text-red-600">{error}</p>;
   if (!orders || orders.length === 0) return <p className="p-6 text-gray-600">No tienes ventas aún</p>;
@@ -152,14 +178,23 @@ export default function SellerOrdersPage() {
           <div key={order.id} className="border p-4 rounded bg-white shadow-sm">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-500">
-                  <strong>#Orden:</strong>{" "}
+                {/* #Orden con botón Ver detalle junto al número */}
+                <p className="text-sm text-gray-500 flex items-center gap-2">
+                  <strong>#Orden:</strong>
                   <span className="text-gray-800">{order.orderNumber || order.id}</span>
+                  <a
+                    href={`/dashboard/orders/${order.id}`}
+                    className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded"
+                  >
+                    Ver detalle
+                  </a>
                 </p>
+
                 <p className="text-sm text-gray-500">
                   <strong>Fecha:</strong>{" "}
                   <span className="text-gray-800">{formatDate(order.createdAt)}</span>
                 </p>
+
                 <p className="text-sm text-gray-500">
                   <strong>Cliente:</strong>{" "}
                   <span className="text-gray-800">
@@ -251,9 +286,13 @@ export default function SellerOrdersPage() {
 
             {/* Acciones rápidas a nivel de orden */}
             <div className="mt-4 flex gap-2">
-              <a href={`/dashboard/orders/${order.id}`} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">
-                Ver detalle
-              </a>
+              {/* Botón Eliminar orden (abre modal) */}
+              <button
+                onClick={() => setDeleteTarget({ orderId: order.id })}
+                className="text-sm px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+              >
+                Eliminar orden
+              </button>
 
               {/* Mostrar botón de orden completa SOLO para admin */}
               {session?.user?.role === "admin" ? (
@@ -269,17 +308,26 @@ export default function SellerOrdersPage() {
               ) : null}
             </div>
 
-            {/* Si la orden está marcada como eliminada (soft-delete), mostrar razón */}
+            {/* Si la orden está marcada como eliminada (soft-delete), mostrar razón centrada */}
             {order.deleted && (
-              <div className="mt-3 text-sm text-red-600">
-                <strong>Orden eliminada</strong>
-                <div className="text-xs">Razón: {order.deletedReason || "—"}</div>
-                <div className="text-xs">Fecha: {order.deletedAt ? formatDate(order.deletedAt) : "—"}</div>
+              <div className="mt-3 text-sm text-red-600 text-center">
+                <strong>Orden eliminada</strong> • Razón: {order.deletedReason || "—"} • Fecha:{" "}
+                {order.deletedAt ? formatDate(order.deletedAt) : "—"}
               </div>
             )}
           </div>
         ))}
       </div>
+
+      {/* Modal de razón para eliminar orden */}
+      <ReasonModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={(reason) => {
+          if (!deleteTarget) return;
+          handleDeleteOrder(deleteTarget.orderId, reason);
+        }}
+      />
     </div>
   );
 }
