@@ -9,6 +9,7 @@ export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [persisting, setPersisting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false); // evita sobrescrituras por fetch concurrente
 
   const saveLocal = (items) => {
     try {
@@ -37,9 +38,12 @@ export function CartProvider({ children }) {
 
   // --- API calls ---
   const fetchCart = useCallback(async () => {
+    // Si estamos sincronizando con el servidor, no sobrescribimos el estado local
+    if (isSyncing) return { cart: null, skipped: true };
+
     setLoading(true);
     try {
-      const res = await fetch("/api/cart", { method: "GET" });
+      const res = await fetch("/api/cart", { method: "GET", credentials: "include" });
       if (!res.ok) {
         const local = loadLocal();
         setCartItems(local);
@@ -74,11 +78,12 @@ export function CartProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isSyncing]);
 
   const persistCart = useCallback(
     async (items) => {
       setPersisting(true);
+      setIsSyncing(true);
       try {
         if (!Array.isArray(items)) throw new Error("Items inválidos");
 
@@ -89,17 +94,41 @@ export function CartProvider({ children }) {
           }))
           .filter((it) => it.productId != null && it.productId !== "" && Number.isFinite(it.quantity) && it.quantity > 0);
 
+        // Si no hay items válidos, indicamos al backend que vacíe el carrito
         if (normalized.length === 0) {
-          saveLocal(items);
-          setCartItems(items);
-          return { success: false, error: "No hay items válidos para persistir" };
+          try {
+            const delRes = await fetch("/api/cart", {
+              method: "DELETE",
+              credentials: "include",
+            });
+
+            if (!delRes.ok) {
+              const text = await delRes.text().catch(() => null);
+              throw new Error(text || "Error al vaciar carrito en servidor");
+            }
+
+            // Backend confirmó borrado: actualizamos estado con array vacío
+            setCartItems([]);
+            saveLocal([]);
+            return { success: true, cart: null };
+          } catch (err) {
+            console.error("No se pudo vaciar carrito en servidor:", err?.message || err);
+            toast.error(err?.message || "No se pudo vaciar carrito en servidor");
+            // fallback local
+            saveLocal(items);
+            setCartItems(items);
+            return { success: false, error: err?.message || String(err) };
+          } finally {
+            setPersisting(false);
+            setIsSyncing(false);
+          }
         }
 
-        // DEBUG opcional: console.log("persistCart payload:", normalized);
-
+        // Enviar payload normalizado al servidor
         const res = await fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ items: normalized }),
         });
 
@@ -133,12 +162,18 @@ export function CartProvider({ children }) {
       } catch (err) {
         console.error("No se pudo persistir en DB:", err?.message || err);
         toast.error(err?.message || "No se pudo persistir carrito");
-        const fallback = (items || []).map((it) => ({ ...it, quantity: Number(it.quantity || 0), productId: it.productId ?? it.id ?? null }));
+        const fallback = (items || []).map((it) => ({
+          ...it,
+          quantity: Number(it.quantity || 0),
+          productId: it.productId ?? it.id ?? null,
+        }));
         saveLocal(fallback);
         setCartItems(fallback);
         return { success: false, error: err?.message || String(err) };
       } finally {
         setPersisting(false);
+        // permitir fetchCart de nuevo tras breve retardo para evitar race conditions
+        setTimeout(() => setIsSyncing(false), 250);
       }
     },
     []
@@ -149,7 +184,7 @@ export function CartProvider({ children }) {
     try {
       setCartItems([]);
       saveLocal([]);
-      const res = await fetch("/api/cart", { method: "DELETE" });
+      const res = await fetch("/api/cart", { method: "DELETE", credentials: "include" });
       if (!res.ok) {
         const text = await res.text().catch(() => null);
         toast.error("No se pudo limpiar carrito en backend");
@@ -202,6 +237,7 @@ export function CartProvider({ children }) {
 
         setCartItems(next);
         saveLocal(next);
+        // persistir en background; persistCart maneja revert si falla
         persistCart(next).catch(() => {});
         return { success: true, cart: next };
       } catch (err) {
@@ -213,7 +249,7 @@ export function CartProvider({ children }) {
     [cartItems, persistCart]
   );
 
-  // Optimista + revert: elimina localmente, espera persistencia y revierte si falla
+  // Optimista + revert con bloqueo de fetch
   const removeFromCart = useCallback(
     async (idOrProductId, storeId) => {
       const prev = cartItems.slice();
