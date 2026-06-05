@@ -69,6 +69,30 @@ export default function CartPage() {
             item.productImage ||
             item.thumbnail ||
             "/images/placeholder.png";
+      
+                            // leer localStorage para usar nombre si el servidor no lo trae
+const localRaw = (() => {
+  try {
+    const raw = localStorage.getItem("mi_tienda_cart");
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+})();
+
+const findLocalName = (pid) => {
+  if (!localRaw || !Array.isArray(localRaw)) return null;
+  const found = localRaw.find((x) => String(x.productId ?? x.id) === String(pid));
+  return found ? (found.name || found.title || null) : null;
+};
+
+const displayName =
+  item.title ||
+  item.product?.title ||
+  item.name ||
+  findLocalName(item.productId ?? item.id) ||
+  `Producto #${item.productId ?? item.id}`;
+
 
           return (
             <div
@@ -89,9 +113,12 @@ export default function CartPage() {
                 </div>
 
                 <div>
-                  <h2 className="font-semibold">
-                    {item.title || item.product?.title || "Producto sin nombre"}
-                  </h2>
+                  
+
+<h2 className="font-semibold">{displayName}</h2>
+
+
+
                   <p className="text-sm text-gray-500">Cantidad: {Number(item.quantity || 0)}</p>
                   <p className="text-sm text-gray-500">
                     Precio unitario: S/ {Number(item.price || 0).toFixed(2)}
