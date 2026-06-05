@@ -4,7 +4,20 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
-const isValidObjectId = (id) => typeof id === "string" && id.length > 0;
+// Helper: validar ObjectId (Mongo)
+const isValidObjectId = (id) => typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
+
+/**
+ * Route handlers for /api/orders/[id]
+ *
+ * - GET: devuelve la orden (con autorización: comprador, vendedor de alguna tienda o admin)
+ * - DELETE: por defecto soft-delete (owner/seller/admin). Hard delete solo admin y requiere confirm:true
+ * - PATCH: acciones (markPaid, markStorePaid) con transacciones y registro en OrderHistory
+ * - POST: subir comprobante (formData o JSON { proofUrl })
+ *
+ * Nota: soft-delete marca deleted=true y registra deletedReason/deletedBy/deletedAt.
+ * Hard delete restaura stock, borra relaciones y la orden en una transacción (solo admin).
+ */
 
 // GET
 export async function GET(req, context) {
@@ -63,6 +76,11 @@ export async function DELETE(req, context) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+    const body = await req.json().catch(() => ({}));
+    const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+    const mode = body.mode === "hard" ? "hard" : "soft";
+    const confirm = body.confirm === true;
+
     const user = await prisma.user.findUnique({ where: { email: session.user.email }, include: { stores: true } });
 
     const order = await prisma.order.findUnique({
@@ -77,37 +95,107 @@ export async function DELETE(req, context) {
     const isSellerOfOrder = order.orderItems.some((oi) => sellerStoreIds.includes(String(oi.storeId)));
     const isAdmin = user?.role === "admin";
 
+    // permisos: soft-delete permitido para owner, sellerOfOrder o admin
     if (!isOwner && !isSellerOfOrder && !isAdmin) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    // Restaurar stock
-    for (const orderItem of order.orderItems) {
-      for (const item of orderItem.items) {
-        try {
-          await prisma.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: item.quantity } },
-          });
-        } catch (uErr) {
-          console.error("Error restaurando stock para producto:", item.productId, uErr);
+    // Si piden hard delete, solo admin y requiere confirm:true
+    if (mode === "hard" && !isAdmin) {
+      return NextResponse.json({ error: "Solo admin puede borrar físicamente" }, { status: 403 });
+    }
+    if (mode === "hard" && isAdmin && !confirm) {
+      return NextResponse.json({ error: "Confirmación requerida para hard delete (confirm: true)" }, { status: 400 });
+    }
+
+    // SOFT DELETE (recomendado): marcar la orden como eliminada y registrar razón
+    if (mode === "soft") {
+      const now = new Date();
+      const updated = await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          deleted: true,
+          deletedAt: now,
+          deletedBy: session.user.id,
+          deletedReason: reason || null,
+        },
+      });
+
+      // Registrar auditoría
+      try {
+        await prisma.orderHistory.create({
+          data: {
+            orderId,
+            action: "soft_delete",
+            byUserId: session.user.id,
+            note: reason || "Eliminación (soft) por usuario/admin",
+          },
+        });
+      } catch (e) {
+        console.warn("No se pudo crear orderHistory (soft_delete):", e?.message || e);
+      }
+
+      return NextResponse.json({ success: true, mode: "soft", order: updated });
+    }
+
+    // HARD DELETE (solo admin) - transacción segura: restaurar stock, borrar relaciones y la orden
+    if (mode === "hard" && isAdmin) {
+      const orderItemIds = order.orderItems.flatMap((oi) => (oi?.id ? [oi.id] : []));
+      // Recolectar ajustes de stock por producto
+      const productAdjustments = [];
+      for (const oi of order.orderItems || []) {
+        for (const p of oi.items || []) {
+          const productId = p.productId;
+          const qty = Number(p.quantity || 0);
+          if (!productId || !Number.isFinite(qty) || qty <= 0) {
+            console.warn("Omitiendo restore stock por datos incompletos:", { productId, qty, orderItemId: oi.id });
+            continue;
+          }
+          productAdjustments.push({ productId, qty });
         }
       }
-    }
 
-    // Borrar hijos y la orden
-    try {
-      await prisma.orderItemProduct.deleteMany({
-        where: { orderItemId: { in: order.orderItems.map((oi) => oi.id) } },
+      const result = await prisma.$transaction(async (tx) => {
+        // 1) Restaurar stock (agrupar por productId)
+        const grouped = productAdjustments.reduce((acc, cur) => {
+          acc[cur.productId] = (acc[cur.productId] || 0) + cur.qty;
+          return acc;
+        }, {});
+        for (const pid of Object.keys(grouped)) {
+          const qty = grouped[pid];
+          try {
+            await tx.product.update({
+              where: { id: pid },
+              data: { stock: { increment: qty } },
+            });
+          } catch (e) {
+            console.warn("No se pudo incrementar stock para productId:", pid, e?.message || e);
+          }
+        }
+
+        // 2) eliminar orderHistory relacionados
+        await tx.orderHistory.deleteMany({ where: { orderId } });
+
+        // 3) eliminar orderItemProducts (OrderItemProduct) usando orderItemIds
+        if (orderItemIds.length > 0) {
+          await tx.orderItemProduct.deleteMany({ where: { orderItemId: { in: orderItemIds } } });
+        }
+
+        // 4) eliminar orderItems
+        if (orderItemIds.length > 0) {
+          await tx.orderItem.deleteMany({ where: { id: { in: orderItemIds } } });
+        }
+
+        // 5) eliminar la orden
+        const del = await tx.order.delete({ where: { id: orderId } });
+
+        return del;
       });
-    } catch (e) {
-      console.debug("orderItemProduct deleteMany skipped or failed:", e?.message || e);
+
+      return NextResponse.json({ success: true, mode: "hard", deleted: true });
     }
 
-    await prisma.orderItem.deleteMany({ where: { orderId } });
-    await prisma.order.delete({ where: { id: orderId } });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ error: "Modo no soportado" }, { status: 400 });
   } catch (err) {
     console.error("🔥 ERROR DELETE ORDER:", err);
     return NextResponse.json({ error: "Error eliminando orden" }, { status: 500 });
@@ -126,7 +214,7 @@ export async function PATCH(req, context) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const action = body?.action || body?.type;
     if (!action) return NextResponse.json({ error: "Acción no especificada" }, { status: 400 });
 
@@ -139,18 +227,163 @@ export async function PATCH(req, context) {
     const isSellerOfOrder = order.orderItems.some((oi) => sellerStoreIds.includes(String(oi.storeId)));
     const isAdmin = user?.role === "admin";
 
+    // Acción: marcar orden completa como pagada
     if (action === "markPaid" || action === "confirmPayment") {
-      if (!isOwner && !isAdmin) return NextResponse.json({ error: "No autorizado para marcar pago" }, { status: 403 });
-      const updated = await prisma.order.update({ where: { id: orderId }, data: { paymentStatus: "paid", status: "processing", paidAt: new Date() } });
-      return NextResponse.json({ success: true, order: updated });
+      // Permitir a admin o al vendedor responsable de la(s) tienda(s) involucradas marcar como pagada
+      if (!isSellerOfOrder && !isAdmin) return NextResponse.json({ error: "No autorizado para marcar pago" }, { status: 403 });
+
+      // Ejecutar en transacción: decrementar stock (si no se ha hecho), actualizar order y orderItems, registrar history
+      const result = await prisma.$transaction(async (tx) => {
+        const freshOrder = await tx.order.findUnique({
+          where: { id: orderId },
+          include: { orderItems: { include: { items: true } } },
+        });
+        if (!freshOrder) throw new Error("Orden no encontrada en transacción");
+
+        if (freshOrder.paymentStatus === "paid") {
+          return { alreadyPaid: true, order: freshOrder };
+        }
+
+        // Descontar stock si no se ha hecho antes
+        if (!freshOrder.stockDeducted) {
+          for (const oi of freshOrder.orderItems || []) {
+            for (const p of oi.items || []) {
+              const productId = p.productId;
+              const qty = Number(p.quantity || 0);
+              if (!productId || !Number.isFinite(qty) || qty <= 0) {
+                console.warn("Omitiendo decrement stock por datos incompletos:", { productId, qty, orderItemId: oi.id });
+                continue;
+              }
+              try {
+                await tx.product.update({
+                  where: { id: productId },
+                  data: { stock: { decrement: qty } },
+                });
+              } catch (e) {
+                console.warn("No se pudo decrementar stock para productId:", productId, e?.message || e);
+              }
+            }
+          }
+        }
+
+        const updated = await tx.order.update({
+          where: { id: orderId },
+          data: {
+            paymentStatus: "paid",
+            status: "processing",
+            paidAt: new Date(),
+            paymentVerifiedBy: session.user.id,
+            paymentVerifiedAt: new Date(),
+            stockDeducted: true,
+          },
+        });
+
+        try {
+          await tx.orderItem.updateMany({
+            where: { orderId },
+            data: { paymentStatus: "paid" },
+          });
+        } catch (e) {
+          console.warn("No se pudo actualizar orderItems.paymentStatus:", e?.message || e);
+        }
+
+        try {
+          await tx.orderHistory.create({
+            data: {
+              orderId,
+              action: "mark_paid",
+              byUserId: session.user.id,
+              note: "Pago verificado por vendedor/admin",
+            },
+          });
+        } catch (e) {
+          console.warn("No se pudo crear orderHistory mark_paid:", e?.message || e);
+        }
+
+        return { alreadyPaid: false, order: updated };
+      });
+
+      return NextResponse.json({ success: true, result });
     }
 
+    // Acción: marcar pago solo para la tienda del vendedor
     if (action === "markStorePaid") {
       if (!isSellerOfOrder && !isAdmin) return NextResponse.json({ error: "No autorizado para marcar pago de tienda" }, { status: 403 });
       const { storeId } = body;
       if (!storeId) return NextResponse.json({ error: "storeId requerido" }, { status: 400 });
-      const updatedOrderItem = await prisma.orderItem.updateMany({ where: { orderId, storeId }, data: { paymentStatus: "paid" } });
-      return NextResponse.json({ success: true, updated: updatedOrderItem });
+
+      const result = await prisma.$transaction(async (tx) => {
+        // Actualizar orderItems de esa tienda
+        await tx.orderItem.updateMany({
+          where: { orderId, storeId },
+          data: { paymentStatus: "paid" },
+        });
+
+        // Registrar auditoría
+        await tx.orderHistory.create({
+          data: {
+            orderId,
+            action: "mark_store_paid",
+            byUserId: session.user.id,
+            note: `Pago marcado como pagado para storeId ${storeId}`,
+          },
+        });
+
+        // Revisar si ahora todos los orderItems están pagados
+        const refreshed = await tx.order.findUnique({ where: { id: orderId }, include: { orderItems: { include: { items: true } } } });
+        const allPaid = (refreshed.orderItems || []).every((oi) => oi.paymentStatus === "paid");
+
+        if (allPaid && refreshed.paymentStatus !== "paid") {
+          // Descontar stock si no se ha hecho antes
+          if (!refreshed.stockDeducted) {
+            for (const oi of refreshed.orderItems || []) {
+              for (const p of oi.items || []) {
+                const productId = p.productId;
+                const qty = Number(p.quantity || 0);
+                if (!productId || !Number.isFinite(qty) || qty <= 0) {
+                  console.warn("Omitiendo decrement stock por datos incompletos:", { productId, qty, orderItemId: oi.id });
+                  continue;
+                }
+                try {
+                  await tx.product.update({
+                    where: { id: productId },
+                    data: { stock: { decrement: qty } },
+                  });
+                } catch (e) {
+                  console.warn("No se pudo decrementar stock para productId:", productId, e?.message || e);
+                }
+              }
+            }
+          }
+
+          const updated = await tx.order.update({
+            where: { id: orderId },
+            data: {
+              paymentStatus: "paid",
+              status: "processing",
+              paidAt: new Date(),
+              paymentVerifiedBy: session.user.id,
+              paymentVerifiedAt: new Date(),
+              stockDeducted: true,
+            },
+          });
+
+          await tx.orderHistory.create({
+            data: {
+              orderId,
+              action: "mark_paid_after_all_stores",
+              byUserId: session.user.id,
+              note: "Orden marcada como pagada porque todas las tiendas confirmaron pago",
+            },
+          });
+
+          return { success: true, allPaid: true, order: updated };
+        }
+
+        return { success: true, allPaid: false };
+      });
+
+      return NextResponse.json({ success: true, result });
     }
 
     return NextResponse.json({ error: "Acción desconocida" }, { status: 400 });
@@ -189,6 +422,8 @@ export async function POST(req, context) {
     const filename = file.name || `proof-${Date.now()}`;
     const mime = file.type || "application/octet-stream";
 
+    // Nota: aquí solo guardamos el nombre/mime en DB. Si usas Cloudinary u otro storage,
+    // sube el archivo y guarda la URL en paymentProof.
     const updated = await prisma.order.update({
       where: { id: orderId },
       data: { paymentProof: filename, paymentProofMime: mime, paymentStatus: "pending_verification" },

@@ -9,8 +9,8 @@ export default function CartPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const total = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+  const total = (cartItems || []).reduce(
+    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
     0
   );
 
@@ -29,9 +29,9 @@ export default function CartPage() {
         body: JSON.stringify({ items: cartItems }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        alert(data.error || "Error al crear orden");
+        alert(data?.error || "Error al crear orden");
         return;
       }
 
@@ -43,7 +43,7 @@ export default function CartPage() {
     }
   };
 
-  if (!cartItems.length) {
+  if (!cartItems || cartItems.length === 0) {
     return (
       <div className="max-w-4xl mx-auto p-6 text-center">
         <h1 className="text-2xl font-bold mb-4">Tu carrito está vacío</h1>
@@ -62,31 +62,66 @@ export default function CartPage() {
       <h1 className="text-2xl font-bold mb-6">Carrito</h1>
 
       <div className="space-y-4">
-        {cartItems.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-center justify-between border p-4 rounded"
-          >
-            <div>
-              <h2 className="font-semibold">{item.title}</h2>
-              <p className="text-sm text-gray-500">Cantidad: {item.quantity}</p>
-              <p className="text-sm text-gray-500">Precio: S/ {item.price}</p>
-            </div>
-            <button
-              onClick={() => removeFromCart(item.id)}
-              className="text-red-600 text-sm"
+        {cartItems.map((item) => {
+          const imgSrc =
+            item.product?.image ||
+            item.image ||
+            item.productImage ||
+            item.thumbnail ||
+            "/images/placeholder.png";
+
+          return (
+            <div
+              key={item.id || `${item.productId}-${item.variantId || 0}`}
+              className="flex items-center justify-between border p-4 rounded"
             >
-              Eliminar
-            </button>
-          </div>
-        ))}
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                  <img
+                    src={imgSrc}
+                    alt={item.title || item.product?.title || "Producto"}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = "/images/placeholder.png";
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <h2 className="font-semibold">
+                    {item.title || item.product?.title || "Producto sin nombre"}
+                  </h2>
+                  <p className="text-sm text-gray-500">Cantidad: {Number(item.quantity || 0)}</p>
+                  <p className="text-sm text-gray-500">
+                    Precio unitario: S/ {Number(item.price || 0).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-end gap-2">
+                <div className="text-sm text-gray-700 font-semibold">
+                  S/ {(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => removeFromCart(item.id)}
+                    className="text-red-600 text-sm"
+                    aria-label={`Eliminar ${item.title || item.product?.title || "producto"}`}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* 🔹 Total y acciones */}
       <div className="mt-6 flex flex-col md:flex-row justify-between items-center gap-4">
-        <h2 className="text-xl font-bold">
-          Total: S/ {total.toFixed(2)}
-        </h2>
+        <h2 className="text-xl font-bold">Total: S/ {total.toFixed(2)}</h2>
 
         <div className="flex gap-4">
           {/* Proceder al pago → Checkout */}

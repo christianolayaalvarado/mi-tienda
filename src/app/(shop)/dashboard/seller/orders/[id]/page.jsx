@@ -1,130 +1,131 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
-import toast from "react-hot-toast"
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function SellerOrderDetailPage() {
-  const params = useParams()
-  const orderId = params.id
+  const params = useParams();
+  const orderId = params?.id;
 
-  const [order, setOrder] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [processing, setProcessing] = useState(false)
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
 
   // 🔹 cargar orden
   const fetchOrder = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await fetch(`/api/orders/${orderId}`)
-      const data = await res.json()
+      const res = await fetch(`/api/orders/${orderId}`);
+      const data = await res.json().catch(() => null);
 
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const msg = (data && (data.error || data.message)) || `Error ${res.status}`;
+        throw new Error(msg);
+      }
 
-      setOrder(data)
+      setOrder(data);
     } catch (err) {
-      console.error(err)
-      toast.error("Error cargando orden")
+      console.error("fetchOrder:", err);
+      toast.error("Error cargando orden");
+      setOrder(null);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    if (orderId) fetchOrder()
-  }, [orderId])
+    if (orderId) fetchOrder();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId]);
 
   // ✅ aprobar pago
   const handleApprove = async () => {
-    const confirmAction = confirm("¿Aprobar este pago?")
-    if (!confirmAction) return
+    if (!confirm("¿Aprobar este pago?")) return;
 
-    setProcessing(true)
-    const loadingToast = toast.loading("Aprobando pago...")
+    setProcessing(true);
+    const loadingToast = toast.loading("Aprobando pago...");
 
     try {
       const res = await fetch(`/api/orders/${orderId}/approve`, {
         method: "POST",
-      })
+        headers: { "Content-Type": "application/json" },
+      });
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null);
 
-      if (!res.ok) throw new Error(data.error)
+      if (!res.ok) {
+        const msg = (data && (data.error || data.message)) || `Error ${res.status}`;
+        throw new Error(msg);
+      }
 
-      toast.dismiss(loadingToast)
-      toast.success("Pago aprobado")
-
-      fetchOrder()
-
+      toast.dismiss(loadingToast);
+      toast.success("Pago aprobado");
+      await fetchOrder();
     } catch (err) {
-      console.error(err)
-      toast.dismiss(loadingToast)
-      toast.error("Error aprobando pago")
+      console.error("handleApprove:", err);
+      toast.dismiss(loadingToast);
+      toast.error(err?.message || "Error aprobando pago");
     } finally {
-      setProcessing(false)
+      setProcessing(false);
     }
-  }
+  };
 
   // ❌ rechazar pago
   const handleReject = async () => {
-    const confirmAction = confirm("¿Rechazar este pago?")
-    if (!confirmAction) return
+    if (!confirm("¿Rechazar este pago?")) return;
 
-    setProcessing(true)
-    const loadingToast = toast.loading("Rechazando pago...")
+    setProcessing(true);
+    const loadingToast = toast.loading("Rechazando pago...");
 
     try {
       const res = await fetch(`/api/orders/${orderId}/reject`, {
         method: "POST",
-      })
+        headers: { "Content-Type": "application/json" },
+      });
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null);
 
-      if (!res.ok) throw new Error(data.error)
+      if (!res.ok) {
+        const msg = (data && (data.error || data.message)) || `Error ${res.status}`;
+        throw new Error(msg);
+      }
 
-      toast.dismiss(loadingToast)
-      toast.success("Pago rechazado")
-
-      fetchOrder()
-
+      toast.dismiss(loadingToast);
+      toast.success("Pago rechazado");
+      await fetchOrder();
     } catch (err) {
-      console.error(err)
-      toast.dismiss(loadingToast)
-      toast.error("Error rechazando pago")
+      console.error("handleReject:", err);
+      toast.dismiss(loadingToast);
+      toast.error(err?.message || "Error rechazando pago");
     } finally {
-      setProcessing(false)
+      setProcessing(false);
     }
-  }
+  };
 
   if (loading) {
-    return <p className="p-4">Cargando orden...</p>
+    return <p className="p-4">Cargando orden...</p>;
   }
 
   if (!order) {
-    return <p className="p-4 text-red-500">Orden no encontrada</p>
+    return <p className="p-4 text-red-500">Orden no encontrada</p>;
   }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-
-      <h1 className="text-2xl font-bold">
-        Orden #{order.id}
-      </h1>
+      <h1 className="text-2xl font-bold">Orden #{order.id}</h1>
 
       <p>
         Estado:{" "}
-        <span className="font-semibold">
-          {order.paymentStatus}
-        </span>
+        <span className="font-semibold">{order.paymentStatus || "—"}</span>
       </p>
 
       {/* 🔥 COMPROBANTE */}
       {order.paymentProof ? (
         <div className="border rounded-lg p-4">
-          <h2 className="font-semibold mb-2">
-            Comprobante de pago
-          </h2>
+          <h2 className="font-semibold mb-2">Comprobante de pago</h2>
 
+          {/* Si paymentProof es solo un nombre de archivo, ajusta la URL según tu storage */}
           <img
             src={order.paymentProof}
             alt="Comprobante"
@@ -132,19 +133,16 @@ export default function SellerOrderDetailPage() {
           />
         </div>
       ) : (
-        <p className="text-gray-500">
-          No hay comprobante subido
-        </p>
+        <p className="text-gray-500">No hay comprobante subido</p>
       )}
 
       {/* 🔥 BOTONES */}
       {order.paymentStatus === "pending_verification" && (
-        <div className="flex gap-4">
-
+      <div className="flex gap-4">
           <button
             onClick={handleApprove}
             disabled={processing}
-            className="bg-green-600 text-white px-4 py-2 rounded"
+            className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-60"
           >
             ✅ Aprobar
           </button>
@@ -152,7 +150,7 @@ export default function SellerOrderDetailPage() {
           <button
             onClick={handleReject}
             disabled={processing}
-            className="bg-red-600 text-white px-4 py-2 rounded"
+            className="bg-red-600 text-white px-4 py-2 rounded disabled:opacity-60"
           >
             ❌ Rechazar
           </button>
@@ -161,5 +159,5 @@ export default function SellerOrderDetailPage() {
       )}
 
     </div>
-  )
+  );
 }

@@ -12,31 +12,36 @@ export async function GET() {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    // Buscar usuario con su tienda
+    // Buscar usuario con sus tiendas
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: session.user?.email },
       include: { stores: true },
     });
 
-    if (!user || !user.stores || user.stores.length === 0) {
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    const storeIds = (user.stores || []).map((s) => s.id).filter(Boolean);
+
+    if (storeIds.length === 0) {
       return NextResponse.json({ error: "No tienes tienda" }, { status: 400 });
     }
 
-    const storeId = user.stores[0].id;
-
-    // SOLO órdenes que contienen items de ESTA tienda
+    // SOLO órdenes que contienen items de ALGUNA de las tiendas del usuario
     const orders = await prisma.order.findMany({
       where: {
         orderItems: {
           some: {
-            storeId: storeId,
+            storeId: { in: storeIds },
           },
         },
       },
       include: {
+        // Incluir solo los orderItems pertenecientes a las tiendas del seller
         orderItems: {
           where: {
-            storeId: storeId, // solo los orderItems de esta tienda
+            storeId: { in: storeIds },
           },
           include: {
             store: true,
@@ -65,11 +70,15 @@ export async function GET() {
       customerName: o.customerName || o.user?.name || "",
       customerEmail: o.customerEmail || o.user?.email || "",
       documentNumber: o.documentNumber || null,
+      deleted: !!o.deleted,
+      deletedReason: o.deletedReason || null,
+      deletedAt: o.deletedAt || null,
       orderItems: (o.orderItems || []).map((oi) => ({
         id: oi.id || (oi._id && String(oi._id)),
         storeId: oi.storeId,
         store: oi.store ? { id: oi.store.id, name: oi.store.name } : null,
         paymentStatus: oi.paymentStatus,
+        // items: productos dentro del orderItem
         items: (oi.items || []).map((it) => ({
           id: it.id || (it._id && String(it._id)),
           productId: it.productId,
