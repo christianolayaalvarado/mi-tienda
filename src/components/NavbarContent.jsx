@@ -221,7 +221,31 @@ export default function NavbarContent() {
                 item.product?.image ||
                 "/images/placeholder.png";
 
-              const displayName = item.name || item.title || item.product?.title || item.product?.name || "Producto";
+              // leer localStorage para usar nombre si el servidor no lo trae
+const localRaw = (() => {
+  try {
+    const raw = localStorage.getItem("mi_tienda_cart");
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+})();
+
+const findLocalName = (pid) => {
+  if (!localRaw || !Array.isArray(localRaw)) return null;
+  const found = localRaw.find((x) => String(x.productId ?? x.id) === String(pid));
+  return found ? (found.name || found.title || null) : null;
+};
+
+const displayName =
+  item.name ||
+  item.title ||
+  item.product?.title ||
+  item.product?.name ||
+  findLocalName(item.productId ?? item.id) ||
+  "Producto";
+
+              
               const key = item.id ?? `${item.productId}-${item.storeId ?? 0}`;
 
               return (

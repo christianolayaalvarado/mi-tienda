@@ -9,7 +9,7 @@ export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [persisting, setPersisting] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false); // evita sobrescrituras por fetch concurrente
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const saveLocal = (items) => {
     try {
@@ -38,7 +38,6 @@ export function CartProvider({ children }) {
 
   // --- API calls ---
   const fetchCart = useCallback(async () => {
-    // Si estamos sincronizando con el servidor, no sobrescribimos el estado local
     if (isSyncing) return { cart: null, skipped: true };
 
     setLoading(true);
@@ -50,6 +49,10 @@ export function CartProvider({ children }) {
         return { cart: null, fallback: true };
       }
       const data = await res.json();
+
+      // Leer localStorage para fusionar nombres/imágenes si el servidor no los trae
+      const local = loadLocal();
+
       const items = (data?.cart?.items || []).map((it) => {
         const image =
           it.image ||
@@ -57,16 +60,29 @@ export function CartProvider({ children }) {
           (Array.isArray(it.product?.images) && it.product.images[0]) ||
           (Array.isArray(it.images) && it.images[0]) ||
           null;
+
+        const localMatch = local.find((l) => String(l.productId ?? l.id) === String(it.productId ?? it.id));
+        const nameFromLocal = localMatch ? (localMatch.name || localMatch.title || null) : null;
+        const imageFromLocal = localMatch ? (localMatch.image || null) : null;
+
         return {
           id: it.id,
           productId: it.productId ?? it.id ?? null,
           storeId: it.storeId,
-          name: it.product?.title || it.title || it.name || "",
+          name: it.product?.title || it.title || it.name || nameFromLocal || "",
           price: it.price,
           quantity: Number(it.quantity || 0),
-          image: image || null,
+          image: image || imageFromLocal || null,
         };
       });
+
+      // Si el servidor no devolvió items (vacío) pero local tiene items, preferimos local
+      if ((items.length === 0 || items.every((i) => !i.productId)) && local.length > 0) {
+        setCartItems(local);
+        saveLocal(local);
+        return { cart: null, fallback: true };
+      }
+
       setCartItems(items);
       saveLocal(items);
       return { cart: data?.cart || null, fallback: false };
@@ -94,27 +110,22 @@ export function CartProvider({ children }) {
           }))
           .filter((it) => it.productId != null && it.productId !== "" && Number.isFinite(it.quantity) && it.quantity > 0);
 
-        // Si no hay items válidos, indicamos al backend que vacíe el carrito
         if (normalized.length === 0) {
           try {
             const delRes = await fetch("/api/cart", {
               method: "DELETE",
               credentials: "include",
             });
-
             if (!delRes.ok) {
               const text = await delRes.text().catch(() => null);
               throw new Error(text || "Error al vaciar carrito en servidor");
             }
-
-            // Backend confirmó borrado: actualizamos estado con array vacío
             setCartItems([]);
             saveLocal([]);
             return { success: true, cart: null };
           } catch (err) {
             console.error("No se pudo vaciar carrito en servidor:", err?.message || err);
             toast.error(err?.message || "No se pudo vaciar carrito en servidor");
-            // fallback local
             saveLocal(items);
             setCartItems(items);
             return { success: false, error: err?.message || String(err) };
@@ -124,7 +135,6 @@ export function CartProvider({ children }) {
           }
         }
 
-        // Enviar payload normalizado al servidor
         const res = await fetch("/api/cart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -172,7 +182,6 @@ export function CartProvider({ children }) {
         return { success: false, error: err?.message || String(err) };
       } finally {
         setPersisting(false);
-        // permitir fetchCart de nuevo tras breve retardo para evitar race conditions
         setTimeout(() => setIsSyncing(false), 250);
       }
     },
@@ -237,7 +246,6 @@ export function CartProvider({ children }) {
 
         setCartItems(next);
         saveLocal(next);
-        // persistir en background; persistCart maneja revert si falla
         persistCart(next).catch(() => {});
         return { success: true, cart: next };
       } catch (err) {
@@ -249,7 +257,6 @@ export function CartProvider({ children }) {
     [cartItems, persistCart]
   );
 
-  // Optimista + revert con bloqueo de fetch
   const removeFromCart = useCallback(
     async (idOrProductId, storeId) => {
       const prev = cartItems.slice();
@@ -268,14 +275,12 @@ export function CartProvider({ children }) {
         productId: it.productId ?? it.id ?? null,
       }));
 
-      // Aplicar cambio local (optimista)
       setCartItems(normalizedNext);
       saveLocal(normalizedNext);
 
       try {
         const res = await persistCart(normalizedNext);
         if (!res || res.success === false) {
-          // Revertir si persistencia falla
           setCartItems(prev);
           saveLocal(prev);
           toast.error(res?.error || "No se pudo eliminar en el servidor. Se revirtió el cambio.");
@@ -337,7 +342,6 @@ export function CartProvider({ children }) {
     getCount: () => cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0),
   };
 
-  // DEBUG opcional: quitar en producción
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.log("CartContext updated - items:", cartItems);
