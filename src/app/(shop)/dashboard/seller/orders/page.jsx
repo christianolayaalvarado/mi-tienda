@@ -22,7 +22,7 @@ export default function SellerOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [session, setSession] = useState(null); // para conocer role del usuario
+  const [session, setSession] = useState(null);
 
   // Estado para el modal de eliminación
   const [deleteTarget, setDeleteTarget] = useState(null); // { orderId }
@@ -103,7 +103,6 @@ export default function SellerOrdersPage() {
   };
 
   const handleMarkPaid = async (orderId) => {
-    // Este botón ahora solo aparece para admin; confirmación y llamada al endpoint
     if (!confirm("Confirmar: marcar esta orden como pagada? Esta acción la realiza un administrador.")) return;
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
@@ -155,7 +154,6 @@ export default function SellerOrdersPage() {
       if (!res.ok) {
         throw new Error(json?.error || json?.message || "Error eliminando orden");
       }
-      // cerrar modal y refrescar
       setDeleteTarget(null);
       await refreshOrders();
       alert("Orden eliminada correctamente");
@@ -225,7 +223,34 @@ export default function SellerOrdersPage() {
               {order.orderItems.map((item) => (
                 <div key={item.id} className="border-t pt-3">
                   <div className="flex justify-between items-center">
-                    <p className="font-semibold">Estado del item: {item.paymentStatus || "unknown"}</p>
+                    {/* Estado del item y, junto a él, Ver comprobante + Marcar tienda como pagada */}
+                    <div className="flex items-center gap-4">
+                      <p className="font-semibold">Estado del item: {item.paymentStatus || "unknown"}</p>
+
+                      {/* Ver comprobante (moved here) */}
+                      <a
+                        href={`/api/orders/${order.id}/proof`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-green-600 underline"
+                      >
+                        Ver comprobante
+                      </a>
+
+                      {/* Botón para que el vendedor de esta tienda marque su tienda como pagada */}
+                      <button
+                        onClick={() => handleMarkStorePaid(order.id, item.storeId)}
+                        disabled={item.paymentStatus === "paid"}
+                        className={`text-sm px-3 py-1 rounded ${
+                          item.paymentStatus === "paid"
+                            ? "bg-gray-200 text-gray-600"
+                            : "bg-yellow-600 text-white hover:bg-yellow-700"
+                        }`}
+                      >
+                        {item.paymentStatus === "paid" ? "Tienda pagada" : "Marcar tienda como pagada"}
+                      </button>
+                    </div>
+
                     <p className="text-sm text-gray-500">Tienda: {item.store?.name || item.storeId || "—"}</p>
                   </div>
 
@@ -254,67 +279,46 @@ export default function SellerOrdersPage() {
                       <div className="text-sm text-gray-500">No hay productos listados</div>
                     )}
                   </div>
-
-                  {/* Acciones por tienda (si corresponde) */}
-                  <div className="mt-3 flex gap-2">
-                    {/* Ver comprobante (controlado por servidor) */}
-                    <a
-                      href={`/api/orders/${order.id}/proof`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-green-600 underline"
-                    >
-                      Ver comprobante
-                    </a>
-
-                    {/* Botón para que el vendedor de esta tienda marque su tienda como pagada */}
-                    <button
-                      onClick={() => handleMarkStorePaid(order.id, item.storeId)}
-                      disabled={item.paymentStatus === "paid"}
-                      className={`text-sm px-3 py-1 rounded ${
-                        item.paymentStatus === "paid"
-                          ? "bg-gray-200 text-gray-600"
-                          : "bg-yellow-600 text-white hover:bg-yellow-700"
-                      }`}
-                    >
-                      {item.paymentStatus === "paid" ? "Tienda pagada" : "Marcar tienda como pagada"}
-                    </button>
-                  </div>
                 </div>
               ))}
             </div>
 
             {/* Acciones rápidas a nivel de orden */}
-            <div className="mt-4 flex gap-2">
-              {/* Botón Eliminar orden (abre modal) */}
-              <button
-                onClick={() => setDeleteTarget({ orderId: order.id })}
-                className="text-sm px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-              >
-                Eliminar orden
-              </button>
-
-              {/* Mostrar botón de orden completa SOLO para admin */}
-              {session?.user?.role === "admin" ? (
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <div className="flex gap-2 items-center">
+                {/* Botón Eliminar orden (abre modal). Si la orden ya está eliminada, queda deshabilitado */}
                 <button
-                  onClick={() => handleMarkPaid(order.id)}
-                  disabled={order.paymentStatus === "paid"}
+                  onClick={() => setDeleteTarget({ orderId: order.id })}
+                  disabled={!!order.deleted}
                   className={`text-sm px-3 py-1 rounded ${
-                    order.paymentStatus === "paid" ? "bg-gray-200 text-gray-600" : "bg-green-600 text-white hover:bg-green-700"
+                    order.deleted ? "bg-gray-200 text-gray-600 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"
                   }`}
                 >
-                  {order.paymentStatus === "paid" ? "Pagado" : "Marcar como pagado"}
+                  Eliminar orden
                 </button>
+
+                {/* Mostrar botón de orden completa SOLO para admin */}
+                {session?.user?.role === "admin" ? (
+                  <button
+                    onClick={() => handleMarkPaid(order.id)}
+                    disabled={order.paymentStatus === "paid"}
+                    className={`text-sm px-3 py-1 rounded ${
+                      order.paymentStatus === "paid" ? "bg-gray-200 text-gray-600" : "bg-green-600 text-white hover:bg-green-700"
+                    }`}
+                  >
+                    {order.paymentStatus === "paid" ? "Pagado" : "Marcar como pagado"}
+                  </button>
+                ) : null}
+              </div>
+
+              {/* Si la orden está marcada como eliminada (soft-delete), mostrar razón en la misma línea, a la derecha */}
+              {order.deleted ? (
+                <div className="text-sm text-red-600">
+                  <strong>Orden eliminada</strong> • Razón: {order.deletedReason || "—"} • Fecha:{" "}
+                  {order.deletedAt ? formatDate(order.deletedAt) : "—"}
+                </div>
               ) : null}
             </div>
-
-            {/* Si la orden está marcada como eliminada (soft-delete), mostrar razón centrada */}
-            {order.deleted && (
-              <div className="mt-3 text-sm text-red-600 text-center">
-                <strong>Orden eliminada</strong> • Razón: {order.deletedReason || "—"} • Fecha:{" "}
-                {order.deletedAt ? formatDate(order.deletedAt) : "—"}
-              </div>
-            )}
           </div>
         ))}
       </div>

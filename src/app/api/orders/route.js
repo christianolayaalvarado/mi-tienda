@@ -42,6 +42,7 @@ export async function GET(req) {
       orderBy: { createdAt: "desc" },
     });
 
+    // Normalizar la respuesta para que el cliente siempre reciba los campos esperados
     const normalized = orders.map((o) => ({
       id: o.id,
       orderNumber: o.orderNumber || null,
@@ -52,6 +53,13 @@ export async function GET(req) {
       customerName: o.customerName,
       customerEmail: o.customerEmail,
       documentNumber: o.documentNumber || null,
+      // Campos de eliminación normalizados
+      deleted: typeof o.deleted !== "undefined" ? o.deleted : false,
+      deletedReason: o.deletedReason || null,
+      deletedAt: o.deletedAt || null,
+      deletedBy: o.deletedBy || null,
+      // Otros campos útiles
+      paymentProof: o.paymentProof || null,
       orderItems: (o.orderItems || []).map((oi) => ({
         id: oi.id,
         storeId: oi.storeId,
@@ -205,11 +213,15 @@ export async function POST(req) {
       return NextResponse.json({ error: "Orden creada pero no encontrada" }, { status: 500 });
     }
 
-    // Normalizar id y devolver orderNumber para que el frontend lo use con seguridad
+    // Normalizar id y devolver orderNumber y campos de eliminación para que el frontend lo use con seguridad
     const response = {
       id: fullOrder.id,
       order: fullOrder,
       orderNumber: fullOrder.orderNumber || null,
+      deleted: typeof fullOrder.deleted !== "undefined" ? fullOrder.deleted : false,
+      deletedReason: fullOrder.deletedReason || null,
+      deletedAt: fullOrder.deletedAt || null,
+      deletedBy: fullOrder.deletedBy || null,
     };
 
     return NextResponse.json(response, {

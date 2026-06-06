@@ -66,6 +66,7 @@ export default function OrdersPage() {
                 {order.paymentStatus}
               </span>
             </p>
+            
           </div>
 
           {/* STORES */}
