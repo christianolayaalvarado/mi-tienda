@@ -28,50 +28,21 @@ export default async function DashboardLayout({ children }) {
           </p>
 
           <nav className="flex flex-col gap-2">
+            <Link href="/dashboard" className="px-3 py-2 rounded hover:bg-gray-700 transition">🏠 Inicio</Link>
+            <Link href="/dashboard/products" className="px-3 py-2 rounded hover:bg-gray-700 transition">📦 Productos</Link>
+            <Link href="/dashboard/orders" className="px-3 py-2 rounded hover:bg-gray-700 transition">🧾 Mis Órdenes</Link>
+            <Link href="/dashboard/seller/orders" className="px-3 py-2 rounded hover:bg-gray-700 transition">💰 Ventas</Link>
 
-            <Link
-              href="/dashboard"
-              className="px-3 py-2 rounded hover:bg-gray-700 transition"
-            >
-              🏠 Inicio
-            </Link>
-
-            <Link
-              href="/dashboard/products"
-              className="px-3 py-2 rounded hover:bg-gray-700 transition"
-            >
-              📦 Productos
-            </Link>
-
-            <Link
-              href="/dashboard/orders"
-              className="px-3 py-2 rounded hover:bg-gray-700 transition"
-            >
-              🧾 Mis Órdenes
-            </Link>
-
-            {/* 🔥 NUEVO: Ventas (seller) */}
-            <Link
-              href="/dashboard/seller/orders"
-              className="px-3 py-2 rounded hover:bg-gray-700 transition"
-            >
-              💰 Ventas
-            </Link>
-
-                    {/* 🔻 Parte inferior (siempre visible) */}
-        <div className="mt-auto pt-4 border-t border-gray-700">
-          <LogoutButton />
-        </div>
-            
+            <div className="mt-auto pt-4 border-t border-gray-700">
+              <LogoutButton />
+            </div>
           </nav>
         </div>
 
-
-
       </aside>
 
-      {/* Contenido */}
-      <main className="flex-1 p-6 bg-gray-50 overflow-y-auto">
+      {/* Contenido: quitar overflow-y-auto para evitar doble scrollbar */}
+      <main className="flex-1 p-6 bg-gray-50">
         {children}
       </main>
 

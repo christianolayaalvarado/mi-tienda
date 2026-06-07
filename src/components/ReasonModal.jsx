@@ -5,27 +5,28 @@ import { useEffect, useCallback, useState } from "react";
 export default function ReasonModal({ open, onClose, onConfirm }) {
   const [reason, setReason] = useState("");
 
-  // Defiere la limpieza para evitar setState sincrónico dentro del effect
+  // Limpiar razón y cerrar
+  const handleClose = useCallback(() => {
+    setReason("");
+    onClose?.();
+  }, [onClose]);
+
+  // Bloquear scroll del body mientras el modal esté abierto
   useEffect(() => {
     if (!open) return;
-    let mounted = true;
-    // microtask para evitar la advertencia del linter
-    Promise.resolve().then(() => {
-      if (mounted) setReason("");
-    });
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      mounted = false;
+      document.body.style.overflow = original;
     };
   }, [open]);
 
   // Cerrar con Escape
   const handleKeyDown = useCallback(
     (e) => {
-      if (e.key === "Escape") {
-        onClose?.();
-      }
+      if (e.key === "Escape") handleClose();
     },
-    [onClose]
+    [handleClose]
   );
 
   useEffect(() => {
@@ -40,19 +41,18 @@ export default function ReasonModal({ open, onClose, onConfirm }) {
     const trimmed = (reason || "").trim();
     onConfirm?.(trimmed);
     setReason("");
-    onClose?.();
+    handleClose();
   };
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Modal eliminar orden"
-      className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
-      onClick={() => onClose?.()}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={handleClose}
     >
       <div
-        className="bg-white rounded p-6 w-full max-w-md shadow-lg"
+        className="bg-white rounded p-6 w-full max-w-md max-h-[90vh] overflow-auto shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold mb-4">Eliminar orden</h2>
@@ -73,10 +73,7 @@ export default function ReasonModal({ open, onClose, onConfirm }) {
         <div className="mt-4 flex justify-end gap-3">
           <button
             type="button"
-            onClick={() => {
-              setReason("");
-              onClose?.();
-            }}
+            onClick={handleClose}
             className="px-4 py-2 rounded border hover:bg-gray-50"
           >
             Cancelar
