@@ -42,6 +42,7 @@ export default function HomeClient() {
       if (currentCategory) params.set("category", currentCategory);
       if (currentSort) params.set("sort", currentSort);
       params.set("page", String(currentPage || 1));
+      params.set("limit", "15"); // <- pedir 15 por página
 
       const res = await fetch(`/api/products?${params.toString()}`, {
         signal: fetchController.current.signal,
@@ -124,6 +125,7 @@ export default function HomeClient() {
     if (currentCategory) params.set("category", currentCategory);
     if (currentSort) params.set("sort", currentSort);
     params.set("page", String(page));
+    params.set("limit", "15"); // <- mantener limit consistente
 
     // router.push en cliente; no forzamos scroll si el usuario lo desea
     router.push(`/?${params.toString()}`, { scroll: false });
