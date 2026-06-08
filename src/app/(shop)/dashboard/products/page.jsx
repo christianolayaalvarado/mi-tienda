@@ -27,7 +27,7 @@ export default function ProductsPage() {
   const [categoryId, setCategoryId] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 8;
+  const limit = 12;
 
   const debouncedSearch = useDebounce(search, 500);
 
