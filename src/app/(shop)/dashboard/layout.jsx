@@ -12,16 +12,12 @@ export default async function DashboardLayout({ children }) {
   }
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden">
-
+    // Wrapper ocupa toda la ventana; el scroll se delega al main
+    <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 bg-gray-900 text-white p-4 hidden md:flex flex-col justify-between sticky top-0 h-screen">
-
-        {/* 🔝 Parte superior */}
         <div>
-          <h2 className="text-xl font-bold mb-6">
-            Dashboard
-          </h2>
+          <h2 className="text-xl font-bold mb-6">Dashboard</h2>
 
           <p className="text-sm mb-4 text-gray-300 break-all">
             {session.user.email}
@@ -38,14 +34,12 @@ export default async function DashboardLayout({ children }) {
             </div>
           </nav>
         </div>
-
       </aside>
 
-      {/* Contenido: quitar overflow-y-auto para evitar doble scrollbar */}
-      <main className="flex-1 p-6 bg-gray-50">
+      {/* Contenido: este es el único contenedor con scroll (overflow-auto) */}
+      <main className="flex-1 p-6 bg-gray-50 overflow-auto">
         {children}
       </main>
-
     </div>
   );
 }
