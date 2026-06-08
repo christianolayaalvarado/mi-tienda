@@ -12,9 +12,9 @@ export default async function DashboardLayout({ children }) {
   }
 
   return (
-    // Wrapper ocupa toda la ventana; el scroll se delega al main
+    // Wrapper flex ocupa toda la ventana
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
+      {/* Sidebar fijo */}
       <aside className="w-64 bg-gray-900 text-white p-4 hidden md:flex flex-col justify-between sticky top-0 h-screen">
         <div>
           <h2 className="text-xl font-bold mb-6">Dashboard</h2>
@@ -36,8 +36,9 @@ export default async function DashboardLayout({ children }) {
         </div>
       </aside>
 
-      {/* Contenido: este es el único contenedor con scroll (overflow-auto) */}
-      <main className="flex-1 p-6 bg-gray-50 overflow-auto">
+      {/* Contenido: el único contenedor con scroll.
+          IMPORTANT: min-h-0 permite que overflow-auto funcione dentro de flex */}
+      <main className="flex-1 p-6 bg-gray-50 overflow-auto min-h-0">
         {children}
       </main>
     </div>

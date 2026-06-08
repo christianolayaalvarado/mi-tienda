@@ -1,62 +1,45 @@
-import { NextResponse } from "next/server"
-import prisma from "@/lib/prisma"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/authOptions"
+// app/api/products/mine/route.js
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
 
 export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    if (!session) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const url = new URL(req.url);
+    const search = url.searchParams.get("search") || "";
+    const categoryId = url.searchParams.get("categoryId") || "";
+    const page = parseInt(url.searchParams.get("page") || "1", 10) || 1;
+    const limit = parseInt(url.searchParams.get("limit") || "8", 10) || 8;
 
-    const { search, categoryId, page = 1, limit = 8 } =
-      Object.fromEntries(new URL(req.url).searchParams.entries())
+    const take = limit;
+    const skip = (page - 1) * take;
 
-    const take = parseInt(limit) || 8
-    const currentPage = parseInt(page) || 1
-    const skip = (currentPage - 1) * take
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
 
-    // 🔥 Obtener usuario
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
-    }
-
-    // 🔥 Filtros SOLO para sus productos
     const where = {
       userId: user.id,
       ...(search ? { title: { contains: search, mode: "insensitive" } } : {}),
       ...(categoryId ? { categoryId } : {}),
-    }
+    };
 
-    const total = await prisma.product.count({ where })
+    const total = await prisma.product.count({ where });
 
     const products = await prisma.product.findMany({
       where,
-      include: {
-        category: true,
-        store: true,
-        user: true,
-      },
+      include: { category: true, store: true, user: true },
       skip,
       take,
       orderBy: { createdAt: "desc" },
-    })
+    });
 
-    // ✅ Ajuste: devolver array directo si frontend lo espera así
-    return NextResponse.json({
-      products,
-      totalPages: Math.ceil(total / take),
-      currentPage,
-    })
-
+    return NextResponse.json({ products, totalPages: Math.ceil(total / take), currentPage: page });
   } catch (error) {
-    console.error("GET /api/products/mine error:", error)
-    return NextResponse.json({ error: "Error al obtener productos", detail: error.message }, { status: 500 })
+    console.error("GET /api/products/mine error:", error);
+    return NextResponse.json({ error: "Error al obtener productos", detail: error?.message || null }, { status: 500 });
   }
 }

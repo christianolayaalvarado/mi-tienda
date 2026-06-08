@@ -1,26 +1,25 @@
+// app/api/products/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/authOptions";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import cloudinary from "@/lib/cloudinary";
 
-// Helper: detectar data URI
-const isDataUri = (str) =>
-  typeof str === "string" && str.startsWith("data:");
+/* Helpers */
+const isDataUri = (str) => typeof str === "string" && str.startsWith("data:");
+const isUrl = (str) => typeof str === "string" && (str.startsWith("http://") || str.startsWith("https://"));
 
-// Helper: detectar URL
-const isUrl = (str) =>
-  typeof str === "string" && (str.startsWith("http://") || str.startsWith("https://"));
-
-// 🔹 GET PRODUCTOS (MARKETPLACE - TODAS LAS TIENDAS)
+/* GET: marketplace (todas las tiendas) */
 export async function GET(req) {
   try {
-    const { search, category, page = 1, limit = 12 } =
-      Object.fromEntries(new URL(req.url).searchParams.entries());
+    const url = new URL(req.url);
+    const search = url.searchParams.get("search") || "";
+    const category = url.searchParams.get("category") || "";
+    const page = parseInt(url.searchParams.get("page") || "1", 10) || 1;
+    const limit = parseInt(url.searchParams.get("limit") || "12", 10) || 12;
 
-    const take = parseInt(limit) || 12;
-    const currentPage = parseInt(page) || 1;
-    const skip = (currentPage - 1) * take;
+    const take = limit;
+    const skip = (page - 1) * take;
 
     const where = {
       ...(search ? { title: { contains: search, mode: "insensitive" } } : {}),
@@ -31,81 +30,53 @@ export async function GET(req) {
 
     const products = await prisma.product.findMany({
       where,
-      include: {
-        category: true,
-        store: true,
-      },
+      include: { category: true, store: true, user: true },
       skip,
       take,
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({
-      products,
-      totalPages: Math.ceil(total / take),
-    });
+    return NextResponse.json({ products, totalPages: Math.ceil(total / take), currentPage: page });
   } catch (error) {
     console.error("GET /api/products error:", error);
     return NextResponse.json({ error: "Error al obtener productos" }, { status: 500 });
   }
 }
 
-// 🔹 CREAR PRODUCTO
+/* POST: crear producto (seller) */
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    if (!session) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    const body = await req.json().catch(() => null);
+    if (!body) return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
 
-    // Intentamos parsear JSON; si el cliente envía archivos grandes en JSON esto puede fallar.
-    const body = await req.json();
     const { title, price, stock, description, categoryId, images } = body;
-
     if (!title || price === undefined || stock === undefined || !categoryId) {
       return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
     }
 
-    // Obtener usuario real desde DB
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { stores: true },
-    });
-
-    if (!user || user.stores.length === 0) {
+    const user = await prisma.user.findUnique({ where: { email: session.user.email }, include: { stores: true } });
+    if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    if (!user.stores || user.stores.length === 0) {
       return NextResponse.json({ error: "No tienes tienda creada" }, { status: 400 });
     }
-
     const store = user.stores[0];
 
-    // Subir imágenes: aceptar URLs ya subidas o dataURI (base64)
     const uploadedImages = [];
-
     if (Array.isArray(images) && images.length > 0) {
       for (const image of images) {
         try {
           if (!image) continue;
-
-          // Si ya es URL pública (ej. Cloudinary), la usamos tal cual
-          if (isUrl(image)) {
-            uploadedImages.push(image);
-            continue;
-          }
-
-          // Si es data URI (base64), subir a Cloudinary
+          if (isUrl(image)) { uploadedImages.push(image); continue; }
           if (isDataUri(image)) {
             const uploaded = await cloudinary.uploader.upload(image, { folder: "mi_tienda" });
-            if (uploaded && uploaded.secure_url) {
-              uploadedImages.push(uploaded.secure_url);
-            }
+            if (uploaded?.secure_url) uploadedImages.push(uploaded.secure_url);
             continue;
           }
-
-          // Si no es URL ni dataURI, ignorar para evitar errores
-          console.warn("Imagen ignorada (no es URL ni dataURI):", typeof image);
+          console.warn("Imagen ignorada (no es URL ni dataURI)");
         } catch (imgErr) {
-          // Log y continuar con las demás imágenes
           console.error("Error subiendo imagen a Cloudinary:", imgErr);
         }
       }
@@ -122,63 +93,46 @@ export async function POST(req) {
         userId: user.id,
         storeId: store.id,
       },
-      include: {
-        category: true,
-        store: true,
-      },
+      include: { category: true, store: true, user: true },
     });
 
     return NextResponse.json(newProduct, { status: 201 });
   } catch (error) {
     console.error("POST /api/products error:", error);
-
-    // Si el error proviene de body demasiado grande, devolver texto claro
-    const message = error?.message || "Error creando producto";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Error creando producto" }, { status: 500 });
   }
 }
 
-// 🔹 EDITAR PRODUCTO
+/* PUT: editar producto (owner o admin) */
 export async function PUT(req) {
   try {
     const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    if (!session) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    const body = await req.json().catch(() => null);
+    if (!body || !body.id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
 
-    const body = await req.json();
-    const { id } = body;
+    const productId = body.id;
+    const existing = await prisma.product.findUnique({ where: { id: productId } });
+    if (!existing) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
 
-    if (!id) {
-      return NextResponse.json({ error: "ID requerido" }, { status: 400 });
-    }
+    // Verificar propietario
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    const isOwner = String(existing.userId) === String(user.id);
+    const isAdmin = session.user?.role === "admin" || session.user?.role === "ADMIN";
+    if (!isOwner && !isAdmin) return NextResponse.json({ error: "No autorizado para editar este producto" }, { status: 403 });
 
-    // Obtener usuario real
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    const existing = await prisma.product.findUnique({ where: { id } });
-
-    if (!existing || existing.userId !== user.id) {
-      return NextResponse.json({ error: "No autorizado para editar este producto" }, { status: 403 });
-    }
-
-    // Subir nuevas imágenes (si vienen como dataURI) o aceptar URLs
+    // Subir nuevas imágenes si vienen como dataURI
     const uploadedImages = [];
-
     if (Array.isArray(body.newImages) && body.newImages.length > 0) {
       for (const img of body.newImages) {
         try {
           if (!img) continue;
-          if (isUrl(img)) {
-            uploadedImages.push(img);
-            continue;
-          }
+          if (isUrl(img)) { uploadedImages.push(img); continue; }
           if (isDataUri(img)) {
             const uploaded = await cloudinary.uploader.upload(img, { folder: "mi_tienda" });
-            if (uploaded && uploaded.secure_url) uploadedImages.push(uploaded.secure_url);
+            if (uploaded?.secure_url) uploadedImages.push(uploaded.secure_url);
             continue;
           }
           console.warn("Imagen nueva ignorada (no es URL ni dataURI)");
@@ -188,24 +142,20 @@ export async function PUT(req) {
       }
     }
 
-    // Mantener las imágenes que el usuario indicó conservar
     const imagesToKeep = Array.isArray(body.imagesToKeep) ? body.imagesToKeep.filter(Boolean) : [];
     const allImages = [...imagesToKeep, ...uploadedImages];
 
     const updatedProduct = await prisma.product.update({
-      where: { id },
+      where: { id: productId },
       data: {
-        title: body.title,
-        price: Number(body.price),
-        stock: Number(body.stock),
-        description: body.description || "",
-        categoryId: body.categoryId,
-        images: allImages,
+        title: body.title ?? existing.title,
+        price: body.price !== undefined ? Number(body.price) : existing.price,
+        stock: body.stock !== undefined ? Number(body.stock) : existing.stock,
+        description: body.description ?? existing.description,
+        categoryId: body.categoryId ?? existing.categoryId,
+        images: allImages.length > 0 ? allImages : existing.images,
       },
-      include: {
-        category: true,
-        store: true,
-      },
+      include: { category: true, store: true, user: true },
     });
 
     return NextResponse.json(updatedProduct);
@@ -215,35 +165,25 @@ export async function PUT(req) {
   }
 }
 
-// 🔹 ELIMINAR MÚLTIPLES PRODUCTOS
+/* DELETE: eliminar múltiples productos (solo del owner) */
 export async function DELETE(req) {
   try {
     const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    if (!session) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
-
-    const body = await req.json();
-    const { ids } = body;
-
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    const body = await req.json().catch(() => null);
+    if (!body || !Array.isArray(body.ids) || body.ids.length === 0) {
       return NextResponse.json({ error: "IDs requeridos" }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
 
     const deleted = await prisma.product.deleteMany({
-      where: {
-        id: { in: ids },
-        userId: user.id,
-      },
+      where: { id: { in: body.ids }, userId: user.id },
     });
 
-    return NextResponse.json({
-      message: "Productos eliminados correctamente",
-      count: deleted.count,
-    });
+    return NextResponse.json({ message: "Productos eliminados correctamente", count: deleted.count });
   } catch (error) {
     console.error("DELETE /api/products error:", error);
     return NextResponse.json({ error: "Error eliminando productos" }, { status: 500 });

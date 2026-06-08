@@ -1,96 +1,52 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useRef } from "react";
 
-export default function ReasonModal({ open, onClose, onConfirm }) {
-  const [reason, setReason] = useState("");
+export default function ReasonModal({ open, initialReason = "", onClose, onConfirm }) {
+  const textareaRef = useRef(null);
 
-  // Limpiar razón y cerrar
-  const handleClose = useCallback(() => {
-    setReason("");
-    onClose?.();
-  }, [onClose]);
-
-  // Bloquear scroll del body mientras el modal esté abierto
   useEffect(() => {
     if (!open) return;
-    const original = document.body.style.overflow;
+    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
+    window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
+    setTimeout(() => textareaRef.current?.focus(), 50);
     return () => {
-      document.body.style.overflow = original;
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
     };
-  }, [open]);
-
-  // Cerrar con Escape
-  const handleKeyDown = useCallback(
-    (e) => {
-      if (e.key === "Escape") handleClose();
-    },
-    [handleClose]
-  );
-
-  useEffect(() => {
-    if (!open) return;
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, handleKeyDown]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
-  const handleConfirm = () => {
-    const trimmed = (reason || "").trim();
-    onConfirm?.(trimmed);
-    setReason("");
-    handleClose();
-  };
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={handleClose}
-    >
-      <div
-        className="bg-white rounded p-6 w-full max-w-md max-h-[90vh] overflow-auto shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-lg font-semibold mb-4">Eliminar orden</h2>
-
-        <p className="text-sm text-gray-600 mb-3">
-          Por favor ingresa la razón de la eliminación:
-        </p>
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => onClose?.()}>
+      <div className="bg-white p-4 rounded w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-bold text-lg">Motivo</h3>
+        <p className="text-sm mt-2">Indica la razón para esta acción.</p>
 
         <textarea
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          className="w-full border rounded p-2 text-sm resize-y"
-          rows={4}
-          placeholder="Ejemplo: Cliente canceló la compra"
-          aria-label="Razón de eliminación"
+          ref={textareaRef}
+          defaultValue={initialReason}
+          id="reason"
+          className="w-full h-28 mt-2 p-2 border rounded resize-y"
+          placeholder="Escribe la razón aquí"
+          aria-label="Razón"
         />
 
-        <div className="mt-4 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-4 py-2 rounded border hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
+        <div className="flex justify-end gap-2 mt-3">
+          <button type="button" onClick={() => onClose?.()} className="px-3 py-1 border rounded">Cancelar</button>
 
           <button
             type="button"
-            onClick={handleConfirm}
-            disabled={(reason || "").trim().length === 0}
-            className={`px-4 py-2 rounded text-white ${
-              (reason || "").trim().length === 0
-                ? "bg-red-300 cursor-not-allowed"
-                : "bg-red-600 hover:bg-red-700"
-            }`}
-            aria-disabled={(reason || "").trim().length === 0}
+            onClick={() => {
+              const val = document.getElementById("reason")?.value?.trim() || "";
+              if (!val) return;
+              onConfirm?.(val);
+            }}
+            className="px-3 py-1 rounded bg-blue-600 text-white"
           >
-            Confirmar eliminación
+            Confirmar
           </button>
         </div>
       </div>
