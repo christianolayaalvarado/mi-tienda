@@ -109,21 +109,38 @@ export async function PUT(req) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    const body = await req.json().catch(() => null);
+    // Leer body con manejo de errores
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error("PUT /api/products - invalid JSON body", e);
+      return NextResponse.json({ error: "Payload inválido (JSON)" }, { status: 400 });
+    }
+
     if (!body || !body.id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
 
-    const productId = body.id;
+    const productId = String(body.id);
+
+    // Log temporal para depuración
+    console.log("PUT /api/products - request body:", JSON.stringify(body));
+
     const existing = await prisma.product.findUnique({ where: { id: productId } });
-    if (!existing) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+    if (!existing) {
+      console.warn("PUT /api/products - producto no encontrado:", productId);
+      return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+    }
 
     // Verificar propietario
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+
     const isOwner = String(existing.userId) === String(user.id);
-    const isAdmin = session.user?.role === "admin" || session.user?.role === "ADMIN";
+    const role = session.user?.role || "";
+    const isAdmin = role === "admin" || role === "ADMIN";
     if (!isOwner && !isAdmin) return NextResponse.json({ error: "No autorizado para editar este producto" }, { status: 403 });
 
-    // Subir nuevas imágenes si vienen como dataURI
+    // Preparar imágenes (subidas) — igual que antes
     const uploadedImages = [];
     if (Array.isArray(body.newImages) && body.newImages.length > 0) {
       for (const img of body.newImages) {
@@ -145,23 +162,33 @@ export async function PUT(req) {
     const imagesToKeep = Array.isArray(body.imagesToKeep) ? body.imagesToKeep.filter(Boolean) : [];
     const allImages = [...imagesToKeep, ...uploadedImages];
 
+    // Construir objeto de actualización solo con campos permitidos
+    const dataToUpdate = {};
+    if (body.title !== undefined) dataToUpdate.title = body.title;
+    if (body.price !== undefined) dataToUpdate.price = Number(body.price);
+    if (body.stock !== undefined) dataToUpdate.stock = Number(body.stock);
+    if (body.description !== undefined) dataToUpdate.description = body.description;
+    if (body.categoryId !== undefined) dataToUpdate.categoryId = body.categoryId;
+    if (allImages.length > 0) dataToUpdate.images = allImages;
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      return NextResponse.json({ error: "No hay campos para actualizar" }, { status: 400 });
+    }
+
+    // Ejecutar update y asegurar await
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
-      data: {
-        title: body.title ?? existing.title,
-        price: body.price !== undefined ? Number(body.price) : existing.price,
-        stock: body.stock !== undefined ? Number(body.stock) : existing.stock,
-        description: body.description ?? existing.description,
-        categoryId: body.categoryId ?? existing.categoryId,
-        images: allImages.length > 0 ? allImages : existing.images,
-      },
+      data: dataToUpdate,
       include: { category: true, store: true, user: true },
     });
 
-    return NextResponse.json(updatedProduct);
+    // Log de éxito
+    console.log("PUT /api/products - actualizado:", productId);
+
+    return NextResponse.json(updatedProduct, { status: 200 });
   } catch (error) {
     console.error("PUT /api/products error:", error);
-    return NextResponse.json({ error: "Error actualizando producto" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Error actualizando producto" }, { status: 500 });
   }
 }
 
