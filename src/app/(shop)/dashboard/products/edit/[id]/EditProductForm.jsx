@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
+import useCategories from "@/hooks/useCategories";
 
 const CLOUDINARY_CLOUD_NAME = "dqx8wx5fj";
 const UPLOAD_PRESET = "mi_tienda_unsigned";
 
 export default function EditProductForm({ productId }) {
   const { data: session } = useSession();
+  const { categories = [], loading: loadingCategories } = useCategories();
+
   const [product, setProduct] = useState(null);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
 
@@ -28,44 +30,66 @@ export default function EditProductForm({ productId }) {
   useEffect(() => {
     if (!productId) return;
 
+    let mounted = true;
     (async () => {
-      // Obtener producto
-      const res = await fetch(`/api/products/${productId}`, { cache: "no-store" });
-      if (res.status === 401) {
-        toast.error("No autorizado. Inicia sesión.");
-        return;
-      }
-      if (res.status === 403) {
-        toast.error("No tienes permiso para ver este producto.");
-        return;
-      }
-      if (!res.ok) {
-        toast.error("Error cargando producto");
-        return;
-      }
-      const data = await res.json();
-      setProduct(data);
-      setForm({
-        title: data.title || "",
-        price: data.price || "",
-        categoryId: data.category?.id || "",
-        stock: data.stock || 0,
-        description: data.description || "",
-      });
+      try {
+        const res = await fetch(`/api/products/${productId}`, { cache: "no-store" });
+        if (res.status === 401) {
+          toast.error("No autorizado. Inicia sesión.");
+          return;
+        }
+        if (res.status === 403) {
+          toast.error("No tienes permiso para ver este producto.");
+          return;
+        }
+        if (!res.ok) {
+          toast.error("Error cargando producto");
+          return;
+        }
+        const data = await res.json();
+        if (!mounted) return;
 
-      const ownerId = data.userId || data.user?.id;
-      const admin = session?.user?.role === "admin";
-      setIsOwner(admin || (session?.user?.id && ownerId === session.user.id));
+        setProduct(data);
+        setForm({
+          title: data.title ?? "",
+          price: data.price ?? "",
+          categoryId: data.category?.id ?? "",
+          stock: data.stock ?? 0,
+          description: data.description ?? "",
+        });
+
+        const ownerId = data.userId ?? data.user?.id;
+        const admin = session?.user?.role === "admin";
+        setIsOwner(admin || (session?.user?.id && ownerId === session.user.id));
+      } catch (err) {
+        console.error("Error fetching product:", err);
+        toast.error("Error cargando producto");
+      }
     })();
 
-    // Categorías
-    fetch("/api/categories").then((r) => r.json()).then((d) => setCategories(d || []));
+    return () => {
+      mounted = false;
+    };
+    // intentionally include session.user.id and role so ownership recalculates when session changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, session?.user?.id, session?.user?.role]);
 
+  useEffect(() => {
+    return () => {
+      previewImages.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previewImages]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    // parse numeric fields
+    if (name === "price") {
+      setForm((prev) => ({ ...prev, [name]: value === "" ? "" : Number(value) }));
+    } else if (name === "stock") {
+      setForm((prev) => ({ ...prev, [name]: value === "" ? "" : Number(value) }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleImageSelect = (e) => {
@@ -95,12 +119,6 @@ export default function EditProductForm({ productId }) {
     setNewImages(updatedFiles);
     setPreviewImages(updatedPreviews);
   };
-
-  useEffect(() => {
-    return () => {
-      previewImages.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [previewImages]);
 
   const uploadToCloudinary = async (file) => {
     const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
@@ -137,15 +155,22 @@ export default function EditProductForm({ productId }) {
         }
       }
 
+      // Ensure numeric types for price/stock
+      const payload = {
+        id: productId,
+        title: form.title,
+        price: form.price === "" ? undefined : Number(form.price),
+        categoryId: form.categoryId || undefined,
+        stock: form.stock === "" ? undefined : Number(form.stock),
+        description: form.description,
+        newImages: newImageUrls,
+        imagesToKeep: product.images || [],
+      };
+
       const res = await fetch(`/api/products`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: productId,
-          ...form,
-          newImages: newImageUrls,
-          imagesToKeep: product.images || [],
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.status === 401) {
@@ -169,7 +194,16 @@ export default function EditProductForm({ productId }) {
       const data = await res.json();
       toast.success("Producto actualizado ✅");
       setProduct(data);
+      setForm({
+        title: data.title ?? "",
+        price: data.price ?? "",
+        categoryId: data.category?.id ?? "",
+        stock: data.stock ?? 0,
+        description: data.description ?? "",
+      });
       setNewImages([]);
+      // revoke old previews
+      previewImages.forEach((url) => URL.revokeObjectURL(url));
       setPreviewImages([]);
     } catch (err) {
       console.error(err);
@@ -186,29 +220,34 @@ export default function EditProductForm({ productId }) {
     }
     if (!confirm("¿Eliminar producto?")) return;
 
-    const res = await fetch(`/api/products`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: [productId] }),
-    });
+    try {
+      const res = await fetch(`/api/products`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [productId] }),
+      });
 
-    if (res.status === 401) {
-      toast.error("No autorizado. Inicia sesión.");
-      return;
-    }
-    if (res.status === 403) {
-      toast.error("No tienes permiso para eliminar este producto.");
-      return;
-    }
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("Error eliminando producto:", res.status, text);
+      if (res.status === 401) {
+        toast.error("No autorizado. Inicia sesión.");
+        return;
+      }
+      if (res.status === 403) {
+        toast.error("No tienes permiso para eliminar este producto.");
+        return;
+      }
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Error eliminando producto:", res.status, text);
+        toast.error("Error eliminando producto");
+        return;
+      }
+
+      toast.success("Producto eliminado ✅");
+      window.location.href = "/dashboard/products";
+    } catch (err) {
+      console.error("Delete error:", err);
       toast.error("Error eliminando producto");
-      return;
     }
-
-    toast.success("Producto eliminado ✅");
-    window.location.href = "/dashboard/products";
   };
 
   if (!product) return <p>Cargando...</p>;
@@ -235,25 +274,56 @@ export default function EditProductForm({ productId }) {
 
       <div>
         <label>Precio:</label>
-        <input type="number" name="price" value={form.price} onChange={handleChange} className="border p-2 w-full" disabled={!isOwner} />
+        <input
+          type="number"
+          name="price"
+          value={form.price}
+          onChange={handleChange}
+          className="border p-2 w-full"
+          disabled={!isOwner}
+          step="0.01"
+        />
       </div>
 
       <div>
         <label>Stock:</label>
-        <input type="number" name="stock" value={form.stock} onChange={handleChange} className="border p-2 w-full" disabled={!isOwner} />
+        <input
+          type="number"
+          name="stock"
+          value={form.stock}
+          onChange={handleChange}
+          className="border p-2 w-full"
+          disabled={!isOwner}
+        />
       </div>
 
       <div>
         <label>Categoría:</label>
-        <select name="categoryId" value={form.categoryId} onChange={handleChange} className="border p-2 w-full" disabled={!isOwner}>
+        <select
+          name="categoryId"
+          value={form.categoryId}
+          onChange={handleChange}
+          className="border p-2 w-full"
+          disabled={!isOwner || loadingCategories}
+        >
           <option value="">Seleccione</option>
-          {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
         </select>
       </div>
 
       <div>
         <label>Descripción:</label>
-        <textarea name="description" value={form.description} onChange={handleChange} className="border p-2 w-full" disabled={!isOwner} />
+        <textarea
+          name="description"
+          value={form.description}
+          onChange={handleChange}
+          className="border p-2 w-full"
+          disabled={!isOwner}
+        />
       </div>
 
       <div>
@@ -263,7 +333,13 @@ export default function EditProductForm({ productId }) {
             <div key={i} className="relative">
               <img src={img} className="w-24 h-24 object-cover rounded" />
               {isOwner && (
-                <button type="button" onClick={() => handleRemoveExisting(i)} className="absolute top-0 right-0 bg-red-500 text-white w-6 h-6 text-xs rounded-full">X</button>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveExisting(i)}
+                  className="absolute top-0 right-0 bg-red-500 text-white w-6 h-6 text-xs rounded-full"
+                >
+                  X
+                </button>
               )}
             </div>
           ))}
@@ -272,14 +348,27 @@ export default function EditProductForm({ productId }) {
 
       <div>
         <label>Agregar imágenes:</label>
-        <input type="file" multiple accept="image/*" onChange={handleImageSelect} className="border p-2 w-full" disabled={!isOwner} />
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="border p-2 w-full"
+          disabled={!isOwner}
+        />
 
         <div className="flex gap-2 flex-wrap mt-2">
           {previewImages.map((img, i) => (
             <div key={i} className="relative">
               <img src={img} className="w-24 h-24 object-cover rounded" />
               {isOwner && (
-                <button type="button" onClick={() => handleRemoveNew(i)} className="absolute top-0 right-0 bg-red-500 text-white w-6 h-6 text-xs rounded-full">X</button>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveNew(i)}
+                  className="absolute top-0 right-0 bg-red-500 text-white w-6 h-6 text-xs rounded-full"
+                >
+                  X
+                </button>
               )}
             </div>
           ))}

@@ -4,7 +4,7 @@ import { CartProvider } from "@/context/CartContext";
 import { NotificationProvider } from "@/context/NotificationContext"; // (lo mantengo por si lo usas después)
 import Providers from "@/components/Providers";
 import Navbar from "@/components/Navbar";
-
+import ThemeInitializer from "@/components/ThemeInitializer";
 // 🔥 TOAST
 import { Toaster } from "react-hot-toast";
 
@@ -32,7 +32,7 @@ export default function RootLayout({ children }) {
         <Providers>
           <CartProvider>
             <Navbar />
-
+            <ThemeInitializer />
             {children}
 
             {/* 🔥 TOAST GLOBAL */}

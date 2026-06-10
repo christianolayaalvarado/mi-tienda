@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import useCategories from "@/hooks/useCategories"; // ✅ hook centralizado
 
 const CLOUDINARY_CLOUD_NAME = "dqx8wx5fj";
 const UPLOAD_PRESET = "mi_tienda_unsigned";
@@ -19,18 +20,10 @@ export default function AddProductForm() {
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/categories")
-      .then((r) => r.json())
-      .then((data) => setCategories(data || []))
-      .catch((err) => {
-        console.error("Error cargando categorías", err);
-        toast.error("No se pudieron cargar las categorías");
-      });
-  }, []);
+  // ✅ obtener categorías desde el hook centralizado
+  const { categories, loading: loadingCategories } = useCategories();
 
   useEffect(() => {
     // limpiar object URLs al desmontar
@@ -211,11 +204,15 @@ export default function AddProductForm() {
           className="border p-2 w-full"
         >
           <option value="">Seleccione</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
+          {loadingCategories ? (
+            <option value="">Cargando categorías...</option>
+          ) : (
+            (categories || []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))
+          )}
         </select>
       </div>
 

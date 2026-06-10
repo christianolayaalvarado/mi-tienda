@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
+import useCategories from "@/hooks/useCategories"; // ✅ nuevo hook
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -17,7 +18,6 @@ function useDebounce(value, delay) {
 export default function ProductsPage() {
   const { data: session } = useSession();
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -31,6 +31,9 @@ export default function ProductsPage() {
 
   const debouncedSearch = useDebounce(search, 500);
 
+  // ✅ usar hook centralizado
+  const { categories, loading: loadingCategories } = useCategories();
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -40,7 +43,6 @@ export default function ProductsPage() {
       params.append("page", page);
       params.append("limit", limit);
 
-      // Usar endpoint seguro que devuelve solo los productos del seller
       const res = await fetch(`/api/products/mine?${params.toString()}`, { cache: "no-store" });
       if (res.status === 401) {
         toast.error("No autorizado. Inicia sesión.");
@@ -60,19 +62,6 @@ export default function ProductsPage() {
     }
   };
 
-  const fetchCategories = async () => {
-    try {
-      const res = await fetch("/api/categories");
-      const data = await res.json();
-      const unique = Array.from(new Map((data || []).map((c) => [c.id, c])).values());
-      setCategories(unique);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error cargando categorías");
-    }
-  };
-
-  useEffect(() => { fetchCategories(); }, []);
   useEffect(() => { setPage(1); }, [debouncedSearch, categoryId]);
   useEffect(() => { fetchProducts(); }, [debouncedSearch, categoryId, page]);
 
@@ -180,7 +169,6 @@ export default function ProductsPage() {
               <div className="flex justify-between mb-2">
                 <input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => toggleSelect(product.id)} />
 
-                {/* Mostrar Edit solo si eres owner o admin */}
                 {(product.userId === session?.user?.id || session?.user?.role === "admin") ? (
                   <Link href={`/dashboard/products/edit/${product.id}`}>
                     <button className="text-xs bg-blue-500 text-white px-2 py-1 rounded">Editar</button>

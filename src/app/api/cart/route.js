@@ -1,18 +1,18 @@
 // app/api/cart/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 
-/**
- * Endpoints:
- *  GET    /api/cart      -> { cart: null | { id, userId, items: [...] } }
- *  POST   /api/cart      -> { cart }
- *  DELETE /api/cart      -> { success: true }
- *
- * POST enriquece los items consultando Product en DB para cumplir con los
- * campos requeridos por Prisma (title, price, storeId, image, etc.).
- */
+async function resolveUserIdFromSession(session) {
+  if (!session) return null;
+  if (session.user?.id) return session.user.id;
+  if (session.user?.email) {
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    return user?.id ?? null;
+  }
+  return null;
+}
 
 export async function GET() {
   try {
@@ -21,16 +21,21 @@ export async function GET() {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
+    const userId = await resolveUserIdFromSession(session);
+    if (!userId) {
+      return NextResponse.json({ cart: { items: [] } });
+    }
+
     const cart = await prisma.cart.findFirst({
-      where: { userId: session.user.id },
+      where: { userId },
       include: { items: true },
     });
 
-    if (!cart) return NextResponse.json({ cart: null });
+    if (!cart) return NextResponse.json({ cart: { items: [] } });
 
     return NextResponse.json({ cart });
   } catch (err) {
-    console.error("🔥 ERROR GET CART:", err?.message || err, err?.stack);
+    console.error("🔥 ERROR GET CART:", err?.message || err);
     return NextResponse.json({ error: "Error obteniendo carrito" }, { status: 500 });
   }
 }
@@ -40,6 +45,12 @@ export async function POST(req) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+    const userId =
+      session.user?.id ??
+      (session.user?.email ? (await prisma.user.findUnique({ where: { email: session.user.email } }))?.id : null);
+
+    if (!userId) return NextResponse.json({ error: "Usuario no identificado" }, { status: 400 });
+
     const body = await req.json().catch(() => null);
     if (!body) return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
 
@@ -48,16 +59,13 @@ export async function POST(req) {
       return NextResponse.json({ error: "Items inválidos" }, { status: 400 });
     }
 
-    // Validación básica del formato enviado por el cliente
     const invalid = items.find((it) => !it || !it.productId || typeof it.quantity !== "number");
     if (invalid) {
       return NextResponse.json({ error: "Algún item tiene campos faltantes (productId, quantity)" }, { status: 400 });
     }
 
-    // Buscar carrito existente
-    let cart = await prisma.cart.findFirst({ where: { userId: session.user.id }, include: { items: true } });
+    let cart = await prisma.cart.findFirst({ where: { userId }, include: { items: true } });
 
-    // Enriquecer items consultando productos en DB para obtener campos obligatorios
     const enriched = [];
     for (const it of items) {
       const product = await prisma.product.findUnique({ where: { id: it.productId } });
@@ -76,10 +84,9 @@ export async function POST(req) {
     }
 
     if (!cart) {
-      // Crear carrito con items enriquecidos
       cart = await prisma.cart.create({
         data: {
-          userId: session.user.id,
+          userId,
           items: {
             create: enriched.map((e) => ({
               productId: e.productId,
@@ -94,10 +101,8 @@ export async function POST(req) {
         include: { items: true },
       });
     } else {
-      // Reemplazar items actuales por los nuevos (ajusta si prefieres merge)
       await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 
-      // Intentar createMany por eficiencia; si falla, fallback a create en bucle
       try {
         await prisma.cartItem.createMany({
           data: enriched.map((e) => ({
@@ -111,7 +116,6 @@ export async function POST(req) {
           })),
         });
       } catch (e) {
-        // Fallback: crear uno por uno si createMany falla por restricciones del proveedor
         for (const e of enriched) {
           await prisma.cartItem.create({
             data: {
@@ -132,7 +136,7 @@ export async function POST(req) {
 
     return NextResponse.json({ cart });
   } catch (err) {
-    console.error("🔥 ERROR POST CART:", err?.message || err, err?.stack);
+    console.error("🔥 ERROR POST CART:", err?.message || err);
     return NextResponse.json({ error: "Error actualizando carrito" }, { status: 500 });
   }
 }
@@ -142,7 +146,13 @@ export async function DELETE() {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    const cart = await prisma.cart.findFirst({ where: { userId: session.user.id } });
+    const userId =
+      session.user?.id ??
+      (session.user?.email ? (await prisma.user.findUnique({ where: { email: session.user.email } }))?.id : null);
+
+    if (!userId) return NextResponse.json({ success: true });
+
+    const cart = await prisma.cart.findFirst({ where: { userId } });
     if (!cart) return NextResponse.json({ success: true });
 
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
@@ -150,7 +160,7 @@ export async function DELETE() {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("🔥 ERROR DELETE CART:", err?.message || err, err?.stack);
+    console.error("🔥 ERROR DELETE CART:", err?.message || err);
     return NextResponse.json({ error: "Error eliminando carrito" }, { status: 500 });
   }
 }

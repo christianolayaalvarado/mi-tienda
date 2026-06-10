@@ -1,17 +1,19 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
+  const { status } = useSession();
+
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [persisting, setPersisting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // --- Helpers seguros para localStorage (solo en cliente) ---
   const canUseLocal = typeof window !== "undefined" && !!window.localStorage;
 
   const saveLocal = (items) => {
@@ -41,68 +43,65 @@ export function CartProvider({ children }) {
     }
   };
 
-  // --- API calls ---
-  const fetchCart = useCallback(async () => {
-    if (isSyncing) return { cart: null, skipped: true };
+  const fetchCart = useCallback(
+    async () => {
+      if (isSyncing) return { cart: null, skipped: true };
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/cart", { method: "GET", credentials: "include", headers: { Accept: "application/json" } });
-      if (!res.ok) {
-        // fallback to local
+      setLoading(true);
+      try {
+        const res = await fetch("/api/cart", { method: "GET", credentials: "include", headers: { Accept: "application/json" } });
+        if (!res.ok) {
+          const local = loadLocal();
+          setCartItems(local);
+          return { cart: null, fallback: true };
+        }
+        const data = await res.json().catch(() => null);
+
+        const local = loadLocal();
+
+        const items = (data?.cart?.items || []).map((it) => {
+          const image =
+            it.image ||
+            it.product?.image ||
+            (Array.isArray(it.product?.images) && it.product.images[0]) ||
+            (Array.isArray(it.images) && it.images[0]) ||
+            null;
+
+          const localMatch = local.find((l) => String(l.productId ?? l.id) === String(it.productId ?? it.id));
+          const nameFromLocal = localMatch ? (localMatch.name || localMatch.title || null) : null;
+          const imageFromLocal = localMatch ? (localMatch.image || null) : null;
+
+          return {
+            id: it.id,
+            productId: it.productId ?? it.id ?? null,
+            storeId: it.storeId,
+            name: it.product?.title || it.title || it.name || nameFromLocal || "",
+            price: it.price,
+            quantity: Number(it.quantity || 0),
+            image: image || imageFromLocal || null,
+          };
+        });
+
+        if ((items.length === 0 || items.every((i) => !i.productId)) && local.length > 0) {
+          setCartItems(local);
+          saveLocal(local);
+          return { cart: null, fallback: true };
+        }
+
+        setCartItems(items);
+        saveLocal(items);
+        return { cart: data?.cart || null, fallback: false };
+      } catch (err) {
         const local = loadLocal();
         setCartItems(local);
         return { cart: null, fallback: true };
+      } finally {
+        setLoading(false);
       }
-      const data = await res.json().catch(() => null);
+    },
+    [isSyncing]
+  );
 
-      // merge with local for missing names/images
-      const local = loadLocal();
-
-      const items = (data?.cart?.items || []).map((it) => {
-        const image =
-          it.image ||
-          it.product?.image ||
-          (Array.isArray(it.product?.images) && it.product.images[0]) ||
-          (Array.isArray(it.images) && it.images[0]) ||
-          null;
-
-        const localMatch = local.find((l) => String(l.productId ?? l.id) === String(it.productId ?? it.id));
-        const nameFromLocal = localMatch ? (localMatch.name || localMatch.title || null) : null;
-        const imageFromLocal = localMatch ? (localMatch.image || null) : null;
-
-        return {
-          id: it.id,
-          productId: it.productId ?? it.id ?? null,
-          storeId: it.storeId,
-          name: it.product?.title || it.title || it.name || nameFromLocal || "",
-          price: it.price,
-          quantity: Number(it.quantity || 0),
-          image: image || imageFromLocal || null,
-        };
-      });
-
-      // If server returned empty but local has items, prefer local (offline-first)
-      if ((items.length === 0 || items.every((i) => !i.productId)) && local.length > 0) {
-        setCartItems(local);
-        saveLocal(local);
-        return { cart: null, fallback: true };
-      }
-
-      setCartItems(items);
-      saveLocal(items);
-      return { cart: data?.cart || null, fallback: false };
-    } catch (err) {
-      console.error("Error fetching cart:", err);
-      const local = loadLocal();
-      setCartItems(local);
-      return { cart: null, fallback: true };
-    } finally {
-      setLoading(false);
-    }
-  }, [isSyncing]);
-
-  // Persistir carrito en servidor (y fallback a local)
   const persistCart = useCallback(
     async (items) => {
       setPersisting(true);
@@ -131,7 +130,6 @@ export function CartProvider({ children }) {
             saveLocal([]);
             return { success: true, cart: null };
           } catch (err) {
-            console.error("No se pudo vaciar carrito en servidor:", err?.message || err);
             toast.error(err?.message || "No se pudo vaciar carrito en servidor");
             saveLocal(items);
             setCartItems(items);
@@ -177,7 +175,6 @@ export function CartProvider({ children }) {
         saveLocal(serverItems);
         return { success: true, cart: data?.cart || null };
       } catch (err) {
-        console.error("No se pudo persistir en DB:", err?.message || err);
         toast.error(err?.message || "No se pudo persistir carrito");
         const fallback = (items || []).map((it) => ({
           ...it,
@@ -208,7 +205,6 @@ export function CartProvider({ children }) {
       }
       return { success: true };
     } catch (err) {
-      console.error("Error clearing cart:", err);
       toast.error("Error limpiando carrito");
       return { success: false, error: err?.message || String(err) };
     } finally {
@@ -216,7 +212,6 @@ export function CartProvider({ children }) {
     }
   }, []);
 
-  // --- Mutators ---
   const addToCart = useCallback(
     async (product, qty = 1) => {
       try {
@@ -253,11 +248,9 @@ export function CartProvider({ children }) {
 
         setCartItems(next);
         saveLocal(next);
-        // persist in background
         persistCart(next).catch(() => {});
         return { success: true, cart: next };
       } catch (err) {
-        console.error("addToCart error:", err);
         toast.error(err?.message || "No se pudo agregar al carrito");
         return { success: false, error: err?.message || String(err) };
       }
@@ -331,18 +324,16 @@ export function CartProvider({ children }) {
     [cartItems, persistCart, removeFromCart]
   );
 
-  // Hydrate from local first (fast UX), then fetch server copy
   useEffect(() => {
-    // Only run on client
     if (typeof window === "undefined") return;
     const local = loadLocal();
     if (local && local.length > 0) {
       setCartItems(local);
     }
-    // Then try to sync with server
+    if (status === "loading") return;
     fetchCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [status]);
 
   const value = {
     cartItems,
@@ -358,18 +349,10 @@ export function CartProvider({ children }) {
     getCount: () => cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0),
   };
 
-  useEffect(() => {
-    // debug
-    // eslint-disable-next-line no-console
-    console.log("CartContext updated - items:", cartItems);
-  }, [cartItems]);
-
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {
   const ctx = useContext(CartContext);
-  // Return null instead of throwing to make consumer code more tolerant.
-  // Components can guard: const cart = useCart(); if (!cart) return null;
   return ctx ?? null;
 }
