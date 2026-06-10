@@ -12,7 +12,7 @@ export async function GET(req) {
     }
 
     const url = new URL(req.url);
-    const search = url.searchParams.get("search") || "";
+    const search = (url.searchParams.get("search") || "").trim();
     const categoryId = url.searchParams.get("categoryId") || "";
     const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
     const limit = Math.max(1, parseInt(url.searchParams.get("limit") || "12", 10));
@@ -35,7 +35,6 @@ export async function GET(req) {
 
     const total = await prisma.product.count({ where });
 
-    // ✅ Optimización: usar select en lugar de include
     const products = await prisma.product.findMany({
       where,
       skip,
@@ -47,6 +46,8 @@ export async function GET(req) {
         price: true,
         stock: true,
         images: true,
+        userId: true,           // <-- asegurar que llegue el userId
+        storeId: true,          // <-- asegurar que llegue el storeId
         createdAt: true,
         category: { select: { id: true, name: true } },
         store: { select: { id: true, name: true, code: true } },
@@ -55,13 +56,13 @@ export async function GET(req) {
 
     return NextResponse.json({
       products,
-      totalPages: Math.ceil(total / take),
+      totalPages: Math.max(1, Math.ceil(total / take)),
       currentPage: page,
     });
   } catch (error) {
     console.error("GET /api/products/mine error:", error);
     return NextResponse.json(
-      { error: "Error al obtener productos", detail: error?.message || null },
+      { error: "Error al obtener productos", detail: error?.message ?? null },
       { status: 500 }
     );
   }

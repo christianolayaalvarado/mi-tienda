@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
-import useCategories from "@/hooks/useCategories"; // ✅ nuevo hook
+import useCategories from "@/hooks/useCategories";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -31,7 +31,6 @@ export default function ProductsPage() {
 
   const debouncedSearch = useDebounce(search, 500);
 
-  // ✅ usar hook centralizado
   const { categories, loading: loadingCategories } = useCategories();
 
   const fetchProducts = async () => {
@@ -43,16 +42,22 @@ export default function ProductsPage() {
       params.append("page", page);
       params.append("limit", limit);
 
-      const res = await fetch(`/api/products/mine?${params.toString()}`, { cache: "no-store" });
+      const res = await fetch(`/api/products/mine?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+
       if (res.status === 401) {
         toast.error("No autorizado. Inicia sesión.");
         setProducts([]);
         setTotalPages(1);
         return;
       }
-      const data = await res.json();
-      setProducts(data.products || []);
-      setTotalPages(data.totalPages || 1);
+
+      const data = await res.json().catch(() => null);
+      setProducts(data?.products || []);
+      setTotalPages(data?.totalPages || 1);
       setSelectedProducts([]);
     } catch (err) {
       console.error("Error cargando productos:", err);
@@ -84,6 +89,7 @@ export default function ProductsPage() {
       const res = await fetch("/api/products", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ ids: selectedProducts }),
       });
 
@@ -122,6 +128,8 @@ export default function ProductsPage() {
 
   if (loading) return <p>Cargando productos...</p>;
   if (!session) return <p>Debes iniciar sesión para ver tus productos.</p>;
+
+  const normalize = (v) => (v == null ? null : String(v));
 
   return (
     <div className="p-6">
@@ -164,26 +172,40 @@ export default function ProductsPage() {
         <p>No tienes productos</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {products.map((product) => (
-            <div key={product.id} className={`border p-3 rounded ${selectedProducts.includes(product.id) ? "ring-2 ring-red-500" : ""}`}>
-              <div className="flex justify-between mb-2">
-                <input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => toggleSelect(product.id)} />
+          {products.map((product) => {
+            const sessionUserId = normalize(session?.user?.id);
+            const productUserId = normalize(product.userId);
+            const productStoreId = normalize(product.storeId);
+            const sessionStoreCode = normalize(session?.user?.storeCode);
+            const sessionRole = session?.user?.role ?? null;
 
-                {(product.userId === session?.user?.id || session?.user?.role === "admin") ? (
-                  <Link href={`/dashboard/products/edit/${product.id}`}>
-                    <button className="text-xs bg-blue-500 text-white px-2 py-1 rounded">Editar</button>
-                  </Link>
-                ) : (
-                  <span className="text-xs text-gray-500 px-2 py-1">Solo lectura</span>
-                )}
+            const isOwner = sessionUserId && productUserId && sessionUserId === productUserId;
+            const isStoreOwner = sessionStoreCode && productStoreId && sessionStoreCode === productStoreId;
+            const isAdmin = sessionRole === "admin";
+
+            const canEdit = isAdmin || isOwner || isStoreOwner;
+
+            return (
+              <div key={product.id} className={`border p-3 rounded ${selectedProducts.includes(product.id) ? "ring-2 ring-red-500" : ""}`}>
+                <div className="flex justify-between mb-2">
+                  <input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => toggleSelect(product.id)} />
+
+                  {canEdit ? (
+                    <Link href={`/dashboard/products/edit/${product.id}`}>
+                      <button className="text-xs bg-blue-500 text-white px-2 py-1 rounded">Editar</button>
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-gray-500 px-2 py-1">Solo lectura</span>
+                  )}
+                </div>
+
+                {product.images?.[0] && <img src={product.images[0]} className="w-full h-24 object-cover mb-2 rounded" />}
+
+                <h2 className="text-sm font-bold line-clamp-2">{product.title}</h2>
+                <p className="text-sm">S/ {product.price}</p>
               </div>
-
-              {product.images?.[0] && <img src={product.images[0]} className="w-full h-24 object-cover mb-2 rounded" />}
-
-              <h2 className="text-sm font-bold line-clamp-2">{product.title}</h2>
-              <p className="text-sm">S/ {product.price}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
