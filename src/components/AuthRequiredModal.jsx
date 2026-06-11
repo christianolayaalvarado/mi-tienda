@@ -1,19 +1,47 @@
 // components/AuthRequiredModal.jsx
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 
 export default function AuthRequiredModal({ open, onClose, callbackUrl = "/" }) {
   const router = useRouter();
+  const modalRef = useRef(null);
+  const firstButtonRef = useRef(null);
 
   useEffect(() => {
     function onKey(e) {
       if (e.key === "Escape") onClose();
+      if (e.key === "Tab" && open && modalRef.current) {
+        // Simple focus trap: keep focus inside modal
+        const focusable = modalRef.current.querySelectorAll(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     }
-    if (open) document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+
+    if (open) {
+      document.addEventListener("keydown", onKey);
+      // bloquear scroll del body
+      document.body.style.overflow = "hidden";
+      // mover foco al primer botón
+      setTimeout(() => firstButtonRef.current?.focus(), 50);
+    }
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -21,92 +49,203 @@ export default function AuthRequiredModal({ open, onClose, callbackUrl = "/" }) 
   const redirect = callbackUrl || (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/");
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-      <div className="modal" tabIndex={-1}>
-        <div className="flex flex-col md:flex-row">
-          {/* Left: oferta bienvenida */}
-          <div className="w-full md:w-1/2 p-6 bg-gradient-to-b from-pink-50 to-white">
-            <h3 className="text-2xl font-bold">Bienvenido</h3>
-            <p className="mt-2 text-sm text-gray-700">Disfruta ofertas de bienvenida solo para nuevos compradores</p>
-            <div className="mt-6 text-3xl font-extrabold text-red-500">HASTA 70% OFF</div>
+    <div
+      className="auth-modal-backdrop"
+      aria-modal="true"
+      role="dialog"
+      aria-labelledby="auth-modal-title"
+      onMouseDown={(e) => {
+        // cerrar si hace click fuera del modal
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="auth-modal"
+        ref={modalRef}
+        role="document"
+      >
+        {/* Left: imagen llamativa con overlay */}
+        <div className="auth-left">
+          <div className="auth-left-overlay">
+            <h2 className="welcome-title">Bienvenido</h2>
+            <p className="welcome-sub">Ofertas exclusivas para nuevos compradores</p>
+            <div className="big-offer">HASTA <span>70% OFF</span></div>
             <button
+              ref={firstButtonRef}
               onClick={() => router.push(`/register?redirect=${encodeURIComponent(redirect)}`)}
-              className="mt-6 w-full py-2 bg-green-600 text-white rounded-lg"
+              className="btn-primary"
               aria-label="Registrarse"
             >
               Regístrate
             </button>
-            <p className="mt-3 text-xs text-gray-500">
-              Al registrarte aceptas los Términos y la Política de privacidad.
-            </p>
+            <p className="small-note">Al registrarte aceptas los Términos y la Política de privacidad.</p>
+          </div>
+        </div>
+
+        {/* Right: login y accesos rápidos */}
+        <div className="auth-right">
+          <h3 id="auth-modal-title" className="right-title">¿Ya tienes una cuenta?</h3>
+          <p className="right-sub">Inicia sesión para guardar tu carrito y acceder a ofertas</p>
+
+          <div className="auth-actions">
+            <button
+              onClick={() => router.push(`/login?redirect=${encodeURIComponent(redirect)}`)}
+              className="btn-outline"
+              aria-label="Iniciar sesión"
+            >
+              Iniciar sesión
+            </button>
+
+            <button
+              onClick={() => router.push(`/register?redirect=${encodeURIComponent(redirect)}`)}
+              className="btn-secondary"
+              aria-label="Crear cuenta"
+            >
+              Crear cuenta
+            </button>
           </div>
 
-          {/* Right: acceso rápido */}
-          <div className="w-full md:w-1/2 p-6">
-            <h3 id="auth-title" className="text-lg font-semibold">¿Ya tienes una cuenta?</h3>
-            <p className="text-sm text-gray-600 mt-1">Accede rápidamente con:</p>
-
-            <div className="mt-4 grid gap-3">
-              <button
-                onClick={() => signIn("google", { callbackUrl: redirect })}
-                className="flex items-center gap-3 justify-center border py-2 rounded-lg"
-                aria-label="Continuar con Google"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M21.6 12.2c0-.7-.1-1.4-.3-2H12v3.8h5.4c-.2 1.2-.9 2.2-1.9 2.9v2.4h3.1c1.8-1.7 2.7-4.1 2.7-6.9z" fill="#4285F4"/>
-                  <path d="M12 22c2.6 0 4.8-.9 6.4-2.5l-3.1-2.4c-.9.6-2.1 1-3.3 1-2.5 0-4.6-1.7-5.3-4.1H3.4v2.6C5 19.9 8.3 22 12 22z" fill="#34A853"/>
-                  <path d="M6.7 13.9A6.6 6.6 0 0 1 6.4 12c0-.6.1-1.2.3-1.8V7.6H3.4A10 10 0 0 0 2 12c0 1.6.4 3.1 1.4 4.4l3.3-2.5z" fill="#FBBC05"/>
-                  <path d="M12 6.5c1.4 0 2.6.5 3.6 1.5l2.7-2.7C16.8 3.6 14.6 2.5 12 2.5 8.3 2.5 5 4.6 3.4 7.6l3 2.6C7.4 7.9 9.5 6.5 12 6.5z" fill="#EA4335"/>
-                </svg>
-                Continuar con Google
+          <div className="quick-access">
+            <p className="quick-label">Acceso rápido</p>
+            <div className="quick-icons">
+              <button onClick={() => signIn("google", { callbackUrl: redirect })} aria-label="Continuar con Google" className="icon-btn">
+                {/* icono Google inline SVG */}
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.3-2H12v3.8h5.4c-.2 1.2-.9 2.2-1.9 2.9v2.4h3.1c1.8-1.7 2.7-4.1 2.7-6.9z"/><path fill="#34A853" d="M12 22c2.6 0 4.8-.9 6.4-2.5l-3.1-2.4c-.9.6-2.1 1-3.3 1-2.5 0-4.6-1.7-5.3-4.1H3.4v2.6C5 19.9 8.3 22 12 22z"/><path fill="#FBBC05" d="M6.7 13.9A6.6 6.6 0 0 1 6.4 12c0-.6.1-1.2.3-1.8V7.6H3.4A10 10 0 0 0 2 12c0 1.6.4 3.1 1.4 4.4l3.3-2.5z"/><path fill="#EA4335" d="M12 6.5c1.4 0 2.6.5 3.6 1.5l2.7-2.7C16.8 3.6 14.6 2.5 12 2.5 8.3 2.5 5 4.6 3.4 7.6l3 2.6C7.4 7.9 9.5 6.5 12 6.5z"/></svg>
               </button>
 
-              <button
-                onClick={() => signIn("facebook", { callbackUrl: redirect })}
-                className="flex items-center gap-3 justify-center border py-2 rounded-lg"
-                aria-label="Continuar con Facebook"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M22 12.1C22 6.6 17.5 2 12 2S2 6.6 2 12.1c0 5 3.7 9.1 8.5 9.9v-7H8.1v-2.9h2.4V9.1c0-2.4 1.4-3.7 3.6-3.7 1 0 2 .1 2 .1v2.2h-1.1c-1.1 0-1.4.7-1.4 1.4v1.7h2.5l-.4 2.9h-2.1v7C18.3 21.2 22 17.1 22 12.1z" fill="#1877F2"/>
-                </svg>
-                Continuar con Facebook
+              <button onClick={() => signIn("facebook", { callbackUrl: redirect })} aria-label="Continuar con Facebook" className="icon-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path fill="#1877F2" d="M22 12.1C22 6.6 17.5 2 12 2S2 6.6 2 12.1c0 5 3.7 9.1 8.5 9.9v-7H8.1v-2.9h2.4V9.1c0-2.4 1.4-3.7 3.6-3.7 1 0 2 .1 2 .1v2.2h-1.1c-1.1 0-1.4.7-1.4 1.4v1.7h2.5l-.4 2.9h-2.1v7C18.3 21.2 22 17.1 22 12.1z"/></svg>
               </button>
 
-              <button
-                onClick={() => signIn("apple", { callbackUrl: redirect })}
-                className="flex items-center gap-3 justify-center border py-2 rounded-lg"
-                aria-label="Continuar con Apple"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M16.8 7.1c-.1-1.2.5-2.1 1.6-2.7-1-.6-2.2-.7-3.3-.4-1 .3-1.8 1-2.3 1.9-.5.9-.8 2-1 3.1-.2 1.1-.1 2.3.4 3.3.5 1 1.4 1.8 2.5 2.1.4.1.8.2 1.2.2.1-1.1.5-2.1 1.1-3 .6-.9 1.4-1.6 2.3-2.1-.9-.6-1.6-1.6-1.9-2.6z" fill="#000"/>
-                </svg>
-                Continuar con Apple
-              </button>
-
-              <button
-                onClick={() => router.push(`/login?redirect=${encodeURIComponent(redirect)}`)}
-                className="mt-2 py-2 text-sm text-blue-600 underline"
-                aria-label="Iniciar sesión con email"
-              >
-                ¿Prefieres iniciar sesión con usuario y contraseña?
+              <button onClick={() => signIn("apple", { callbackUrl: redirect })} aria-label="Continuar con Apple" className="icon-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path fill="#000" d="M16.8 7.1c-.1-1.2.5-2.1 1.6-2.7-1-.6-2.2-.7-3.3-.4-1 .3-1.8 1-2.3 1.9-.5.9-.8 2-1 3.1-.2 1.1-.1 2.3.4 3.3.5 1 1.4 1.8 2.5 2.1.4.1.8.2 1.2.2.1-1.1.5-2.1 1.1-3 .6-.9 1.4-1.6 2.3-2.1-.9-.6-1.6-1.6-1.9-2.6z"/></svg>
               </button>
             </div>
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          aria-label="Cerrar modal"
-          className="absolute top-3 right-3 text-gray-600"
-        >
-          ✕
-        </button>
+        {/* Close button */}
+        <button onClick={onClose} aria-label="Cerrar modal" className="close-x">✕</button>
+      </div>
 
       <style jsx>{`
-        .modal-backdrop { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.5); z-index:1000; padding:16px; }
-        .modal { position:relative; background:#fff; border-radius:10px; width:100%; max-width:820px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden; }
+        .auth-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0,0,0,0.65); /* fondo oscurecido */
+          z-index: 2000;
+          padding: 20px;
+        }
+        .auth-modal {
+          width: 910px;
+          height: 460px;
+          background: #fff;
+          border-radius: 12px;
+          display: flex;
+          overflow: hidden;
+          position: relative;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+        }
+        .auth-left {
+          width: 48%;
+          background-image: url('/images/welcome-hero.jpg'); /* reemplaza por tu imagen */
+          background-size: cover;
+          background-position: center;
+          position: relative;
+        }
+        .auth-left-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.45));
+          color: #fff;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: flex-start;
+          padding: 28px;
+        }
+        .welcome-title { font-size: 28px; font-weight: 800; margin: 0; }
+        .welcome-sub { margin-top: 8px; font-size: 14px; opacity: 0.95; }
+        .big-offer { margin-top: 18px; font-size: 34px; font-weight: 900; color: #ff4d4f; }
+        .big-offer span { color: #fff; background: #ff4d4f; padding: 2px 6px; border-radius: 4px; margin-left: 8px; color: #fff; }
+        .btn-primary {
+          margin-top: 18px;
+          background: #10b981;
+          color: #fff;
+          padding: 10px 14px;
+          border-radius: 8px;
+          border: none;
+          cursor: pointer;
+          font-weight: 700;
+        }
+        .small-note { margin-top: 10px; font-size: 11px; opacity: 0.9; color: rgba(255,255,255,0.9); }
+
+        .auth-right {
+          width: 52%;
+          padding: 28px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .right-title { font-size: 20px; margin: 0; font-weight: 700; }
+        .right-sub { margin-top: 6px; color: #6b7280; font-size: 13px; }
+
+        .auth-actions { display: flex; gap: 12px; margin-top: 18px; }
+        .btn-outline {
+          flex: 1;
+          padding: 10px 12px;
+          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          background: #fff;
+          cursor: pointer;
+          font-weight: 600;
+        }
+        .btn-secondary {
+          flex: 1;
+          padding: 10px 12px;
+          border-radius: 8px;
+          border: none;
+          background: #0b74de;
+          color: #fff;
+          cursor: pointer;
+          font-weight: 700;
+        }
+
+        .quick-access { margin-top: 18px; }
+        .quick-label { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+        .quick-icons { display: flex; gap: 10px; }
+        .icon-btn {
+          width: 44px;
+          height: 44px;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: #fff;
+          cursor: pointer;
+        }
+
+        .close-x {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: transparent;
+          border: none;
+          font-size: 18px;
+          cursor: pointer;
+          color: #374151;
+        }
+
+        @media (max-width: 980px) {
+          .auth-modal { width: 92%; height: auto; flex-direction: column; }
+          .auth-left, .auth-right { width: 100%; }
+          .auth-left { height: 220px; }
+        }
       `}</style>
-      </div>
     </div>
   );
 }
