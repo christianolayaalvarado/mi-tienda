@@ -1,27 +1,27 @@
 // src/components/navbar/CartPreview.jsx
 "use client";
 
-import Link from "next/link";
+import React, { useEffect, useMemo, useState } from "react";
+import ReactDOM from "react-dom";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { safeParseLocalCart } from "./utils";
 
-export default function CartPreview({
-  open,
-  items = null,
-  subtotal = null,
-  onIncrease = () => {},
-  onDecrease = () => {},
-  onRemove = () => {},
-  onClose = () => {},
-  readLocalCart = null,
-}) {
+export default function CartPreview(props) {
+  const {
+    open,
+    items = null,
+    subtotal = null,
+    onIncrease = () => {},
+    onDecrease = () => {},
+    onRemove = () => {},
+    onClose = () => {},
+    readLocalCart = null,
+  } = props;
+
   const router = useRouter();
-
-  if (!open) return null;
-
   const { cartItems: ctxCartItems } = useCart() ?? {};
   const [localRaw, setLocalRaw] = useState([]);
   const [resolvedItems, setResolvedItems] = useState([]);
@@ -32,7 +32,7 @@ export default function CartPreview({
       const val = typeof readLocalCart === "function" ? readLocalCart() : null;
       if (Array.isArray(val)) setLocalRaw(val);
       else setLocalRaw(safeParseLocalCart("mi_tienda_cart"));
-    } catch (e) {
+    } catch {
       setLocalRaw(safeParseLocalCart("mi_tienda_cart"));
     }
   }, [readLocalCart]);
@@ -61,12 +61,6 @@ export default function CartPreview({
       return found ? (found.name || found.title || null) : null;
     };
   }, [localRaw]);
-
-  // DEBUG: log clicks on container to see if events reach this component
-  const onContainerClick = (e) => {
-    // eslint-disable-next-line no-console
-    console.log("[CartPreview] container click", { target: e.target.tagName, className: e.target.className });
-  };
 
   const safeOnIncrease = (id) => {
     try {
@@ -99,14 +93,14 @@ export default function CartPreview({
     }
   };
 
-  return (
+  if (!open) return null;
+
+  const content = (
     <div
       role="dialog"
       aria-label="Mini carrito"
-      onClick={onContainerClick}
-      className="absolute right-0 top-10 w-80 bg-white shadow-xl border rounded-lg p-4 z-50"
+      className="fixed right-4 top-16 w-80 bg-white shadow-xl border rounded-lg p-4 z-[9999]"
       style={{ pointerEvents: "auto" }}
-      tabIndex={-1}
     >
       <h3 className="font-semibold mb-3">Carrito</h3>
 
@@ -131,10 +125,8 @@ export default function CartPreview({
           "Producto";
 
         const key = item.id ?? `${item.productId}-${item.storeId ?? 0}`;
-
         const quantity = Number(item.quantity || 0);
         const maxStock = Number(item.stock ?? Infinity);
-
         const idForActions = item.id ?? item.productId;
 
         return (
@@ -168,39 +160,15 @@ export default function CartPreview({
               </p>
 
               <div className="flex items-center gap-2 mt-1">
-                <button
-                  type="button"
-                  onClick={() => safeOnDecrease(idForActions)}
-                  className="px-2 bg-gray-200 rounded hover:bg-gray-300"
-                  aria-label={`Disminuir cantidad de ${displayName}`}
-                  disabled={quantity <= 1}
-                >
-                  −
-                </button>
+                <button type="button" onClick={() => safeOnDecrease(idForActions)} className="px-2 bg-gray-200 rounded hover:bg-gray-300" disabled={quantity <= 1} aria-label={`Disminuir cantidad de ${displayName}`}>−</button>
 
-                <span className="text-xs w-6 text-center" aria-live="polite">
-                  {quantity}
-                </span>
+                <span className="text-xs w-6 text-center" aria-live="polite">{quantity}</span>
 
-                <button
-                  type="button"
-                  onClick={() => safeOnIncrease(idForActions)}
-                  disabled={quantity >= maxStock}
-                  className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40"
-                  aria-label={`Aumentar cantidad de ${displayName}`}
-                >
-                  +
-                </button>
+                <button type="button" onClick={() => safeOnIncrease(idForActions)} disabled={quantity >= maxStock} className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40" aria-label={`Aumentar cantidad de ${displayName}`}>+</button>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => safeOnRemove(idForActions, item.storeId ?? undefined)}
-              className="p-1 rounded hover:bg-red-100 transition"
-              aria-label={`Eliminar ${item.title || item.name || "producto"}`}
-              title="Eliminar"
-            >
+            <button type="button" onClick={() => safeOnRemove(idForActions, item.storeId ?? undefined)} className="p-1 rounded hover:bg-red-100 transition" aria-label={`Eliminar ${item.title || item.name || "producto"}`} title="Eliminar">
               <Trash2 size={20} className="text-gray-500 hover:text-red-600" />
             </button>
           </div>
@@ -215,24 +183,16 @@ export default function CartPreview({
           </div>
 
           <div className="mt-4">
-            <button
-              type="button"
-              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
-              onClick={() => {
-                try {
-                  onClose?.();
-                } catch (e) {}
-                // eslint-disable-next-line no-console
-                console.log("[CartPreview] navigate to /cart");
-                router.push("/cart");
-              }}
-              aria-label="Ver carrito"
-            >
-              Ver carrito
-            </button>
+            <button type="button" className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700" onClick={() => { try { onClose?.(); } catch {} router.push("/cart"); }} aria-label="Ver carrito">Ver carrito</button>
           </div>
         </>
       )}
     </div>
   );
+
+  // Render en portal para evitar overlays y problemas de stacking
+  if (typeof window !== "undefined" && document.body) {
+    return ReactDOM.createPortal(content, document.body);
+  }
+  return null;
 }
