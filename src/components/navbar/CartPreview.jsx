@@ -10,13 +10,13 @@ import { safeParseLocalCart } from "./utils";
 
 export default function CartPreview({
   open,
-  items = null, // si null -> intentar usar contexto o local
+  items = null,
   subtotal = null,
   onIncrease = () => {},
   onDecrease = () => {},
   onRemove = () => {},
   onClose = () => {},
-  readLocalCart = null, // función opcional que devuelve el carrito ya leído en cliente
+  readLocalCart = null,
 }) {
   const router = useRouter();
 
@@ -26,23 +26,17 @@ export default function CartPreview({
   const [localRaw, setLocalRaw] = useState([]);
   const [resolvedItems, setResolvedItems] = useState([]);
 
-  // Cargar localStorage de forma segura (solo en cliente)
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const val = typeof readLocalCart === "function" ? readLocalCart() : null;
-      if (Array.isArray(val)) {
-        setLocalRaw(val);
-      } else {
-        // fallback seguro
-        setLocalRaw(safeParseLocalCart("mi_tienda_cart"));
-      }
+      if (Array.isArray(val)) setLocalRaw(val);
+      else setLocalRaw(safeParseLocalCart("mi_tienda_cart"));
     } catch (e) {
       setLocalRaw(safeParseLocalCart("mi_tienda_cart"));
     }
   }, [readLocalCart]);
 
-  // Resolver items a mostrar: prioridad props.items > contexto > localStorage
   useEffect(() => {
     if (Array.isArray(items) && items.length > 0) {
       setResolvedItems(items);
@@ -55,13 +49,11 @@ export default function CartPreview({
     setResolvedItems(localRaw || []);
   }, [items, ctxCartItems, localRaw]);
 
-  // Calcular subtotal si no fue provisto
   const computedSubtotal = useMemo(() => {
     if (typeof subtotal === "number") return subtotal;
     return (resolvedItems || []).reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
   }, [resolvedItems, subtotal]);
 
-  // Helper para buscar nombre en localRaw
   const findLocalName = useMemo(() => {
     return (pid) => {
       if (!localRaw || !Array.isArray(localRaw)) return null;
@@ -70,7 +62,12 @@ export default function CartPreview({
     };
   }, [localRaw]);
 
-  // Manejo defensivo de callbacks (asegurar firma) y logs para depuración
+  // DEBUG: log clicks on container to see if events reach this component
+  const onContainerClick = (e) => {
+    // eslint-disable-next-line no-console
+    console.log("[CartPreview] container click", { target: e.target.tagName, className: e.target.className });
+  };
+
   const safeOnIncrease = (id) => {
     try {
       // eslint-disable-next-line no-console
@@ -106,7 +103,10 @@ export default function CartPreview({
     <div
       role="dialog"
       aria-label="Mini carrito"
+      onClick={onContainerClick}
       className="absolute right-0 top-10 w-80 bg-white shadow-xl border rounded-lg p-4 z-50"
+      style={{ pointerEvents: "auto" }}
+      tabIndex={-1}
     >
       <h3 className="font-semibold mb-3">Carrito</h3>
 
@@ -169,6 +169,7 @@ export default function CartPreview({
 
               <div className="flex items-center gap-2 mt-1">
                 <button
+                  type="button"
                   onClick={() => safeOnDecrease(idForActions)}
                   className="px-2 bg-gray-200 rounded hover:bg-gray-300"
                   aria-label={`Disminuir cantidad de ${displayName}`}
@@ -182,6 +183,7 @@ export default function CartPreview({
                 </span>
 
                 <button
+                  type="button"
                   onClick={() => safeOnIncrease(idForActions)}
                   disabled={quantity >= maxStock}
                   className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40"
@@ -193,6 +195,7 @@ export default function CartPreview({
             </div>
 
             <button
+              type="button"
               onClick={() => safeOnRemove(idForActions, item.storeId ?? undefined)}
               className="p-1 rounded hover:bg-red-100 transition"
               aria-label={`Eliminar ${item.title || item.name || "producto"}`}
@@ -213,13 +216,14 @@ export default function CartPreview({
 
           <div className="mt-4">
             <button
+              type="button"
               className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
               onClick={() => {
                 try {
                   onClose?.();
-                } catch (e) {
-                  // ignore
-                }
+                } catch (e) {}
+                // eslint-disable-next-line no-console
+                console.log("[CartPreview] navigate to /cart");
                 router.push("/cart");
               }}
               aria-label="Ver carrito"
