@@ -1,37 +1,64 @@
-// components/navbar/CartPreview.jsx
+// src/components/navbar/CartPreview.jsx
 "use client";
 
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useCart } from "@/context/CartContext";
+import { safeParseLocalCart } from "./utils";
 
 export default function CartPreview({
   open,
-  items = [],
-  subtotal = 0,
+  items = null, // si null -> intentar usar contexto o local
+  subtotal = null,
   onIncrease = () => {},
   onDecrease = () => {},
   onRemove = () => {},
   onClose = () => {},
-  readLocalCart = () => null, // debe ser una función que devuelva el valor ya leído en cliente
+  readLocalCart = null, // función opcional que devuelve el carrito ya leído en cliente
 }) {
   if (!open) return null;
 
-  // No leer localStorage directamente en render.
-  // readLocalCart puede devolver el valor ya leído por el padre (síncrono) o null.
-  const [localRaw, setLocalRaw] = useState(null);
+  const { cartItems: ctxCartItems } = useCart() ?? {};
+  const [localRaw, setLocalRaw] = useState([]);
+  const [resolvedItems, setResolvedItems] = useState([]);
 
+  // Cargar localStorage de forma segura (solo en cliente)
   useEffect(() => {
-    // Ejecutar solo en cliente
     if (typeof window === "undefined") return;
     try {
       const val = typeof readLocalCart === "function" ? readLocalCart() : null;
-      setLocalRaw(val);
-    } catch {
-      setLocalRaw(null);
+      if (Array.isArray(val)) {
+        setLocalRaw(val);
+      } else {
+        // fallback seguro
+        setLocalRaw(safeParseLocalCart("mi_tienda_cart"));
+      }
+    } catch (e) {
+      setLocalRaw(safeParseLocalCart("mi_tienda_cart"));
     }
   }, [readLocalCart]);
 
+  // Resolver items a mostrar: prioridad props.items > contexto > localStorage
+  useEffect(() => {
+    if (Array.isArray(items) && items.length > 0) {
+      setResolvedItems(items);
+      return;
+    }
+    if (Array.isArray(ctxCartItems) && ctxCartItems.length > 0) {
+      setResolvedItems(ctxCartItems);
+      return;
+    }
+    setResolvedItems(localRaw || []);
+  }, [items, ctxCartItems, localRaw]);
+
+  // Calcular subtotal si no fue provisto
+  const computedSubtotal = useMemo(() => {
+    if (typeof subtotal === "number") return subtotal;
+    return (resolvedItems || []).reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
+  }, [resolvedItems, subtotal]);
+
+  // Helper para buscar nombre en localRaw
   const findLocalName = useMemo(() => {
     return (pid) => {
       if (!localRaw || !Array.isArray(localRaw)) return null;
@@ -39,6 +66,32 @@ export default function CartPreview({
       return found ? (found.name || found.title || null) : null;
     };
   }, [localRaw]);
+
+  // Manejo defensivo de callbacks (asegurar firma)
+  const safeOnIncrease = (id) => {
+    try {
+      onIncrease(id);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("onIncrease error", e);
+    }
+  };
+  const safeOnDecrease = (id) => {
+    try {
+      onDecrease(id);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("onDecrease error", e);
+    }
+  };
+  const safeOnRemove = (id, storeId) => {
+    try {
+      onRemove(id, storeId);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("onRemove error", e);
+    }
+  };
 
   return (
     <div
@@ -48,11 +101,11 @@ export default function CartPreview({
     >
       <h3 className="font-semibold mb-3">Carrito</h3>
 
-      {(!items || items.length === 0) && (
+      {(!resolvedItems || resolvedItems.length === 0) && (
         <p className="text-sm text-gray-500">El carrito está vacío</p>
       )}
 
-      {(items || []).map((item) => {
+      {(resolvedItems || []).map((item) => {
         const imgSrc =
           item.image ||
           (Array.isArray(item.images) && item.images[0]) ||
@@ -70,12 +123,15 @@ export default function CartPreview({
 
         const key = item.id ?? `${item.productId}-${item.storeId ?? 0}`;
 
+        const quantity = Number(item.quantity || 0);
+        const maxStock = Number(item.stock ?? Infinity);
+
         return (
           <div
             key={key}
             className="flex items-center gap-3 py-2 border-b last:border-none hover:bg-gray-50 rounded-lg px-2 transition"
           >
-            <Link href={`/product/${item.productId}`} className="w-16 h-16 block">
+            <Link href={`/product/${item.productId ?? item.id}`} onClick={onClose} className="w-16 h-16 block">
               <img
                 src={imgSrc}
                 alt={displayName}
@@ -89,33 +145,34 @@ export default function CartPreview({
               />
             </Link>
 
-            <div className="flex-1 text-sm">
-              <Link href={`/product/${item.productId}`}>
+            <div className="flex-1 text-sm min-w-0">
+              <Link href={`/product/${item.productId ?? item.id}`} onClick={onClose}>
                 <p className="truncate font-medium hover:text-green-600 cursor-pointer" title={displayName}>
                   {displayName}
                 </p>
               </Link>
 
               <p className="text-gray-500 text-xs">
-                S/ {Number(item.price || 0).toFixed(2)} × {Number(item.quantity || 0)}
+                S/ {Number(item.price || 0).toFixed(2)} × {quantity}
               </p>
 
               <div className="flex items-center gap-2 mt-1">
                 <button
-                  onClick={() => onDecrease(item.id ?? item.productId)}
+                  onClick={() => safeOnDecrease(item.id ?? item.productId)}
                   className="px-2 bg-gray-200 rounded hover:bg-gray-300"
                   aria-label={`Disminuir cantidad de ${displayName}`}
+                  disabled={quantity <= 1}
                 >
                   −
                 </button>
 
                 <span className="text-xs w-6 text-center" aria-live="polite">
-                  {Number(item.quantity || 0)}
+                  {quantity}
                 </span>
 
                 <button
-                  onClick={() => onIncrease(item.id ?? item.productId)}
-                  disabled={Number(item.quantity || 0) >= (item.stock ?? Infinity)}
+                  onClick={() => safeOnIncrease(item.id ?? item.productId)}
+                  disabled={quantity >= maxStock}
                   className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40"
                   aria-label={`Aumentar cantidad de ${displayName}`}
                 >
@@ -125,9 +182,10 @@ export default function CartPreview({
             </div>
 
             <button
-              onClick={() => onRemove(item.id ?? item.productId, item.storeId ?? undefined)}
+              onClick={() => safeOnRemove(item.id ?? item.productId, item.storeId ?? undefined)}
               className="p-1 rounded hover:bg-red-100 transition"
               aria-label={`Eliminar ${item.title || item.name || "producto"}`}
+              title="Eliminar"
             >
               <Trash2 size={20} className="text-gray-500 hover:text-red-600" />
             </button>
@@ -135,17 +193,18 @@ export default function CartPreview({
         );
       })}
 
-      {items && items.length > 0 && (
+      {resolvedItems && resolvedItems.length > 0 && (
         <>
           <div className="flex justify-between items-center mt-3 pt-3 border-t text-sm font-semibold">
             <span>Subtotal</span>
-            <span>S/ {(subtotal ?? 0).toFixed(2)}</span>
+            <span>S/ {computedSubtotal.toFixed(2)}</span>
           </div>
 
           <Link href="/cart">
             <button
               className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
               onClick={onClose}
+              aria-label="Ver carrito"
             >
               Ver carrito
             </button>

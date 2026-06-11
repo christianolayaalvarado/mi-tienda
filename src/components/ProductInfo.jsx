@@ -1,21 +1,21 @@
-// components/ProductInfo.jsx
+// src/components/ProductInfo.jsx
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import AuthRequiredModal from "@/components/AuthRequiredModal";
+import { fetchSession } from "@/lib/useSessionCheck";
+import toast from "react-hot-toast";
 
 const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
 
 export default function ProductInfo({ product }) {
   const { addToCart, cartItems } = useCart();
 
-  // Normalizar IDs a string
   const productIdStr = String(product.id ?? product._id ?? "");
   const storeIdCandidate = product.storeId ?? product.store?.id ?? "";
   const storeIdStr = String(storeIdCandidate ?? "");
 
-  // Buscar item existente comparando como strings
   const existingItem = cartItems.find((item) => String(item.productId) === productIdStr);
 
   const mainImage = product.images?.[0] || "/images/placeholder.png";
@@ -30,57 +30,45 @@ export default function ProductInfo({ product }) {
   const [showToast, setShowToast] = useState(false);
   const [stockLimit, setStockLimit] = useState(false);
   const [animateQty, setAnimateQty] = useState(false);
-  const [adding, setAdding] = useState(false); // evita clicks repetidos
+  const [adding, setAdding] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
 
   const selectionTotal = Number(product.price || 0) * Number(quantity || 0);
 
-  // ---------------- UTIL: comprobar sesión ----------------
-  async function fetchSessionUser() {
-    try {
-      const res = await fetch("/api/auth/session", { credentials: "include" });
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data?.user ?? null;
-    } catch (err) {
-      return null;
-    }
-  }
-
-  // ---------------- Reintento automático tras login (si hay acción pendiente) ----------------
   useEffect(() => {
-    // Solo intentar si el usuario está en la página del producto correspondiente
     (async () => {
       try {
+        if (typeof window === "undefined") return;
         const pendingRaw = sessionStorage.getItem("pendingAdd");
         if (!pendingRaw) return;
 
         const pending = JSON.parse(pendingRaw);
-        // Si la acción pendiente corresponde a este producto, intentar reintento
-        if (pending?.productId !== productIdStr) return;
+        if (!pending || !Array.isArray(pending.items) || pending.items.length === 0) return;
 
-        const user = await fetchSessionUser();
-        if (!user) return; // aún no logueado
+        const pendingItem = pending.items[0];
+        if (!pendingItem || String(pendingItem.productId) !== String(productIdStr)) return;
 
-        // Intentar añadir al carrito automáticamente
+        const user = await fetchSession();
+        if (!user) return;
+
         const payload = {
-          productId: pending.productId,
-          storeId: pending.storeId || storeIdStr || undefined,
+          productId: pendingItem.productId,
+          storeId: pendingItem.storeId || storeIdStr || undefined,
           name: product.title || product.name || "",
           price: Number(product.price) || 0,
           image: mainImage,
-          quantity: Number(pending.quantity) || 1,
+          quantity: Number(pendingItem.quantity) || 1,
         };
 
-        // Marcar adding para evitar clicks duplicados
         setAdding(true);
-        const result = await addToCart(payload, Number(pending.quantity) || 1);
+        const result = await addToCart(payload, Number(pendingItem.quantity) || 1);
         setAdding(false);
 
-        if (result && result.success !== false) {
-          // éxito: limpiar pending y mostrar toast
-          sessionStorage.removeItem("pendingAdd");
+        if (result && result.success) {
+          try {
+            sessionStorage.removeItem("pendingAdd");
+          } catch (e) {}
           setAdded(true);
           setShowToast(true);
           setTimeout(() => {
@@ -88,20 +76,18 @@ export default function ProductInfo({ product }) {
             setShowToast(false);
           }, 2000);
         } else if (result?.status === 401) {
-          // si backend responde 401, abrir modal
           setModalOpen(true);
+        } else {
+          toast.error(result?.error || "No se pudo completar la acción pendiente.");
         }
       } catch (err) {
         setAdding(false);
-        // no bloquear la UX por el reintento
-        // eslint-disable-next-line no-console
         console.warn("Reintento pendiente falló:", err);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---------------- AÑADIR AL CARRITO ----------------
   const handleAdd = async (e) => {
     try {
       if (adding) return;
@@ -117,49 +103,31 @@ export default function ProductInfo({ product }) {
         return;
       }
 
-      // Ejecutar animación (no bloqueante)
-      flyToCart(mainImage, e);
-
       setAdding(true);
 
-      // Comprobar sesión antes de llamar a addToCart
-      const user = await fetchSessionUser();
+      const user = await fetchSession();
       if (!user) {
-        // Guardar acción pendiente para reintento tras login
         try {
           sessionStorage.setItem(
             "pendingAdd",
             JSON.stringify({
-              productId: productIdStr,
-              storeId: storeIdStr || undefined,
-              quantity,
+              items: [{ productId: productIdStr, quantity: Number(quantity) || 1, storeId: storeIdStr || undefined }],
+              ts: Date.now(),
             })
           );
-        } catch (err) {
-          // ignore storage errors
-        }
-
-        // abrir modal para forzar login/registro
+        } catch (err) {}
         setAdding(false);
         setModalOpen(true);
         return;
       }
 
-      // Validar IDs (si no son válidos, persistiremos localmente; CartContext hace fallback)
-      const validProductId = isValidObjectId(productIdStr) ? productIdStr : "";
-      const validStoreId = isValidObjectId(storeIdStr) ? storeIdStr : "";
-
-      if (!validProductId || !validStoreId) {
-        console.warn(
-          "⚠️ ID inválido detectado. El producto se añadirá al carrito localmente, pero puede que no se persista en la base de datos."
-        );
+      if (!isValidObjectId(productIdStr)) {
+        console.warn("ID de producto no tiene formato ObjectId; se persistirá localmente si el servidor lo rechaza.");
       }
 
-      // Llamada a addToCart: enviamos productId y storeId (CartContext persiste lo mínimo)
       const payload = {
-        productId: validProductId || productIdStr,
-        storeId: validStoreId || storeIdStr || undefined,
-        // Campos opcionales para UI local inmediato
+        productId: productIdStr,
+        storeId: storeIdStr || undefined,
         name: product.title || product.name || "",
         price: Number(product.price) || 0,
         image: mainImage,
@@ -168,30 +136,31 @@ export default function ProductInfo({ product }) {
 
       const result = await addToCart(payload, Number(quantity) || 1);
 
-      // Manejar respuesta de addToCart (CartContext debe devolver status/success)
       if (!result || result.success === false) {
-        // Si la respuesta indica 401, abrir modal para login
         if (result?.status === 401) {
-          // Guardar acción pendiente y abrir modal
           try {
             sessionStorage.setItem(
               "pendingAdd",
               JSON.stringify({
-                productId: productIdStr,
-                storeId: storeIdStr || undefined,
-                quantity,
+                items: [{ productId: productIdStr, quantity: Number(quantity) || 1, storeId: storeIdStr || undefined }],
+                ts: Date.now(),
               })
             );
-          } catch (err) {
-            // ignore
-          }
+          } catch (err) {}
           setModalOpen(true);
+        } else {
+          toast.error(result?.error || "No se pudo agregar al carrito");
         }
         setAdding(false);
         return;
       }
 
-      // Éxito
+      try {
+        flyToCart(mainImage, e);
+      } catch (err) {
+        console.warn("Animación falló:", err);
+      }
+
       setAdded(true);
       setShowToast(true);
       setTimeout(() => {
@@ -199,24 +168,20 @@ export default function ProductInfo({ product }) {
         setShowToast(false);
       }, 2000);
 
-      // reset selector to 1 (UX predecible)
       setQuantity(1);
     } catch (err) {
       console.error("handleAdd error:", err);
-      // Si usas alguna librería de toasts, úsala; si no, puedes mostrar un alert
-      if (typeof toast !== "undefined") toast?.error?.(err?.message || "Error agregando al carrito");
+      toast?.error?.(err?.message || "Error agregando al carrito");
     } finally {
       setAdding(false);
     }
   };
 
-  // ---------------- ANIMACIÓN ----------------
   function flyToCart(imageSrc, event) {
     try {
       const cartIcon = document.querySelector("[data-cart-icon]");
       if (!cartIcon || !event?.currentTarget) return;
 
-      // Preload image to avoid blank img during animation
       const preload = new Image();
       preload.src = imageSrc || "/images/placeholder.png";
 
@@ -238,9 +203,6 @@ export default function ProductInfo({ product }) {
       img.style.pointerEvents = "none";
 
       document.body.appendChild(img);
-
-      // Forzar reflow antes de animar
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       img.offsetWidth;
 
       requestAnimationFrame(() => {
@@ -255,135 +217,53 @@ export default function ProductInfo({ product }) {
       setTimeout(() => {
         try {
           img.remove();
-        } catch (e) {
-          // ignore
-        }
+        } catch (e) {}
       }, 700);
     } catch (err) {
-      // no bloquear la UX por la animación
-      // eslint-disable-next-line no-console
       console.warn("Animación flyToCart falló:", err);
     }
   }
 
   return (
     <div className="flex flex-col justify-start mt-6 md:mt-10 md:pl-10 text-center md:text-left px-2 md:px-0">
-      {/* Título */}
       <h1 className="text-3xl md:text-4xl font-bold">{product.title}</h1>
 
-      {/* Precio */}
       <p className="text-green-600 text-2xl md:text-3xl mt-4 font-semibold">
         S/ {Number(product.price || 0).toFixed(2)}
       </p>
 
-      {/* Stock dinámico */}
-      {remainingStock === 1 && (
-        <p className="text-red-600 font-semibold mt-2">🔥 Última unidad disponible</p>
-      )}
-      {remainingStock > 1 && remainingStock <= 3 && (
-        <p className="text-orange-600 font-semibold mt-2">🔥 Solo quedan {remainingStock} unidades</p>
-      )}
-      {remainingStock === 0 && (
-        <p className="text-red-600 font-semibold mt-2">Producto agotado</p>
-      )}
+      {remainingStock === 1 && <p className="text-red-600 font-semibold mt-2">🔥 Última unidad disponible</p>}
+      {remainingStock > 1 && remainingStock <= 3 && <p className="text-orange-600 font-semibold mt-2">🔥 Solo quedan {remainingStock} unidades</p>}
+      {remainingStock === 0 && <p className="text-red-600 font-semibold mt-2">Producto agotado</p>}
 
-      {/* Info */}
       <div className="mt-6 space-y-1 text-sm text-gray-600">
-        <p>
-          <span className="font-semibold text-gray-800">ID Producto:</span> {productIdStr}
-        </p>
-        <p>
-          <span className="font-semibold text-gray-800">Categoría:</span> {product.category?.name || "-"}
-        </p>
-        <p>
-          <span className="font-semibold text-gray-800">Vendedor:</span> {product.user?.name || "Sin nombre"}
-        </p>
-        <p>
-          <span className="font-semibold text-gray-800">Tienda:</span> {product.store?.name || "Sin tienda"}
-        </p>
-        <p>
-          <span className="font-semibold text-gray-800">Código tienda:</span> {product.store?.code || "-"}
-        </p>
-        <p>
-          <span className="font-semibold text-gray-800">Stock:</span> {remainingStock} disponibles
-        </p>
+        <p><span className="font-semibold text-gray-800">ID Producto:</span> {productIdStr}</p>
+        <p><span className="font-semibold text-gray-800">Categoría:</span> {product.category?.name || "-"}</p>
+        <p><span className="font-semibold text-gray-800">Vendedor:</span> {product.user?.name || "Sin nombre"}</p>
+        <p><span className="font-semibold text-gray-800">Tienda:</span> {product.store?.name || "Sin tienda"}</p>
+        <p><span className="font-semibold text-gray-800">Código tienda:</span> {product.store?.code || "-"}</p>
+        <p><span className="font-semibold text-gray-800">Stock:</span> {remainingStock} disponibles</p>
       </div>
 
-      {/* Descripción */}
       <div className="mt-6">
         <h2 className="text-lg font-semibold mb-2">Descripción</h2>
         <p className="text-gray-700 leading-relaxed text-justify">{product.description}</p>
       </div>
 
-      {/* Selector */}
       <div className="flex items-center gap-4 mt-6 justify-center md:justify-start">
-        <button
-          aria-label="Disminuir cantidad"
-          disabled={quantity <= 1}
-          onClick={() => {
-            setQuantity((q) => Math.max(1, q - 1));
-            setAnimateQty(true);
-            setTimeout(() => setAnimateQty(false), 200);
-          }}
-          className={`w-10 h-10 rounded-lg border text-lg ${
-            quantity <= 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "hover:bg-gray-100"
-          }`}
-        >
-          −
-        </button>
+        <button aria-label="Disminuir cantidad" disabled={quantity <= 1} onClick={() => { setQuantity((q) => Math.max(1, q - 1)); setAnimateQty(true); setTimeout(() => setAnimateQty(false), 200); }} className={`w-10 h-10 rounded-lg border text-lg ${quantity <= 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "hover:bg-gray-100"}`}>−</button>
 
-        <span className={`text-lg font-semibold w-8 text-center ${animateQty ? "scale-125" : ""}`}>
-          {quantity}
-        </span>
+        <span className={`text-lg font-semibold w-8 text-center ${animateQty ? "scale-125" : ""}`}>{quantity}</span>
 
-        <button
-          aria-label="Aumentar cantidad"
-          disabled={remainingStock === 0 || quantity >= remainingStock}
-          onClick={() => {
-            setQuantity((q) => Math.min(remainingStock, q + 1));
-            setAnimateQty(true);
-            setTimeout(() => setAnimateQty(false), 200);
-          }}
-          className={`w-10 h-10 rounded-lg border text-lg ${
-            remainingStock === 0 || quantity >= remainingStock
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : "hover:bg-gray-100"
-          }`}
-        >
-          +
-        </button>
+        <button aria-label="Aumentar cantidad" disabled={remainingStock === 0 || quantity >= remainingStock} onClick={() => { setQuantity((q) => Math.min(remainingStock, q + 1)); setAnimateQty(true); setTimeout(() => setAnimateQty(false), 200); }} className={`w-10 h-10 rounded-lg border text-lg ${remainingStock === 0 || quantity >= remainingStock ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "hover:bg-gray-100"}`}>+</button>
       </div>
 
-      {/* Total */}
-      {quantity > 1 && (
-        <p className="text-gray-700 text-sm mt-2 font-medium">
-          Total: <span className="text-green-600">S/ {selectionTotal.toFixed(2)}</span>
-        </p>
-      )}
+      {quantity > 1 && <p className="text-gray-700 text-sm mt-2 font-medium">Total: <span className="text-green-600">S/ {selectionTotal.toFixed(2)}</span></p>}
 
-      {/* BOTÓN */}
-      <button
-        onClick={handleAdd}
-        disabled={remainingStock === 0 || maxInCart || adding}
-        className={`mt-8 px-6 py-3 rounded-lg ${
-          remainingStock === 0 || maxInCart || adding
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-green-600 text-white hover:bg-green-700"
-        }`}
-        data-test-id="add-to-cart-button"
-      >
-        {adding
-          ? "Agregando..."
-          : remainingStock === 0
-          ? "Producto agotado"
-          : maxInCart
-          ? "Ya tienes el máximo en carrito"
-          : quantity > 1
-          ? `Agregar ${quantity}`
-          : "Agregar al carrito"}
+      <button onClick={handleAdd} disabled={remainingStock === 0 || maxInCart || adding} className={`mt-8 px-6 py-3 rounded-lg ${remainingStock === 0 || maxInCart || adding ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"}`} data-test-id="add-to-cart-button">
+        {adding ? "Agregando..." : remainingStock === 0 ? "Producto agotado" : maxInCart ? "Ya tienes el máximo en carrito" : quantity > 1 ? `Agregar ${quantity}` : "Agregar al carrito"}
       </button>
 
-      {/* Toast añadido */}
       {added && showToast && (
         <div className="fixed bottom-6 right-6 bg-white shadow-xl border rounded-lg px-4 py-3 flex items-center gap-3 z-50">
           <div className="text-green-600 text-xl">✓</div>
@@ -394,7 +274,6 @@ export default function ProductInfo({ product }) {
         </div>
       )}
 
-      {/* Toast stock */}
       {stockLimit && (
         <div className="fixed bottom-6 right-6 bg-white shadow-xl border rounded-lg px-4 py-3 flex items-center gap-3 z-50">
           <div className="text-red-500 text-xl">!</div>
@@ -405,13 +284,7 @@ export default function ProductInfo({ product }) {
         </div>
       )}
 
-      {/* Modal de autenticación */}
-      <AuthRequiredModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        // callbackUrl lo maneja el modal; aquí pasamos la ruta actual para volver luego
-        callbackUrl={typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"}
-      />
+      <AuthRequiredModal open={modalOpen} onClose={() => setModalOpen(false)} callbackUrl={typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"} />
     </div>
   );
 }

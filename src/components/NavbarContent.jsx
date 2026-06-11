@@ -1,4 +1,4 @@
-// components/NavbarContent.jsx
+// src/components/NavbarContent.jsx
 "use client";
 
 import Link from "next/link";
@@ -12,11 +12,12 @@ import CartPreview from "./navbar/CartPreview";
 import UserMenu from "./navbar/UserMenu";
 import CategoryScroller from "./navbar/CategoryScroller";
 import { buildURL, safeParseLocalCart } from "./navbar/utils";
+import { fetchSession } from "@/lib/useSessionCheck";
 
 export default function NavbarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   // Cart context guard (no assumptions about provider presence)
   const cartCtx = typeof useCart === "function" ? useCart() : null;
@@ -26,6 +27,7 @@ export default function NavbarContent() {
     cartCtx?.getCount?.() ?? (cartItems || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0)
   );
 
+  // Callbacks para modificar cantidades (delegar al contexto)
   const increaseQuantity = useCallback(
     (id) => {
       const item = cartItems.find((i) => String(i.id ?? i.productId) === String(id));
@@ -60,7 +62,7 @@ export default function NavbarContent() {
   const [mounted, setMounted] = useState(false);
 
   // localRaw is read only on client to avoid SSR mismatch
-  const [localRaw, setLocalRaw] = useState(null);
+  const [localRaw, setLocalRaw] = useState([]);
 
   const scrollRef = useRef(null);
   const cartRef = useRef(null);
@@ -74,16 +76,45 @@ export default function NavbarContent() {
     setMounted(true);
   }, []);
 
-  // Hydrate local cart from localStorage only on client
+  // Hydrate local cart from localStorage only on client (defensive)
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const parsed = safeParseLocalCart();
+      const parsed = safeParseLocalCart("mi_tienda_cart");
       setLocalRaw(parsed);
     } catch {
-      setLocalRaw(null);
+      setLocalRaw([]);
     }
   }, []);
+
+  // Try to sync with server once when session becomes available
+  useEffect(() => {
+    (async () => {
+      try {
+        // Wait until next-auth has resolved
+        if (status === "loading") return;
+
+        // Use fetchSession to avoid duplicate fetches from other parts of the app
+        const user = await fetchSession();
+        if (!user) return;
+
+        // If context exposes fetchCart, use it to sync global state
+        if (typeof cartCtx?.fetchCart === "function") {
+          try {
+            await cartCtx.fetchCart();
+          } catch (e) {
+            // ignore sync errors; keep local fallback
+            // eslint-disable-next-line no-console
+            console.warn("NavbarContent: fetchCart failed", e);
+          }
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("NavbarContent sync error", e);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   // Navigate when search changes, only after mount
   useEffect(() => {
@@ -117,6 +148,11 @@ export default function NavbarContent() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  // Conteo preferente: contexto > local
+  const count = (Array.isArray(cartItems) && cartItems.length > 0)
+    ? cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0)
+    : (localRaw || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+
   return (
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-6">
@@ -128,24 +164,29 @@ export default function NavbarContent() {
 
         <button
           type="button"
-          aria-label={`Abrir carrito, ${totalItems} items`}
+          aria-label={`Abrir carrito, ${count} items`}
           onClick={() => setCartOpen((s) => !s)}
           className="text-sm font-medium cursor-pointer relative select-none"
+          aria-haspopup="true"
+          aria-expanded={cartOpen}
+          ref={cartRef}
         >
-          🛒 Carrito
-          {mounted && totalItems > 0 && (
-            <span
-              className={`absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center ${animateCart ? "scale-125" : "scale-100"} transition-transform duration-300`}
-              aria-hidden="true"
-            >
-              {totalItems}
-            </span>
-          )}
+          <span data-cart-icon className="relative inline-block">
+            🛒 Carrito
+            {mounted && count > 0 && (
+              <span
+                className={`absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center ${animateCart ? "scale-125" : "scale-100"} transition-transform duration-300`}
+                aria-hidden="true"
+              >
+                {count}
+              </span>
+            )}
+          </span>
         </button>
 
         <UserMenu session={session} />
 
-        <div ref={cartRef}>
+        <div className="relative">
           <CartPreview
             open={cartOpen}
             items={cartItems}
