@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/context/CartContext";
@@ -17,6 +18,8 @@ export default function CartPreview({
   onClose = () => {},
   readLocalCart = null, // función opcional que devuelve el carrito ya leído en cliente
 }) {
+  const router = useRouter();
+
   if (!open) return null;
 
   const { cartItems: ctxCartItems } = useCart() ?? {};
@@ -67,9 +70,11 @@ export default function CartPreview({
     };
   }, [localRaw]);
 
-  // Manejo defensivo de callbacks (asegurar firma)
+  // Manejo defensivo de callbacks (asegurar firma) y logs para depuración
   const safeOnIncrease = (id) => {
     try {
+      // eslint-disable-next-line no-console
+      console.log("[CartPreview] increase requested:", id);
       onIncrease(id);
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -78,6 +83,8 @@ export default function CartPreview({
   };
   const safeOnDecrease = (id) => {
     try {
+      // eslint-disable-next-line no-console
+      console.log("[CartPreview] decrease requested:", id);
       onDecrease(id);
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -86,6 +93,8 @@ export default function CartPreview({
   };
   const safeOnRemove = (id, storeId) => {
     try {
+      // eslint-disable-next-line no-console
+      console.log("[CartPreview] remove requested:", { id, storeId });
       onRemove(id, storeId);
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -126,6 +135,8 @@ export default function CartPreview({
         const quantity = Number(item.quantity || 0);
         const maxStock = Number(item.stock ?? Infinity);
 
+        const idForActions = item.id ?? item.productId;
+
         return (
           <div
             key={key}
@@ -158,7 +169,7 @@ export default function CartPreview({
 
               <div className="flex items-center gap-2 mt-1">
                 <button
-                  onClick={() => safeOnDecrease(item.id ?? item.productId)}
+                  onClick={() => safeOnDecrease(idForActions)}
                   className="px-2 bg-gray-200 rounded hover:bg-gray-300"
                   aria-label={`Disminuir cantidad de ${displayName}`}
                   disabled={quantity <= 1}
@@ -171,7 +182,7 @@ export default function CartPreview({
                 </span>
 
                 <button
-                  onClick={() => safeOnIncrease(item.id ?? item.productId)}
+                  onClick={() => safeOnIncrease(idForActions)}
                   disabled={quantity >= maxStock}
                   className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40"
                   aria-label={`Aumentar cantidad de ${displayName}`}
@@ -182,7 +193,7 @@ export default function CartPreview({
             </div>
 
             <button
-              onClick={() => safeOnRemove(item.id ?? item.productId, item.storeId ?? undefined)}
+              onClick={() => safeOnRemove(idForActions, item.storeId ?? undefined)}
               className="p-1 rounded hover:bg-red-100 transition"
               aria-label={`Eliminar ${item.title || item.name || "producto"}`}
               title="Eliminar"
@@ -200,15 +211,22 @@ export default function CartPreview({
             <span>S/ {computedSubtotal.toFixed(2)}</span>
           </div>
 
-          <Link href="/cart">
+          <div className="mt-4">
             <button
-              className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
-              onClick={onClose}
+              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+              onClick={() => {
+                try {
+                  onClose?.();
+                } catch (e) {
+                  // ignore
+                }
+                router.push("/cart");
+              }}
               aria-label="Ver carrito"
             >
               Ver carrito
             </button>
-          </Link>
+          </div>
         </>
       )}
     </div>
