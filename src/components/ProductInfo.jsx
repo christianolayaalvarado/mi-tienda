@@ -1,7 +1,9 @@
+// components/ProductInfo.jsx
 "use client";
 
+import React, { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { useState } from "react";
+import AuthRequiredModal from "@/components/AuthRequiredModal";
 
 const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
 
@@ -30,7 +32,74 @@ export default function ProductInfo({ product }) {
   const [animateQty, setAnimateQty] = useState(false);
   const [adding, setAdding] = useState(false); // evita clicks repetidos
 
+  const [modalOpen, setModalOpen] = useState(false);
+
   const selectionTotal = Number(product.price || 0) * Number(quantity || 0);
+
+  // ---------------- UTIL: comprobar sesión ----------------
+  async function fetchSessionUser() {
+    try {
+      const res = await fetch("/api/auth/session", { credentials: "include" });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.user ?? null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  // ---------------- Reintento automático tras login (si hay acción pendiente) ----------------
+  useEffect(() => {
+    // Solo intentar si el usuario está en la página del producto correspondiente
+    (async () => {
+      try {
+        const pendingRaw = sessionStorage.getItem("pendingAdd");
+        if (!pendingRaw) return;
+
+        const pending = JSON.parse(pendingRaw);
+        // Si la acción pendiente corresponde a este producto, intentar reintento
+        if (pending?.productId !== productIdStr) return;
+
+        const user = await fetchSessionUser();
+        if (!user) return; // aún no logueado
+
+        // Intentar añadir al carrito automáticamente
+        const payload = {
+          productId: pending.productId,
+          storeId: pending.storeId || storeIdStr || undefined,
+          name: product.title || product.name || "",
+          price: Number(product.price) || 0,
+          image: mainImage,
+          quantity: Number(pending.quantity) || 1,
+        };
+
+        // Marcar adding para evitar clicks duplicados
+        setAdding(true);
+        const result = await addToCart(payload, Number(pending.quantity) || 1);
+        setAdding(false);
+
+        if (result && result.success !== false) {
+          // éxito: limpiar pending y mostrar toast
+          sessionStorage.removeItem("pendingAdd");
+          setAdded(true);
+          setShowToast(true);
+          setTimeout(() => {
+            setAdded(false);
+            setShowToast(false);
+          }, 2000);
+        } else if (result?.status === 401) {
+          // si backend responde 401, abrir modal
+          setModalOpen(true);
+        }
+      } catch (err) {
+        setAdding(false);
+        // no bloquear la UX por el reintento
+        // eslint-disable-next-line no-console
+        console.warn("Reintento pendiente falló:", err);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---------------- AÑADIR AL CARRITO ----------------
   const handleAdd = async (e) => {
@@ -51,6 +120,31 @@ export default function ProductInfo({ product }) {
       // Ejecutar animación (no bloqueante)
       flyToCart(mainImage, e);
 
+      setAdding(true);
+
+      // Comprobar sesión antes de llamar a addToCart
+      const user = await fetchSessionUser();
+      if (!user) {
+        // Guardar acción pendiente para reintento tras login
+        try {
+          sessionStorage.setItem(
+            "pendingAdd",
+            JSON.stringify({
+              productId: productIdStr,
+              storeId: storeIdStr || undefined,
+              quantity,
+            })
+          );
+        } catch (err) {
+          // ignore storage errors
+        }
+
+        // abrir modal para forzar login/registro
+        setAdding(false);
+        setModalOpen(true);
+        return;
+      }
+
       // Validar IDs (si no son válidos, persistiremos localmente; CartContext hace fallback)
       const validProductId = isValidObjectId(productIdStr) ? productIdStr : "";
       const validStoreId = isValidObjectId(storeIdStr) ? storeIdStr : "";
@@ -61,11 +155,9 @@ export default function ProductInfo({ product }) {
         );
       }
 
-      setAdding(true);
-
       // Llamada a addToCart: enviamos productId y storeId (CartContext persiste lo mínimo)
       const payload = {
-        productId: validProductId || productIdStr, // si no es válido, igual enviamos string para UX local
+        productId: validProductId || productIdStr,
         storeId: validStoreId || storeIdStr || undefined,
         // Campos opcionales para UI local inmediato
         name: product.title || product.name || "",
@@ -75,12 +167,31 @@ export default function ProductInfo({ product }) {
       };
 
       const result = await addToCart(payload, Number(quantity) || 1);
+
+      // Manejar respuesta de addToCart (CartContext debe devolver status/success)
       if (!result || result.success === false) {
-        // addToCart ya muestra toast; aquí solo revertimos estado si falla
+        // Si la respuesta indica 401, abrir modal para login
+        if (result?.status === 401) {
+          // Guardar acción pendiente y abrir modal
+          try {
+            sessionStorage.setItem(
+              "pendingAdd",
+              JSON.stringify({
+                productId: productIdStr,
+                storeId: storeIdStr || undefined,
+                quantity,
+              })
+            );
+          } catch (err) {
+            // ignore
+          }
+          setModalOpen(true);
+        }
         setAdding(false);
         return;
       }
 
+      // Éxito
       setAdded(true);
       setShowToast(true);
       setTimeout(() => {
@@ -92,7 +203,8 @@ export default function ProductInfo({ product }) {
       setQuantity(1);
     } catch (err) {
       console.error("handleAdd error:", err);
-      toast?.error?.(err?.message || "Error agregando al carrito");
+      // Si usas alguna librería de toasts, úsala; si no, puedes mostrar un alert
+      if (typeof toast !== "undefined") toast?.error?.(err?.message || "Error agregando al carrito");
     } finally {
       setAdding(false);
     }
@@ -258,6 +370,7 @@ export default function ProductInfo({ product }) {
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-green-600 text-white hover:bg-green-700"
         }`}
+        data-test-id="add-to-cart-button"
       >
         {adding
           ? "Agregando..."
@@ -291,6 +404,14 @@ export default function ProductInfo({ product }) {
           </div>
         </div>
       )}
+
+      {/* Modal de autenticación */}
+      <AuthRequiredModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        // callbackUrl lo maneja el modal; aquí pasamos la ruta actual para volver luego
+        callbackUrl={typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"}
+      />
     </div>
   );
 }
