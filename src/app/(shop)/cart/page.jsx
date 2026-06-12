@@ -2,20 +2,13 @@
 "use client";
 
 /**
- * Cart page actualizado: precios ya incluyen impuestos y envío
- *
- * Cambios clave:
- * - Los precios mostrados en el carrito ya incluyen impuestos y envío.
- * - Calculamos y mostramos la porción estimada de impuestos incluida en el subtotal.
- * - El envío se marca como "Incluido" (valor 0 en el cálculo). En el futuro, cuando haya delivery con costo,
- *   reemplazar la lógica para sumar el costo de envío al total.
- * - El total ahora es simplemente el subtotal (porque ya incluye impuestos y envío).
- *
- * Mantiene:
- * - Modal de confirmación para vaciar carrito.
- * - Animación de colapso al eliminar items.
- * - Sincronización con CartContext y safeParseLocalCart.
- * - Toasters y manejo optimista al eliminar.
+ * Cart page con:
+ * - Modal reutilizable de confirmación (componente interno).
+ * - Confirmación por item antes de eliminar.
+ * - Contador de items en el encabezado.
+ * - Indicadores de carga/estimación que deshabilitan acciones.
+ * - Animación de colapso al eliminar un item.
+ * - Sincronización con CartContext, toasts y safeParseLocalCart.
  */
 
 import React, { useEffect, useState, useRef } from "react";
@@ -26,6 +19,78 @@ import { fetchSession } from "@/lib/useSessionCheck";
 import { safeParseLocalCart } from "@/components/navbar/utils";
 import toast from "react-hot-toast";
 
+/* -------------------------
+   ModalConfirm (reutilizable)
+   ------------------------- */
+function ModalConfirm({
+  open,
+  title,
+  description,
+  confirmText = "Confirmar",
+  cancelText = "Cancelar",
+  onConfirm,
+  onCancel,
+  confirmRef,
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") onCancel();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onCancel]);
+
+  useEffect(() => {
+    if (open && confirmRef?.current) confirmRef.current.focus();
+  }, [open, confirmRef]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={onCancel}
+        aria-hidden="true"
+      />
+      <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full p-6 z-10">
+        <h3 id="modal-title" className="text-lg font-semibold mb-2">
+          {title}
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">{description}</p>
+
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200"
+          >
+            {cancelText}
+          </button>
+
+          <button
+            type="button"
+            ref={confirmRef}
+            onClick={onConfirm}
+            className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------
+   CartPage
+   ------------------------- */
 export default function CartPage() {
   const { cartItems, removeFromCart, clearCart, fetchCart } = useCart();
   const router = useRouter();
@@ -35,6 +100,7 @@ export default function CartPage() {
   const [loadingServer, setLoadingServer] = useState(false);
   const [removingIds, setRemovingIds] = useState(new Set());
   const [showClearModal, setShowClearModal] = useState(false);
+  const [itemToConfirm, setItemToConfirm] = useState(null); // item pending delete confirmation
   const confirmButtonRef = useRef(null);
 
   // Refs para medir y animar cada item
@@ -43,13 +109,12 @@ export default function CartPage() {
 
   const ANIMATION_DURATION = 300; // ms
 
-  // Configuración de negocio simple (ajusta según tu lógica real)
-  // TAX_RATE representa la tasa aplicada dentro del precio (ej. 0.18 = 18%)
-  const TAX_RATE = 0.18; // 18% de ejemplo
+  // Estimaciones del servidor
+  const [estimating, setEstimating] = useState(false);
+  const [serverEstimates, setServerEstimates] = useState(null);
 
-  // Nota: envío actualmente incluido en el precio; cuando se implemente delivery con costo,
-  // reemplazar la lógica para sumar shipping al total.
-  const SHIPPING_INCLUDED = true;
+  // TAX_RATE local fallback (solo si backend no responde)
+  const TAX_RATE_FALLBACK = 0.18; // 18% ejemplo
 
   // Mapear displayItems a partir de cartItems o localStorage
   useEffect(() => {
@@ -148,40 +213,91 @@ export default function CartPage() {
     setDisplayItems(mapped);
   }, [cartItems]);
 
+  // Construir payload simple para estimaciones
+  const buildEstimatePayload = () => {
+    return {
+      items: (displayItems || []).map((it) => ({
+        productId: it.productId ?? it.id,
+        quantity: Number(it.quantity || 0),
+        price: Number(it.price || 0),
+      })),
+    };
+  };
+
+  // Llamada al backend para obtener estimaciones (shipping + taxes)
+  const fetchEstimates = async () => {
+    if (!displayItems || displayItems.length === 0) return null;
+    setEstimating(true);
+    try {
+      const payload = buildEstimatePayload();
+      const res = await fetch("/api/estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        // fallback: no reemplazar estimaciones locales
+        // eslint-disable-next-line no-console
+        console.warn("Estimate API responded with non-ok:", res.status);
+        setEstimating(false);
+        return null;
+      }
+      const data = await res.json().catch(() => null);
+      setEstimating(false);
+      if (!data) return null;
+      setServerEstimates({
+        shippingEstimate: typeof data.shippingEstimate === "number" ? data.shippingEstimate : null,
+        taxEstimate: typeof data.taxEstimate === "number" ? data.taxEstimate : null,
+        currency: data.currency || "PEN",
+      });
+      return data;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("Error fetching estimates:", err);
+      setEstimating(false);
+      return null;
+    }
+  };
+
+  // Recalcular estimaciones cada vez que cambian los items
+  useEffect(() => {
+    setServerEstimates(null);
+    if (!displayItems || displayItems.length === 0) return;
+    const t = setTimeout(() => {
+      fetchEstimates();
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayItems]);
+
   // Cálculos de resumen
-  // subtotal: suma de precios tal como están (ya incluyen impuestos y envío)
   const subtotal = (displayItems || []).reduce(
     (s, it) => s + Number(it.price || 0) * Number(it.quantity || 0),
     0
   );
 
-  // Si los precios ya incluyen impuestos, calculamos la porción estimada de impuestos incluida:
-  // impuesto_incluido = subtotal * TAX_RATE / (1 + TAX_RATE)
-  const includedTaxes = subtotal > 0 ? (subtotal * TAX_RATE) / (1 + TAX_RATE) : 0;
+  const includedTaxesLocalFallback = subtotal > 0 ? (subtotal * TAX_RATE_FALLBACK) / (1 + TAX_RATE_FALLBACK) : 0;
+  const taxEstimate = serverEstimates?.taxEstimate ?? includedTaxesLocalFallback;
+  const shippingEstimate = serverEstimates?.shippingEstimate ?? 0;
+  const shippingText = serverEstimates?.shippingEstimate !== undefined ? `S/ ${shippingEstimate.toFixed(2)}` : "Incluido";
+  const totalDisplayed = subtotal;
+  const serverTotal = serverEstimates ? subtotal + (serverEstimates.shippingEstimate || 0) : null;
 
-  // Envío actualmente incluido en el precio
-  const shipping = SHIPPING_INCLUDED ? 0 : 0; // placeholder si en el futuro se aplica shipping real
-
-  // Total: como los precios ya incluyen impuestos y envío, el total es el subtotal
-  const total = subtotal;
-
-  // Eliminar item con animación de colapso
-  const handleRemove = async (item) => {
+  // Eliminar item con animación de colapso (ejecuta la eliminación real)
+  const performRemove = async (item) => {
     const idOrProductId = item.id ?? item.productId;
     if (!idOrProductId) {
       toast.error("Identificador de producto inválido");
       return;
     }
 
-    // Marcar como "eliminando" para deshabilitar botones
     setRemovingIds((prev) => new Set(prev).add(String(idOrProductId)));
 
     try {
-      // Llamada al contexto para persistir el cambio
       const res = await removeFromCart(idOrProductId, item.storeId);
 
       if (!res || res.success === false) {
-        // Revertir estado de "eliminando"
         setRemovingIds((prev) => {
           const next = new Set(prev);
           next.delete(String(idOrProductId));
@@ -198,10 +314,8 @@ export default function CartPage() {
         return;
       }
 
-      // Si la eliminación en backend fue exitosa, animamos la salida en frontend
       const el = itemRefs.current[String(idOrProductId)];
       if (!el) {
-        // Si no hay referencia, eliminar inmediatamente
         setDisplayItems((prev) => prev.filter((x) => String(x.id ?? x.productId) !== String(idOrProductId)));
         setRemovingIds((prev) => {
           const next = new Set(prev);
@@ -212,20 +326,15 @@ export default function CartPage() {
         return;
       }
 
-      // Medir altura actual
       const measuredHeight = el.scrollHeight;
-      // Establecer altura inicial para animar desde esa altura
       setCollapsing((prev) => ({ ...prev, [String(idOrProductId)]: measuredHeight }));
 
-      // Forzar reflow y luego colapsar a 0
       requestAnimationFrame(() => {
-        // pequeño delay para asegurar que el estilo inicial se aplique
         setTimeout(() => {
           setCollapsing((prev) => ({ ...prev, [String(idOrProductId)]: 0 }));
         }, 10);
       });
 
-      // Después de la animación, quitar el item del estado
       setTimeout(() => {
         setDisplayItems((prev) => prev.filter((x) => String(x.id ?? x.productId) !== String(idOrProductId)));
         setCollapsing((prev) => {
@@ -252,7 +361,21 @@ export default function CartPage() {
     }
   };
 
-  // Modal de vaciado
+  // Handler que abre modal para confirmar eliminación de un solo item
+  const confirmRemoveItem = (item) => {
+    setItemToConfirm(item);
+  };
+
+  // Ejecuta la eliminación confirmada por el modal de item
+  const handleConfirmRemove = async () => {
+    if (!itemToConfirm) return;
+    // cerrar modal antes de ejecutar para mejorar UX
+    setItemToConfirm(null);
+    // ejecutar la eliminación real (performRemove) con la misma lógica
+    await performRemove(itemToConfirm);
+  };
+
+  // Modal de vaciado (usa ModalConfirm)
   const openClearModal = () => setShowClearModal(true);
   const closeClearModal = () => setShowClearModal(false);
 
@@ -262,6 +385,43 @@ export default function CartPage() {
       if (res && res.success) {
         setDisplayItems([]);
         toast.success("Carrito vaciado");
+
+        if (typeof fetchCart === "function") {
+          try {
+            setLoadingServer(true);
+            const serverRes = await fetchCart();
+            if (serverRes?.cart?.items && Array.isArray(serverRes.cart.items) && serverRes.cart.items.length > 0) {
+              const mapped = serverRes.cart.items.map((it) => ({
+                id: it.id,
+                productId: it.productId ?? it.id ?? null,
+                storeId: it.storeId,
+                title: it.title || it.product?.title || it.name || "",
+                price: Number(it.price || 0),
+                quantity: Number(it.quantity || 0),
+                image:
+                  it.image ||
+                  it.product?.image ||
+                  (Array.isArray(it.product?.images) && it.product.images[0]) ||
+                  null,
+              }));
+              setDisplayItems(mapped);
+              toast.success("Se restauraron items desde el servidor");
+              return;
+            }
+            router.push("/");
+            return;
+          } catch (syncErr) {
+            // eslint-disable-next-line no-console
+            console.warn("Error sincronizando después de vaciar:", syncErr);
+            router.push("/");
+            return;
+          } finally {
+            setLoadingServer(false);
+          }
+        } else {
+          router.push("/");
+          return;
+        }
       } else {
         toast.error("No se pudo vaciar el carrito");
       }
@@ -311,58 +471,77 @@ export default function CartPage() {
     }
   };
 
-  // Manejo de teclado para el modal (Escape cierra)
-  useEffect(() => {
-    if (!showClearModal) return;
-    const onKey = (e) => {
-      if (e.key === "Escape") closeClearModal();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [showClearModal]);
-
-  // Enfocar botón confirmar cuando el modal se abre
-  useEffect(() => {
-    if (showClearModal && confirmButtonRef.current) {
-      confirmButtonRef.current.focus();
-    }
-  }, [showClearModal]);
-
   // Render empty state
   if (!displayItems || displayItems.length === 0) {
     return (
       <div className="max-w-4xl mx-auto p-6 text-center">
         <h1 className="text-2xl font-bold mb-4">Tu carrito está vacío</h1>
         <p className="text-gray-600 mb-4">No tienes productos en tu carrito por ahora.</p>
-        <div className="flex justify-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-center gap-4">
           <button
             onClick={() => router.push("/")}
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
           >
             Ir a comprar
           </button>
-          <button
-            onClick={() => {
-              if (typeof fetchCart === "function") {
-                fetchCart().then(() => toast.success("Sincronizado"));
-              } else {
-                toast("Sincronización no disponible");
-              }
-            }}
-            className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
-          >
-            Sincronizar carrito
-          </button>
+
+          {typeof fetchCart === "function" && (
+            <button
+              onClick={async () => {
+                try {
+                  setLoadingServer(true);
+                  const serverRes = await fetchCart();
+                  if (serverRes?.cart?.items && Array.isArray(serverRes.cart.items) && serverRes.cart.items.length > 0) {
+                    const mapped = serverRes.cart.items.map((it) => ({
+                      id: it.id,
+                      productId: it.productId ?? it.id ?? null,
+                      storeId: it.storeId,
+                      title: it.title || it.product?.title || it.name || "",
+                      price: Number(it.price || 0),
+                      quantity: Number(it.quantity || 0),
+                      image:
+                        it.image ||
+                        it.product?.image ||
+                        (Array.isArray(it.product?.images) && it.product.images[0]) ||
+                        null,
+                    }));
+                    setDisplayItems(mapped);
+                    toast.success("Se restauraron items desde el servidor");
+                  } else {
+                    toast("No hay items en el servidor");
+                  }
+                } catch (err) {
+                  // eslint-disable-next-line no-console
+                  console.warn("Error sincronizando:", err);
+                  toast.error("Error sincronizando carrito");
+                } finally {
+                  setLoadingServer(false);
+                }
+              }}
+              className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+            >
+              Sincronizar carrito
+            </button>
+          )}
         </div>
       </div>
     );
   }
 
+  // Item count for header
+  const totalItemsCount = (displayItems || []).reduce((acc, it) => acc + Number(it.quantity || 0), 0);
+
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Carrito</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Carrito</h1>
+        <div className="text-sm text-gray-600">
+          {totalItemsCount} {totalItemsCount === 1 ? "item" : "items"}
+        </div>
+      </div>
 
       {loadingServer && <p className="text-center text-gray-500 mb-4">Cargando carrito...</p>}
+      {estimating && <p className="text-center text-gray-500 mb-4">Obteniendo estimaciones...</p>}
 
       <div className="space-y-4">
         {displayItems.map((item) => {
@@ -386,7 +565,6 @@ export default function CartPage() {
                 if (!el) return;
                 itemRefs.current[idKey] = el;
               }}
-              // Aplicar estilos de colapso si existe una entrada en collapsing
               style={
                 currentHeight !== undefined
                   ? {
@@ -427,10 +605,10 @@ export default function CartPage() {
 
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => handleRemove(item)}
+                    onClick={() => confirmRemoveItem(item)}
                     className="text-red-600 text-sm disabled:opacity-50"
                     aria-label={`Eliminar ${displayName}`}
-                    disabled={isRemoving}
+                    disabled={isRemoving || estimating || loadingServer}
                   >
                     {isRemoving ? "Eliminando..." : "Eliminar"}
                   </button>
@@ -446,48 +624,54 @@ export default function CartPage() {
         <h3 className="text-lg font-semibold mb-3">Resumen del pedido</h3>
 
         <div className="flex justify-between text-sm text-gray-700 mb-2">
-          <span>Subtotal (incluye impuestos y envío)</span>
+          <span>Subtotal</span>
           <span>S/ {subtotal.toFixed(2)}</span>
         </div>
 
         <div className="flex justify-between text-sm text-gray-700 mb-2">
           <span>Envío</span>
-          <span className="text-gray-600">Incluido</span>
+          <span className="text-gray-600">{shippingEstimate === 0 && !serverEstimates ? "Incluido" : shippingText}</span>
         </div>
 
         <div className="flex justify-between text-sm text-gray-700 mb-2">
-          <span>Impuestos estimados incluidos ({(TAX_RATE * 100).toFixed(0)}%)</span>
-          <span>S/ {includedTaxes.toFixed(2)}</span>
+          <span>
+            Impuestos {serverEstimates ? "(estimado por servidor)" : "(estimado incluido)"}
+          </span>
+          <span>S/ {taxEstimate.toFixed(2)}</span>
         </div>
 
         <div className="flex justify-between text-base font-bold mt-3">
           <span>Total</span>
-          <span>S/ {total.toFixed(2)}</span>
+          <span>
+            S/ {totalDisplayed.toFixed(2)}
+            {serverTotal !== null && serverTotal !== undefined && (
+              <span className="text-sm text-gray-500 block">Total servidor: S/ {serverTotal.toFixed(2)}</span>
+            )}
+          </span>
         </div>
 
         <p className="text-xs text-gray-500 mt-2">
-          Los precios mostrados ya incluyen impuestos y envío. Si en el futuro se aplica un cargo por delivery,
-          se mostrará y sumará aquí antes de confirmar el pago.
+          {estimating ? "Obteniendo estimaciones de envío e impuestos..." : "Los valores mostrados pueden ser estimados. El costo final se calculará en el checkout."}
         </p>
       </div>
 
       {/* Total y acciones */}
       <div className="mt-6 flex flex-col md:flex-row justify-between items-center gap-4">
-        <h2 className="text-xl font-bold">Total: S/ {total.toFixed(2)}</h2>
+        <h2 className="text-xl font-bold">Total: S/ {totalDisplayed.toFixed(2)}</h2>
 
         <div className="flex gap-4">
           <button
             onClick={() => router.push("/checkout")}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-            disabled={displayItems.length === 0}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            disabled={displayItems.length === 0 || estimating || loadingServer}
           >
-            Proceder al pago
+            {estimating || loadingServer ? "Procesando..." : "Proceder al pago"}
           </button>
 
           <button
             onClick={handleDirectCheckout}
             className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-            disabled={displayItems.length === 0}
+            disabled={displayItems.length === 0 || estimating || loadingServer}
           >
             Finalizar compra
           </button>
@@ -495,55 +679,36 @@ export default function CartPage() {
           <button
             onClick={openClearModal}
             className="bg-gray-200 px-6 py-2 rounded hover:bg-gray-300"
-            disabled={displayItems.length === 0}
+            disabled={displayItems.length === 0 || estimating || loadingServer}
           >
             Vaciar carrito
           </button>
         </div>
       </div>
 
-      {/* Modal de confirmación para vaciar carrito */}
-      {showClearModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="clear-cart-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        >
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={closeClearModal}
-            aria-hidden="true"
-          />
-          <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full p-6 z-10">
-            <h3 id="clear-cart-title" className="text-lg font-semibold mb-2">
-              Vaciar carrito
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              ¿Estás seguro que quieres vaciar todo el carrito? Esta acción no se puede deshacer.
-            </p>
+      {/* ModalConfirm reutilizable para vaciar carrito */}
+      <ModalConfirm
+        open={showClearModal}
+        title="Vaciar carrito"
+        description="¿Estás seguro que quieres vaciar todo el carrito? Esta acción no se puede deshacer."
+        confirmText="Vaciar carrito"
+        cancelText="Cancelar"
+        onConfirm={handleClearCartConfirm}
+        onCancel={closeClearModal}
+        confirmRef={confirmButtonRef}
+      />
 
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeClearModal}
-                className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200"
-              >
-                Cancelar
-              </button>
-
-              <button
-                type="button"
-                ref={confirmButtonRef}
-                onClick={handleClearCartConfirm}
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
-              >
-                Vaciar carrito
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ModalConfirm reutilizable para eliminar un solo item */}
+      <ModalConfirm
+        open={!!itemToConfirm}
+        title="Eliminar producto"
+        description={itemToConfirm ? `¿Eliminar "${itemToConfirm.title || itemToConfirm.name || "este producto"}"? Esta acción quitará el producto del carrito.` : ""}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmRemove}
+        onCancel={() => setItemToConfirm(null)}
+        confirmRef={confirmButtonRef}
+      />
     </div>
   );
 }
