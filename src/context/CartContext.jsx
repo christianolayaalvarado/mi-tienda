@@ -338,59 +338,43 @@ export function CartProvider({ children }) {
   }, [cartItems, persistCart]);
 
   const removeFromCart = useCallback(async (idOrProductId, storeId) => {
-    const prev = cartItems.slice();
+  console.log("[CartContext] removeFromCart called with:", idOrProductId, storeId);
 
-    const next = cartItems.filter((it) => {
-      const matchesId =
-        String(it.id ?? it.productId) === String(idOrProductId) || String(it.productId) === String(idOrProductId);
-      if (!matchesId) return true;
-      if (storeId == null || storeId === undefined) return false;
-      return String(it.storeId) !== String(storeId);
-    });
+  const prev = cartItems.slice();
 
-    const normalizedNext = next.map((it) => ({
-      ...it,
-      quantity: Number(it.quantity || 0),
-      productId: it.productId ?? it.id ?? null,
-    }));
+  const next = cartItems.filter((it) => {
+    const matchesId = String(it.productId ?? it.id) === String(idOrProductId);
+    if (!matchesId) return true;
+    if (storeId == null) return false;
+    return String(it.storeId) !== String(storeId);
+  });
 
-    setCartItems(normalizedNext);
-    saveLocal(normalizedNext);
+  const normalizedNext = next.map((it) => ({
+    ...it,
+    quantity: Number(it.quantity || 0),
+    productId: it.productId ?? it.id ?? null,
+  }));
 
-    try {
-      const res = await persistCart(normalizedNext);
-      if (!res || res.success === false) {
-        if (res?.status === 401) {
-          try {
-            if (typeof window !== "undefined") {
-              sessionStorage.setItem(
-                "pendingAdd",
-                JSON.stringify({
-                  items: normalizedNext.map((it) => ({ productId: it.productId, quantity: it.quantity, storeId: it.storeId })),
-                  ts: Date.now(),
-                })
-              );
-            }
-          } catch (e) {}
-          setCartItems(prev);
-          saveLocal(prev);
-          toast.error("Necesitas iniciar sesión para sincronizar el carrito.");
-          return { success: false, status: 401, cart: prev };
-        }
+  setCartItems(normalizedNext);
+  saveLocal(normalizedNext);
 
-        setCartItems(prev);
-        saveLocal(prev);
-        toast.error(res?.error || "No se pudo eliminar en el servidor. Se revirtió el cambio.");
-        return { success: false, cart: prev };
-      }
-      return { success: true, cart: normalizedNext };
-    } catch (err) {
+  try {
+    const res = await persistCart(normalizedNext);
+    if (!res || res.success === false) {
       setCartItems(prev);
       saveLocal(prev);
-      toast.error(err?.message || "Error al eliminar en servidor");
-      return { success: false, error: err?.message || String(err), cart: prev };
+      toast.error(res?.error || "No se pudo eliminar en el servidor. Se revirtió el cambio.");
+      return { success: false, cart: prev };
     }
-  }, [cartItems, persistCart]);
+    return { success: true, cart: normalizedNext };
+  } catch (err) {
+    setCartItems(prev);
+    saveLocal(prev);
+    toast.error(err?.message || "Error al eliminar en servidor");
+    return { success: false, error: err?.message || String(err), cart: prev };
+  }
+}, [cartItems, persistCart]);
+
 
   const updateQuantity = useCallback(async (idOrProductId, storeId, quantity) => {
     const qtyNum = Number(quantity);
