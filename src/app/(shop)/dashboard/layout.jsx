@@ -1,3 +1,4 @@
+// app/(shop)/dashboard/layout.jsx
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/authOptions";
@@ -11,6 +12,9 @@ export default async function DashboardLayout({ children }) {
     redirect("/login");
   }
 
+  const userName = session.user?.name ?? null;
+  const userEmail = session.user?.email ?? null;
+
   return (
     // Wrapper flex ocupa toda la ventana
     <div className="flex h-screen overflow-hidden">
@@ -19,15 +23,20 @@ export default async function DashboardLayout({ children }) {
         <div>
           <h2 className="text-xl font-bold mb-6">Dashboard</h2>
 
-          <p className="text-sm mb-4 text-gray-300 break-all">
-            {session.user.email}
-          </p>
+          {/* Mostrar nombre si está disponible, si no mostrar email */}
+          {userName ? (
+            <p className="text-sm mb-1 font-medium break-all">{userName}</p>
+          ) : null}
+          <p className="text-xs mb-4 text-gray-300 break-all">{userEmail}</p>
 
           <nav className="flex flex-col gap-2">
             <Link href="/dashboard" className="px-3 py-2 rounded hover:bg-gray-700 transition">🏠 Inicio</Link>
             <Link href="/dashboard/products" className="px-3 py-2 rounded hover:bg-gray-700 transition">📦 Productos</Link>
             <Link href="/dashboard/orders" className="px-3 py-2 rounded hover:bg-gray-700 transition">🧾 Mis Órdenes</Link>
             <Link href="/dashboard/seller/orders" className="px-3 py-2 rounded hover:bg-gray-700 transition">💰 Ventas</Link>
+
+            {/* Nuevo enlace: Editar Perfil */}
+            <Link href="/dashboard/profile/edit" className="px-3 py-2 rounded hover:bg-gray-700 transition">👤 Editar Perfil</Link>
 
             <div className="mt-auto pt-4 border-t border-gray-700">
               <LogoutButton />

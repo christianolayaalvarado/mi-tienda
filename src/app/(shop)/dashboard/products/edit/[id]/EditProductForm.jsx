@@ -58,9 +58,16 @@ export default function EditProductForm({ productId }) {
           description: data.description ?? "",
         });
 
-        const ownerId = data.userId ?? data.user?.id;
-        const admin = session?.user?.role === "admin";
-        setIsOwner(admin || (session?.user?.id && ownerId === session.user.id));
+        // --- Reemplazar la detección de owner por este bloque ---
+const ownerIdRaw = data.userId ?? data.user?.id ?? null;
+// Normalizar a string para evitar problemas de tipo
+const ownerId = ownerIdRaw !== null && ownerIdRaw !== undefined ? String(ownerIdRaw) : null;
+const currentUserId = session?.user?.id ? String(session.user.id) : null;
+const admin = session?.user?.role === "admin";
+
+// isOwner será true si el usuario logueado coincide con el seller o si es admin
+setIsOwner(admin || (currentUserId && ownerId && currentUserId === ownerId));
+
       } catch (err) {
         console.error("Error fetching product:", err);
         toast.error("Error cargando producto");
@@ -137,11 +144,9 @@ export default function EditProductForm({ productId }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isOwner) {
-      toast.error("No tienes permiso para editar este producto.");
-      return;
-    }
 
+    // Permitimos enviar el formulario aunque el editor no sea el owner.
+    // El backend validará cambios sensibles (seller/user) y rechazará si corresponde.
     setLoading(true);
     try {
       const newImageUrls = [];
@@ -254,22 +259,33 @@ export default function EditProductForm({ productId }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <h2 className="text-xl font-bold">{form.title}</h2>
+      {/* Editable title: permitido para todos los editores */}
+      <div>
+        <label className="block text-sm font-medium">Nombre del producto</label>
+        <input
+          name="title"
+          value={form.title}
+          onChange={handleChange}
+          className="mt-1 block w-full border rounded p-2"
+          aria-label="Nombre del producto"
+        />
+      </div>
 
+      {/* Mensaje informativo: algunos campos son solo lectura si no eres owner */}
       {!isOwner && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-100 text-yellow-800 rounded">
-          No tienes permiso para editar este producto. Estás en modo solo lectura.
+          Puedes editar el nombre y algunos campos. Algunos campos (Vendedor, Tienda, imágenes existentes, stock, precio y categoría) son solo lectura para tu cuenta.
         </div>
       )}
 
       <div>
         <label>Seller:</label>
-        <input value={product.user?.name || ""} readOnly className="border p-2 w-full" />
+        <input value={product.user?.name || ""} readOnly className="border p-2 w-full bg-gray-100 cursor-not-allowed" />
       </div>
 
       <div>
         <label>Tienda:</label>
-        <input value={product.store?.name || "Sin Tienda"} readOnly className="border p-2 w-full" />
+        <input value={product.store?.name || "Sin Tienda"} readOnly className="border p-2 w-full bg-gray-100 cursor-not-allowed" />
       </div>
 
       <div>
@@ -375,10 +391,12 @@ export default function EditProductForm({ productId }) {
         </div>
       </div>
 
-      <button disabled={loading || !isOwner} className="bg-blue-600 text-white p-2 rounded">
+      {/* Guardar: habilitado para todos (solo el backend validará permisos sensibles) */}
+      <button disabled={loading} className="bg-blue-600 text-white p-2 rounded">
         {loading ? "Guardando..." : "Guardar cambios"}
       </button>
 
+      {/* Eliminar: solo owner */}
       <button type="button" onClick={handleDelete} className="bg-red-600 text-white p-2 rounded" disabled={!isOwner}>
         Eliminar
       </button>

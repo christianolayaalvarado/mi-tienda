@@ -2,13 +2,12 @@
 "use client";
 
 /**
- * Cart page con:
- * - Modal reutilizable de confirmación (componente interno).
- * - Confirmación por item antes de eliminar.
- * - Contador de items en el encabezado.
- * - Indicadores de carga/estimación que deshabilitan acciones.
- * - Animación de colapso al eliminar un item.
- * - Sincronización con CartContext, toasts y safeParseLocalCart.
+ * Cart page actualizado:
+ * - Edición inline de cantidad con bloqueo por stock y debounce.
+ * - Aviso transitorio "El carrito está vacío" que se cierra automáticamente.
+ * - Modal reutilizable para confirmaciones.
+ * - Animación de colapso al eliminar items.
+ * - Sincronización con CartContext y safeParseLocalCart.
  */
 
 import React, { useEffect, useState, useRef } from "react";
@@ -92,7 +91,7 @@ function ModalConfirm({
    CartPage
    ------------------------- */
 export default function CartPage() {
-  const { cartItems, removeFromCart, clearCart, fetchCart } = useCart();
+  const { cartItems, removeFromCart, clearCart, fetchCart, updateQuantity } = useCart();
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -100,7 +99,7 @@ export default function CartPage() {
   const [loadingServer, setLoadingServer] = useState(false);
   const [removingIds, setRemovingIds] = useState(new Set());
   const [showClearModal, setShowClearModal] = useState(false);
-  const [itemToConfirm, setItemToConfirm] = useState(null); // item pending delete confirmation
+  const [itemToConfirm, setItemToConfirm] = useState(null);
   const confirmButtonRef = useRef(null);
 
   // Refs para medir y animar cada item
@@ -112,6 +111,16 @@ export default function CartPage() {
   // Estimaciones del servidor
   const [estimating, setEstimating] = useState(false);
   const [serverEstimates, setServerEstimates] = useState(null);
+
+  // Stock map: { [productId]: stockNumber }
+  const [stockMap, setStockMap] = useState({});
+
+  // Debounce timers por item para actualizar cantidad
+  const qtyTimers = useRef({});
+
+  // Aviso transitorio cuando el carrito queda vacío
+  const [showEmptyNotice, setShowEmptyNotice] = useState(false);
+  const EMPTY_NOTICE_TIMEOUT = 2500; // ms
 
   // TAX_RATE local fallback (solo si backend no responde)
   const TAX_RATE_FALLBACK = 0.18; // 18% ejemplo
@@ -131,6 +140,7 @@ export default function CartPage() {
           price: Number(it.price || 0),
           quantity: Number(it.quantity || 0),
           image: it.image || (Array.isArray(it.images) && it.images[0]) || null,
+          stock: it.stock ?? undefined,
         }))
       );
     } else {
@@ -159,6 +169,7 @@ export default function CartPage() {
                 it.product?.image ||
                 (Array.isArray(it.product?.images) && it.product.images[0]) ||
                 null,
+              stock: it.stock ?? it.product?.stock ?? undefined,
             }));
             setDisplayItems(mapped);
           }
@@ -181,6 +192,7 @@ export default function CartPage() {
               it.product?.image ||
               (Array.isArray(it.product?.images) && it.product.images[0]) ||
               null,
+            stock: it.stock ?? it.product?.stock ?? undefined,
           }));
           if (serverItems.length > 0) setDisplayItems(serverItems);
         }
@@ -209,65 +221,37 @@ export default function CartPage() {
         it.product?.image ||
         (Array.isArray(it.product?.images) && it.product.images[0]) ||
         null,
+      stock: it.stock ?? it.product?.stock ?? undefined,
     }));
     setDisplayItems(mapped);
   }, [cartItems]);
 
-  // Construir payload simple para estimaciones
-  const buildEstimatePayload = () => {
-    return {
-      items: (displayItems || []).map((it) => ({
-        productId: it.productId ?? it.id,
-        quantity: Number(it.quantity || 0),
-        price: Number(it.price || 0),
-      })),
-    };
-  };
-
-  // Llamada al backend para obtener estimaciones (shipping + taxes)
-  const fetchEstimates = async () => {
-    if (!displayItems || displayItems.length === 0) return null;
-    setEstimating(true);
-    try {
-      const payload = buildEstimatePayload();
-      const res = await fetch("/api/estimate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        // fallback: no reemplazar estimaciones locales
-        // eslint-disable-next-line no-console
-        console.warn("Estimate API responded with non-ok:", res.status);
-        setEstimating(false);
-        return null;
-      }
-      const data = await res.json().catch(() => null);
-      setEstimating(false);
-      if (!data) return null;
-      setServerEstimates({
-        shippingEstimate: typeof data.shippingEstimate === "number" ? data.shippingEstimate : null,
-        taxEstimate: typeof data.taxEstimate === "number" ? data.taxEstimate : null,
-        currency: data.currency || "PEN",
-      });
-      return data;
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn("Error fetching estimates:", err);
-      setEstimating(false);
-      return null;
-    }
-  };
-
-  // Recalcular estimaciones cada vez que cambian los items
+  // Si faltan stocks, intentar obtenerlos del backend por productId
   useEffect(() => {
-    setServerEstimates(null);
-    if (!displayItems || displayItems.length === 0) return;
-    const t = setTimeout(() => {
-      fetchEstimates();
-    }, 300);
-    return () => clearTimeout(t);
+    const missing = displayItems
+      .filter((it) => it.productId && (it.stock === undefined || it.stock === null))
+      .map((it) => it.productId);
+
+    if (missing.length === 0) return;
+
+    // evitar llamadas duplicadas
+    const unique = Array.from(new Set(missing));
+    unique.forEach(async (pid) => {
+      try {
+        const res = await fetch(`/api/products/${pid}`, { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        if (!data) return;
+        const stock = typeof data.stock === "number" ? data.stock : data.available ?? null;
+        if (stock === null || stock === undefined) return;
+        setStockMap((prev) => ({ ...prev, [pid]: stock }));
+        // también actualizar displayItems entry.stock para reflejarlo en la UI
+        setDisplayItems((prev) => prev.map((it) => (String(it.productId) === String(pid) ? { ...it, stock } : it)));
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("Error fetching product stock", pid, err);
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayItems]);
 
@@ -284,7 +268,92 @@ export default function CartPage() {
   const totalDisplayed = subtotal;
   const serverTotal = serverEstimates ? subtotal + (serverEstimates.shippingEstimate || 0) : null;
 
-  // Eliminar item con animación de colapso (ejecuta la eliminación real)
+  /* -------------------------
+     Cantidad inline: handlers
+     - handleChangeQuantity: aplica optimista y debounce la actualización real
+     - canIncrease: verifica stockMap / item.stock
+     ------------------------- */
+  const canIncrease = (item) => {
+    const pid = item.productId ?? item.id;
+    const knownStock = item.stock ?? stockMap[pid];
+    if (knownStock === undefined || knownStock === null) {
+      // si no conocemos stock, permitir (pero la llamada backend puede fallar)
+      return true;
+    }
+    return Number(item.quantity || 0) < Number(knownStock);
+  };
+
+  const handleChangeQuantity = (item, newQty) => {
+    const idKey = String(item.id ?? item.productId);
+    // límite mínimo 1
+    if (newQty < 1) newQty = 1;
+
+    // Si stock conocido y newQty > stock, bloquear y notificar
+    const pid = item.productId ?? item.id;
+    const knownStock = item.stock ?? stockMap[pid];
+    if (knownStock !== undefined && newQty > knownStock) {
+      toast.error("No hay suficiente stock disponible");
+      return;
+    }
+
+    // Actualización optimista en UI
+    setDisplayItems((prev) => prev.map((it) => (String(it.id ?? it.productId) === idKey ? { ...it, quantity: newQty } : it)));
+
+    // Limpiar timer previo
+    if (qtyTimers.current[idKey]) {
+      clearTimeout(qtyTimers.current[idKey]);
+    }
+
+    // Debounce: esperar antes de llamar al backend/context
+    qtyTimers.current[idKey] = setTimeout(async () => {
+      try {
+        // Si tu contexto tiene updateQuantity, úsalo; si no, puedes llamar a una API
+        if (typeof updateQuantity === "function") {
+          const res = await updateQuantity(idKey, newQty);
+          if (!res || res.success === false) {
+            // revertir si falla
+            setDisplayItems((prev) => prev.map((it) => (String(it.id ?? it.productId) === idKey ? { ...it, quantity: item.quantity } : it)));
+            toast.error(res?.error || "No se pudo actualizar la cantidad");
+            return;
+          }
+        } else {
+          // fallback: llamar a API /api/cart/update
+          const res = await fetch("/api/cart/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ productId: pid, quantity: newQty }),
+          });
+          if (!res.ok) {
+            // revertir
+            setDisplayItems((prev) => prev.map((it) => (String(it.id ?? it.productId) === idKey ? { ...it, quantity: item.quantity } : it)));
+            toast.error("No se pudo actualizar la cantidad");
+            return;
+          }
+        }
+        // éxito: opcionalmente refrescar cart context
+        if (typeof fetchCart === "function") {
+          try {
+            await fetchCart();
+          } catch (e) {
+            // ignore
+          }
+        }
+      } catch (err) {
+        // revertir en error
+        setDisplayItems((prev) => prev.map((it) => (String(it.id ?? it.productId) === idKey ? { ...it, quantity: item.quantity } : it)));
+        // eslint-disable-next-line no-console
+        console.error("Error actualizando cantidad:", err);
+        toast.error("Error actualizando la cantidad");
+      } finally {
+        delete qtyTimers.current[idKey];
+      }
+    }, 350); // debounce 350ms
+  };
+
+  /* -------------------------
+     Eliminación: performRemove y confirm flow
+     ------------------------- */
   const performRemove = async (item) => {
     const idOrProductId = item.id ?? item.productId;
     if (!idOrProductId) {
@@ -323,6 +392,12 @@ export default function CartPage() {
           return next;
         });
         toast.success("Producto eliminado");
+        // si quedó vacío, mostrar aviso transitorio
+        setTimeout(() => {
+          if ((displayItems.length - 1) <= 0) {
+            triggerEmptyNotice();
+          }
+        }, 50);
         return;
       }
 
@@ -336,7 +411,14 @@ export default function CartPage() {
       });
 
       setTimeout(() => {
-        setDisplayItems((prev) => prev.filter((x) => String(x.id ?? x.productId) !== String(idOrProductId)));
+        setDisplayItems((prev) => {
+          const next = prev.filter((x) => String(x.id ?? x.productId) !== String(idOrProductId));
+          // si quedó vacío, mostrar aviso transitorio
+          if (next.length === 0) {
+            triggerEmptyNotice();
+          }
+          return next;
+        });
         setCollapsing((prev) => {
           const next = { ...prev };
           delete next[String(idOrProductId)];
@@ -361,23 +443,30 @@ export default function CartPage() {
     }
   };
 
-  // Handler que abre modal para confirmar eliminación de un solo item
   const confirmRemoveItem = (item) => {
     setItemToConfirm(item);
   };
 
-  // Ejecuta la eliminación confirmada por el modal de item
   const handleConfirmRemove = async () => {
     if (!itemToConfirm) return;
-    // cerrar modal antes de ejecutar para mejorar UX
     setItemToConfirm(null);
-    // ejecutar la eliminación real (performRemove) con la misma lógica
     await performRemove(itemToConfirm);
   };
 
-  // Modal de vaciado (usa ModalConfirm)
+  /* -------------------------
+     Vaciar carrito: auto-sync + redirect + aviso transitorio
+     ------------------------- */
   const openClearModal = () => setShowClearModal(true);
   const closeClearModal = () => setShowClearModal(false);
+
+  const triggerEmptyNotice = () => {
+    setShowEmptyNotice(true);
+    // cerrar cualquier modal abierto
+    setShowClearModal(false);
+    setItemToConfirm(null);
+    // auto-dismiss
+    setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
+  };
 
   const handleClearCartConfirm = async () => {
     try {
@@ -385,6 +474,8 @@ export default function CartPage() {
       if (res && res.success) {
         setDisplayItems([]);
         toast.success("Carrito vaciado");
+        // mostrar aviso transitorio
+        triggerEmptyNotice();
 
         if (typeof fetchCart === "function") {
           try {
@@ -403,6 +494,7 @@ export default function CartPage() {
                   it.product?.image ||
                   (Array.isArray(it.product?.images) && it.product.images[0]) ||
                   null,
+                stock: it.stock ?? it.product?.stock ?? undefined,
               }));
               setDisplayItems(mapped);
               toast.success("Se restauraron items desde el servidor");
@@ -434,7 +526,9 @@ export default function CartPage() {
     }
   };
 
-  // Checkout directo
+  /* -------------------------
+     Checkout directo
+     ------------------------- */
   const handleDirectCheckout = async () => {
     if (status === "loading") return;
     if (!session) {
@@ -477,6 +571,14 @@ export default function CartPage() {
       <div className="max-w-4xl mx-auto p-6 text-center">
         <h1 className="text-2xl font-bold mb-4">Tu carrito está vacío</h1>
         <p className="text-gray-600 mb-4">No tienes productos en tu carrito por ahora.</p>
+
+        {/* Aviso transitorio que se cierra solo */}
+        {showEmptyNotice && (
+          <div className="mb-4 inline-block bg-white border px-4 py-2 rounded shadow">
+            <strong>El carrito está vacío</strong>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <button
             onClick={() => router.push("/")}
@@ -504,6 +606,7 @@ export default function CartPage() {
                         it.product?.image ||
                         (Array.isArray(it.product?.images) && it.product.images[0]) ||
                         null,
+                      stock: it.stock ?? it.product?.stock ?? undefined,
                     }));
                     setDisplayItems(mapped);
                     toast.success("Se restauraron items desde el servidor");
@@ -558,6 +661,8 @@ export default function CartPage() {
           const isRemoving = removingIds.has(idKey);
           const currentHeight = collapsing[idKey];
 
+          const knownStock = item.stock ?? stockMap[item.productId ?? item.id];
+
           return (
             <div
               key={item.id ?? `${item.productId}-${item.variantId || 0}`}
@@ -593,8 +698,35 @@ export default function CartPage() {
                 <div>
                   <h2 className="font-semibold">{displayName}</h2>
 
-                  <p className="text-sm text-gray-500">Cantidad: {Number(item.quantity || 0)}</p>
                   <p className="text-sm text-gray-500">Precio unitario: S/ {Number(item.price || 0).toFixed(2)}</p>
+
+                  {/* Controles de cantidad inline */}
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      onClick={() => handleChangeQuantity(item, Number(item.quantity || 1) - 1)}
+                      className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
+                      aria-label={`Disminuir cantidad de ${displayName}`}
+                      disabled={Number(item.quantity || 0) <= 1 || isRemoving || estimating || loadingServer}
+                    >
+                      −
+                    </button>
+
+                    <div className="px-3 py-1 border rounded text-sm">{Number(item.quantity || 0)}</div>
+
+                    <button
+                      onClick={() => handleChangeQuantity(item, Number(item.quantity || 0) + 1)}
+                      className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
+                      aria-label={`Aumentar cantidad de ${displayName}`}
+                      disabled={!canIncrease(item) || isRemoving || estimating || loadingServer}
+                    >
+                      +
+                    </button>
+
+                    {/* Mostrar stock si está disponible */}
+                    {knownStock !== undefined && (
+                      <div className="text-xs text-gray-500 ml-3">Stock: {knownStock}</div>
+                    )}
+                  </div>
                 </div>
               </div>
 
