@@ -2,11 +2,20 @@
 "use client";
 
 /**
- * Cart page con:
- * - Modal de confirmación para "Vaciar carrito" (accesible).
- * - Resumen de precios: Subtotal, Envío estimado, Impuestos estimados, Total.
- * - Carga segura desde localStorage y sincronización con CartContext.
- * - Estados de carga, toasts y eliminación optimista.
+ * Cart page actualizado: precios ya incluyen impuestos y envío
+ *
+ * Cambios clave:
+ * - Los precios mostrados en el carrito ya incluyen impuestos y envío.
+ * - Calculamos y mostramos la porción estimada de impuestos incluida en el subtotal.
+ * - El envío se marca como "Incluido" (valor 0 en el cálculo). En el futuro, cuando haya delivery con costo,
+ *   reemplazar la lógica para sumar el costo de envío al total.
+ * - El total ahora es simplemente el subtotal (porque ya incluye impuestos y envío).
+ *
+ * Mantiene:
+ * - Modal de confirmación para vaciar carrito.
+ * - Animación de colapso al eliminar items.
+ * - Sincronización con CartContext y safeParseLocalCart.
+ * - Toasters y manejo optimista al eliminar.
  */
 
 import React, { useEffect, useState, useRef } from "react";
@@ -28,10 +37,19 @@ export default function CartPage() {
   const [showClearModal, setShowClearModal] = useState(false);
   const confirmButtonRef = useRef(null);
 
+  // Refs para medir y animar cada item
+  const itemRefs = useRef({});
+  const [collapsing, setCollapsing] = useState({}); // { [id]: currentHeightOrZero }
+
+  const ANIMATION_DURATION = 300; // ms
+
   // Configuración de negocio simple (ajusta según tu lógica real)
-  const SHIPPING_FREE_THRESHOLD = 200.0; // envío gratis si subtotal >= este valor
-  const SHIPPING_FLAT = 15.0; // envío fijo si no aplica gratis
+  // TAX_RATE representa la tasa aplicada dentro del precio (ej. 0.18 = 18%)
   const TAX_RATE = 0.18; // 18% de ejemplo
+
+  // Nota: envío actualmente incluido en el precio; cuando se implemente delivery con costo,
+  // reemplazar la lógica para sumar shipping al total.
+  const SHIPPING_INCLUDED = true;
 
   // Mapear displayItems a partir de cartItems o localStorage
   useEffect(() => {
@@ -131,53 +149,103 @@ export default function CartPage() {
   }, [cartItems]);
 
   // Cálculos de resumen
+  // subtotal: suma de precios tal como están (ya incluyen impuestos y envío)
   const subtotal = (displayItems || []).reduce(
     (s, it) => s + Number(it.price || 0) * Number(it.quantity || 0),
     0
   );
 
-  const shipping = subtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FLAT;
-  const taxes = subtotal * TAX_RATE;
-  const total = subtotal + shipping + taxes;
+  // Si los precios ya incluyen impuestos, calculamos la porción estimada de impuestos incluida:
+  // impuesto_incluido = subtotal * TAX_RATE / (1 + TAX_RATE)
+  const includedTaxes = subtotal > 0 ? (subtotal * TAX_RATE) / (1 + TAX_RATE) : 0;
 
-  // Eliminar item (optimista) con feedback
+  // Envío actualmente incluido en el precio
+  const shipping = SHIPPING_INCLUDED ? 0 : 0; // placeholder si en el futuro se aplica shipping real
+
+  // Total: como los precios ya incluyen impuestos y envío, el total es el subtotal
+  const total = subtotal;
+
+  // Eliminar item con animación de colapso
   const handleRemove = async (item) => {
+    const idOrProductId = item.id ?? item.productId;
+    if (!idOrProductId) {
+      toast.error("Identificador de producto inválido");
+      return;
+    }
+
+    // Marcar como "eliminando" para deshabilitar botones
+    setRemovingIds((prev) => new Set(prev).add(String(idOrProductId)));
+
     try {
-      const idOrProductId = item.id ?? item.productId;
-      if (!idOrProductId) {
-        toast.error("Identificador de producto inválido");
+      // Llamada al contexto para persistir el cambio
+      const res = await removeFromCart(idOrProductId, item.storeId);
+
+      if (!res || res.success === false) {
+        // Revertir estado de "eliminando"
+        setRemovingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(String(idOrProductId));
+          return next;
+        });
+
+        if (res?.status === 401) {
+          toast.error("Necesitas iniciar sesión para eliminar este producto");
+          router.push(`/login?callbackUrl=/cart`);
+          return;
+        }
+
+        toast.error(res?.error || "No se pudo eliminar el producto del carrito");
         return;
       }
 
-      setRemovingIds((prev) => new Set(prev).add(String(idOrProductId)));
-
-      const res = await removeFromCart(idOrProductId, item.storeId);
-
-      setRemovingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(String(idOrProductId));
-        return next;
-      });
-
-      if (res && res.success) {
+      // Si la eliminación en backend fue exitosa, animamos la salida en frontend
+      const el = itemRefs.current[String(idOrProductId)];
+      if (!el) {
+        // Si no hay referencia, eliminar inmediatamente
         setDisplayItems((prev) => prev.filter((x) => String(x.id ?? x.productId) !== String(idOrProductId)));
+        setRemovingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(String(idOrProductId));
+          return next;
+        });
         toast.success("Producto eliminado");
         return;
       }
 
-      if (res?.status === 401) {
-        toast.error("Necesitas iniciar sesión para eliminar este producto");
-        router.push(`/login?callbackUrl=/cart`);
-        return;
-      }
+      // Medir altura actual
+      const measuredHeight = el.scrollHeight;
+      // Establecer altura inicial para animar desde esa altura
+      setCollapsing((prev) => ({ ...prev, [String(idOrProductId)]: measuredHeight }));
 
-      toast.error(res?.error || "No se pudo eliminar el producto del carrito");
+      // Forzar reflow y luego colapsar a 0
+      requestAnimationFrame(() => {
+        // pequeño delay para asegurar que el estilo inicial se aplique
+        setTimeout(() => {
+          setCollapsing((prev) => ({ ...prev, [String(idOrProductId)]: 0 }));
+        }, 10);
+      });
+
+      // Después de la animación, quitar el item del estado
+      setTimeout(() => {
+        setDisplayItems((prev) => prev.filter((x) => String(x.id ?? x.productId) !== String(idOrProductId)));
+        setCollapsing((prev) => {
+          const next = { ...prev };
+          delete next[String(idOrProductId)];
+          return next;
+        });
+        setRemovingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(String(idOrProductId));
+          return next;
+        });
+        toast.success("Producto eliminado");
+      }, ANIMATION_DURATION + 20);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("Error eliminando item:", err);
       setRemovingIds((prev) => {
         const next = new Set(prev);
-        next.delete(String(item.id ?? item.productId));
+        next.delete(String(idOrProductId));
         return next;
       });
       toast.error("Error eliminando el producto");
@@ -298,6 +366,7 @@ export default function CartPage() {
 
       <div className="space-y-4">
         {displayItems.map((item) => {
+          const idKey = String(item.id ?? item.productId);
           const imgSrc =
             item.product?.image ||
             item.image ||
@@ -307,14 +376,28 @@ export default function CartPage() {
 
           const displayName = item.title || item.product?.title || item.name || `Producto #${item.productId ?? item.id}`;
 
-          const isRemoving = removingIds.has(String(item.id ?? item.productId));
+          const isRemoving = removingIds.has(idKey);
+          const currentHeight = collapsing[idKey];
 
           return (
             <div
               key={item.id ?? `${item.productId}-${item.variantId || 0}`}
-              className={`flex items-center justify-between border p-4 rounded transition-transform duration-200 ${
-                isRemoving ? "opacity-50 scale-95" : "opacity-100"
-              }`}
+              ref={(el) => {
+                if (!el) return;
+                itemRefs.current[idKey] = el;
+              }}
+              // Aplicar estilos de colapso si existe una entrada en collapsing
+              style={
+                currentHeight !== undefined
+                  ? {
+                      height: `${currentHeight}px`,
+                      overflow: "hidden",
+                      transition: `height ${ANIMATION_DURATION}ms ease, opacity ${ANIMATION_DURATION}ms ease, margin ${ANIMATION_DURATION}ms ease, padding ${ANIMATION_DURATION}ms ease`,
+                      opacity: currentHeight === 0 ? 0 : 1,
+                    }
+                  : undefined
+              }
+              className={`flex items-center justify-between border p-4 rounded ${currentHeight === 0 ? "pointer-events-none" : ""}`}
             >
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
@@ -363,33 +446,28 @@ export default function CartPage() {
         <h3 className="text-lg font-semibold mb-3">Resumen del pedido</h3>
 
         <div className="flex justify-between text-sm text-gray-700 mb-2">
-          <span>Subtotal</span>
+          <span>Subtotal (incluye impuestos y envío)</span>
           <span>S/ {subtotal.toFixed(2)}</span>
         </div>
 
         <div className="flex justify-between text-sm text-gray-700 mb-2">
-          <span>Envío estimado</span>
-          <span>
-            {shipping === 0 ? (
-              <span className="text-green-600 font-medium">Gratis</span>
-            ) : (
-              `S/ ${shipping.toFixed(2)}`
-            )}
-          </span>
+          <span>Envío</span>
+          <span className="text-gray-600">Incluido</span>
         </div>
 
         <div className="flex justify-between text-sm text-gray-700 mb-2">
-          <span>Impuestos estimados ({(TAX_RATE * 100).toFixed(0)}%)</span>
-          <span>S/ {taxes.toFixed(2)}</span>
+          <span>Impuestos estimados incluidos ({(TAX_RATE * 100).toFixed(0)}%)</span>
+          <span>S/ {includedTaxes.toFixed(2)}</span>
         </div>
 
         <div className="flex justify-between text-base font-bold mt-3">
-          <span>Total estimado</span>
+          <span>Total</span>
           <span>S/ {total.toFixed(2)}</span>
         </div>
 
         <p className="text-xs text-gray-500 mt-2">
-          Los valores son estimados. El costo final se calculará en el checkout.
+          Los precios mostrados ya incluyen impuestos y envío. Si en el futuro se aplica un cargo por delivery,
+          se mostrará y sumará aquí antes de confirmar el pago.
         </p>
       </div>
 
