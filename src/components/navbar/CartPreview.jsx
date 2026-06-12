@@ -51,44 +51,43 @@ export default function CartPreview(props) {
 
   const computedSubtotal = useMemo(() => {
     if (typeof subtotal === "number") return subtotal;
-    return (resolvedItems || []).reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
+    return (resolvedItems || []).reduce(
+      (s, it) => s + Number(it.price || 0) * Number(it.quantity || 0),
+      0
+    );
   }, [resolvedItems, subtotal]);
 
   const findLocalName = useMemo(() => {
     return (pid) => {
       if (!localRaw || !Array.isArray(localRaw)) return null;
-      const found = localRaw.find((x) => String(x.productId ?? x.id) === String(pid));
-      return found ? (found.name || found.title || null) : null;
+      const found = localRaw.find(
+        (x) => String(x.productId ?? x.id) === String(pid)
+      );
+      return found ? found.name || found.title || null : null;
     };
   }, [localRaw]);
 
   const safeOnIncrease = (id) => {
     try {
-      // eslint-disable-next-line no-console
       console.log("[CartPreview] increase requested:", id);
       onIncrease(id);
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.warn("onIncrease error", e);
     }
   };
   const safeOnDecrease = (id) => {
     try {
-      // eslint-disable-next-line no-console
       console.log("[CartPreview] decrease requested:", id);
       onDecrease(id);
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.warn("onDecrease error", e);
     }
   };
   const safeOnRemove = (id, storeId) => {
     try {
-      // eslint-disable-next-line no-console
       console.log("[CartPreview] remove requested:", { id, storeId });
       onRemove(id, storeId);
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.warn("onRemove error", e);
     }
   };
@@ -112,7 +111,9 @@ export default function CartPreview(props) {
         const imgSrc =
           item.image ||
           (Array.isArray(item.images) && item.images[0]) ||
-          (item.product && Array.isArray(item.product.images) && item.product.images[0]) ||
+          (item.product &&
+            Array.isArray(item.product.images) &&
+            item.product.images[0]) ||
           item.product?.image ||
           "/images/placeholder.png";
 
@@ -134,7 +135,11 @@ export default function CartPreview(props) {
             key={key}
             className="flex items-center gap-3 py-2 border-b last:border-none hover:bg-gray-50 rounded-lg px-2 transition"
           >
-            <Link href={`/product/${item.productId ?? item.id}`} onClick={onClose} className="w-16 h-16 block">
+            <Link
+              href={`/product/${item.productId ?? item.id}`}
+              onClick={onClose}
+              className="w-16 h-16 block"
+            >
               <img
                 src={imgSrc}
                 alt={displayName}
@@ -149,8 +154,14 @@ export default function CartPreview(props) {
             </Link>
 
             <div className="flex-1 text-sm min-w-0">
-              <Link href={`/product/${item.productId ?? item.id}`} onClick={onClose}>
-                <p className="truncate font-medium hover:text-green-600 cursor-pointer" title={displayName}>
+              <Link
+                href={`/product/${item.productId ?? item.id}`}
+                onClick={onClose}
+              >
+                <p
+                  className="truncate font-medium hover:text-green-600 cursor-pointer"
+                  title={displayName}
+                >
                   {displayName}
                 </p>
               </Link>
@@ -160,16 +171,48 @@ export default function CartPreview(props) {
               </p>
 
               <div className="flex items-center gap-2 mt-1">
-                <button type="button" onClick={() => safeOnDecrease(idForActions)} className="px-2 bg-gray-200 rounded hover:bg-gray-300" disabled={quantity <= 1} aria-label={`Disminuir cantidad de ${displayName}`}>−</button>
+                <button
+                  type="button"
+                  onClick={() => safeOnDecrease(idForActions)}
+                  className="px-2 bg-gray-200 rounded hover:bg-gray-300"
+                  disabled={quantity <= 1}
+                  aria-label={`Disminuir cantidad de ${displayName}`}
+                >
+                  −
+                </button>
 
-                <span className="text-xs w-6 text-center" aria-live="polite">{quantity}</span>
+                <span
+                  className="text-xs w-6 text-center"
+                  aria-live="polite"
+                >
+                  {quantity}
+                </span>
 
-                <button type="button" onClick={() => safeOnIncrease(idForActions)} disabled={quantity >= maxStock} className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40" aria-label={`Aumentar cantidad de ${displayName}`}>+</button>
+                <button
+                  type="button"
+                  onClick={() => safeOnIncrease(idForActions)}
+                  disabled={quantity >= maxStock}
+                  className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40"
+                  aria-label={`Aumentar cantidad de ${displayName}`}
+                >
+                  +
+                </button>
               </div>
             </div>
 
-            <button type="button" onClick={() => safeOnRemove(idForActions, item.storeId ?? undefined)} className="p-1 rounded hover:bg-red-100 transition" aria-label={`Eliminar ${item.title || item.name || "producto"}`} title="Eliminar">
-              <Trash2 size={20} className="text-gray-500 hover:text-red-600" />
+            <button
+              type="button"
+              onClick={() =>
+                safeOnRemove(idForActions, item.storeId ?? undefined)
+              }
+              className="p-1 rounded hover:bg-red-100 transition"
+              aria-label={`Eliminar ${item.title || item.name || "producto"}`}
+              title="Eliminar"
+            >
+              <Trash2
+                size={20}
+                className="text-gray-500 hover:text-red-600"
+              />
             </button>
           </div>
         );
@@ -183,14 +226,24 @@ export default function CartPreview(props) {
           </div>
 
           <div className="mt-4">
-            <button type="button" className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700" onClick={() => { try { onClose?.(); } catch {} router.push("/cart"); }} aria-label="Ver carrito">Ver carrito</button>
+            <button
+              type="button"
+              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+              onClick={() => {
+                console.log("[CartPreview] navigate to /cart");
+                onClose?.();
+                setTimeout(() => router.push("/cart"), 50);
+              }}
+              aria-label="Ver carrito"
+            >
+              Ver carrito
+            </button>
           </div>
         </>
       )}
     </div>
   );
 
-  // Render en portal para evitar overlays y problemas de stacking
   if (typeof window !== "undefined" && document.body) {
     return ReactDOM.createPortal(content, document.body);
   }

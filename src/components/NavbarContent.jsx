@@ -165,7 +165,9 @@ export default function NavbarContent() {
         <button
           type="button"
           aria-label={`Abrir carrito, ${count} items`}
-          onClick={() => setCartOpen((s) => !s)}
+          onClick={() => { console.log("[NavbarContents]Cart button clicked");
+            setCartOpen((s) => !s)
+          }}
           className="text-sm font-medium cursor-pointer relative select-none"
           aria-haspopup="true"
           aria-expanded={cartOpen}
