@@ -343,9 +343,15 @@ export function CartProvider({ children }) {
   const prev = cartItems.slice();
 
   const next = cartItems.filter((it) => {
-    const matchesId = String(it.productId ?? it.id) === String(idOrProductId);
-    if (!matchesId) return true;
-    if (storeId == null) return false;
+    const sameId = String(it.id) === String(idOrProductId);
+    const sameProductId = String(it.productId) === String(idOrProductId);
+
+    if (!(sameId || sameProductId)) return true; // no coincide → mantener
+
+    // si coincide id/productId y no hay storeId → eliminar
+    if (!storeId) return false;
+
+    // si coincide id/productId y storeId también coincide → eliminar
     return String(it.storeId) !== String(storeId);
   });
 
@@ -374,6 +380,7 @@ export function CartProvider({ children }) {
     return { success: false, error: err?.message || String(err), cart: prev };
   }
 }, [cartItems, persistCart]);
+
 
 
   const updateQuantity = useCallback(async (idOrProductId, storeId, quantity) => {
