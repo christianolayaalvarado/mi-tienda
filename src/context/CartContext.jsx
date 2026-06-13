@@ -83,28 +83,33 @@ export function CartProvider({ children }) {
       const data = await res.json().catch(() => null);
       const local = loadLocal();
 
-      const items = (data?.cart?.items || []).map((it) => {
-        const image =
-          it.image ||
-          it.product?.image ||
-          (Array.isArray(it.product?.images) && it.product.images[0]) ||
-          (Array.isArray(it.images) && it.images[0]) ||
-          null;
+      // dentro de fetchCart, reemplaza la creación de `items` por:
+const items = (data?.cart?.items || []).map((it) => {
+  const image =
+    it.image ||
+    it.product?.image ||
+    (Array.isArray(it.product?.images) && it.product.images[0]) ||
+    (Array.isArray(it.images) && it.images[0]) ||
+    null;
 
-        const localMatch = local.find((l) => String(l.productId ?? l.id) === String(it.productId ?? it.id));
-        const nameFromLocal = localMatch ? (localMatch.name || localMatch.title || null) : null;
-        const imageFromLocal = localMatch ? (localMatch.image || null) : null;
+  const localMatch = local.find((l) => String(l.productId ?? l.id) === String(it.productId ?? it.id));
+  const nameFromLocal = localMatch ? (localMatch.name || localMatch.title || null) : null;
+  const imageFromLocal = localMatch ? (localMatch.image || null) : null;
 
-        return {
-          id: it.id,
-          productId: it.productId ?? it.id ?? null,
-          storeId: it.storeId,
-          name: it.product?.title || it.title || it.name || nameFromLocal || "",
-          price: it.price,
-          quantity: Number(it.quantity || 0),
-          image: image || imageFromLocal || null,
-        };
-      });
+  return {
+    id: it.id,
+    productId: it.productId ?? it.id ?? null,
+    storeId: it.storeId,
+    name: it.product?.title || it.title || it.name || nameFromLocal || "",
+    price: it.price,
+    quantity: Number(it.quantity || 0),
+    image: image || imageFromLocal || null,
+    // <-- incluir stock si viene del servidor (o del producto)
+    stock: typeof it.stock !== "undefined" ? Number(it.stock) : Number(it.product?.stock ?? Infinity),
+    product: it.product ?? null, // opcional, útil para UI si necesitas más datos
+  };
+});
+
 
       if ((items.length === 0 || items.every((i) => !i.productId)) && local.length > 0) {
         setCartItems(local);
@@ -210,22 +215,25 @@ export function CartProvider({ children }) {
 
       const data = await res.json().catch(() => null);
       const serverItems = (data?.cart?.items || []).map((it) => {
-        const image =
-          it.image ||
-          it.product?.image ||
-          (Array.isArray(it.product?.images) && it.product.images[0]) ||
-          (Array.isArray(it.images) && it.images[0]) ||
-          null;
-        return {
-          id: it.id,
-          productId: it.productId ?? it.id ?? null,
-          storeId: it.storeId,
-          name: it.product?.title || it.title || it.name || "",
-          price: it.price,
-          quantity: Number(it.quantity || 0),
-          image: image || null,
-        };
-      });
+  const image =
+    it.image ||
+    it.product?.image ||
+    (Array.isArray(it.product?.images) && it.product.images[0]) ||
+    (Array.isArray(it.images) && it.images[0]) ||
+    null;
+  return {
+    id: it.id,
+    productId: it.productId ?? it.id ?? null,
+    storeId: it.storeId,
+    name: it.product?.title || it.title || it.name || "",
+    price: it.price,
+    quantity: Number(it.quantity || 0),
+    image: image || null,
+    stock: typeof it.stock !== "undefined" ? Number(it.stock) : Number(it.product?.stock ?? Infinity),
+    product: it.product ?? null,
+  };
+});
+
 
       setCartItems(serverItems);
       saveLocal(serverItems);
@@ -273,69 +281,85 @@ export function CartProvider({ children }) {
   }, []);
 
   const addToCart = useCallback(async (product, qty = 1) => {
-    try {
-      const productId = product.productId ?? product.id;
-      const storeId = product.storeId ?? product.store?.id ?? product.storeId;
-      if (!productId) throw new Error("Producto inválido (falta productId)");
+  try {
+    const productId = product.productId ?? product.id;
+    const storeId = product.storeId ?? product.store?.id ?? product.storeId;
+    if (!productId) throw new Error("Producto inválido (falta productId)");
 
-      const existingIndex = cartItems.findIndex(
-        (it) =>
-          (String(it.productId) === String(productId) || String(it.id) === String(productId)) &&
-          (storeId == null ? true : String(it.storeId) === String(storeId))
+    // determinar stock conocido (prioriza product.stock si viene en el objeto)
+    const productStock = typeof product.stock !== "undefined" ? Number(product.stock) : Number(product.product?.stock ?? Infinity);
+
+    const existingIndex = cartItems.findIndex(
+      (it) =>
+        (String(it.productId) === String(productId) || String(it.id) === String(productId)) &&
+        (storeId == null ? true : String(it.storeId) === String(storeId))
+    );
+
+    let next;
+    if (existingIndex >= 0) {
+      const existing = cartItems[existingIndex];
+      const newQty = Number(existing.quantity || 0) + Number(qty);
+      if (newQty > productStock) {
+        toast.error("Stock insuficiente");
+        return { success: false, error: "stock_insufficient", available: productStock, cart: cartItems };
+      }
+      next = cartItems.map((it, idx) =>
+        idx === existingIndex ? { ...it, quantity: newQty } : it
       );
-
-      let next;
-      if (existingIndex >= 0) {
-        next = cartItems.map((it, idx) =>
-          idx === existingIndex ? { ...it, quantity: Number(it.quantity || 0) + Number(qty) } : it
-        );
-      } else {
-        const image = product.image || (Array.isArray(product.images) && product.images[0]) || null;
-        next = [
-          ...cartItems,
-          {
-            id: product.id ?? undefined,
-            productId,
-            storeId,
-            name: product.name || product.title || "",
-            price: Number(product.price) || 0,
-            quantity: Number(qty) || 1,
-            image,
-          },
-        ];
+    } else {
+      if (Number(qty) > productStock) {
+        toast.error("Stock insuficiente");
+        return { success: false, error: "stock_insufficient", available: productStock, cart: cartItems };
       }
-
-      setCartItems(next);
-      saveLocal(next);
-
-      const res = await persistCart(next);
-
-      if (!res || res.success === false) {
-        if (res?.status === 401) {
-          try {
-            if (typeof window !== "undefined") {
-              sessionStorage.setItem(
-                "pendingAdd",
-                JSON.stringify({
-                  items: next.map((it) => ({ productId: it.productId, quantity: it.quantity, storeId: it.storeId })),
-                  ts: Date.now(),
-                })
-              );
-            }
-          } catch (e) {}
-          return { success: false, status: 401, error: "auth_required", cart: next };
-        }
-
-        toast.error(res?.error || "No se pudo sincronizar con el servidor. Se guardó localmente.");
-        return { success: false, error: res?.error || "persist_failed", cart: next };
-      }
-
-      return { success: true, status: res.status || 200, cart: res.cart || next };
-    } catch (err) {
-      toast.error(err?.message || "No se pudo agregar al carrito");
-      return { success: false, error: err?.message || String(err) };
+      const image = product.image || (Array.isArray(product.images) && product.images[0]) || null;
+      next = [
+        ...cartItems,
+        {
+          id: product.id ?? undefined,
+          productId,
+          storeId,
+          name: product.name || product.title || "",
+          price: Number(product.price) || 0,
+          quantity: Number(qty) || 1,
+          image,
+          stock: productStock,
+          product: product.product ?? null,
+        },
+      ];
     }
-  }, [cartItems, persistCart]);
+
+    setCartItems(next);
+    saveLocal(next);
+
+    const res = await persistCart(next);
+
+    if (!res || res.success === false) {
+      if (res?.status === 401) {
+        try {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "pendingAdd",
+              JSON.stringify({
+                items: next.map((it) => ({ productId: it.productId, quantity: it.quantity, storeId: it.storeId })),
+                ts: Date.now(),
+              })
+            );
+          }
+        } catch (e) {}
+        return { success: false, status: 401, error: "auth_required", cart: next };
+      }
+
+      toast.error(res?.error || "No se pudo sincronizar con el servidor. Se guardó localmente.");
+      return { success: false, error: res?.error || "persist_failed", cart: next };
+    }
+
+    return { success: true, status: res.status || 200, cart: res.cart || next };
+  } catch (err) {
+    toast.error(err?.message || "No se pudo agregar al carrito");
+    return { success: false, error: err?.message || String(err) };
+  }
+}, [cartItems, persistCart]);
+
 
   const removeFromCart = useCallback(async (idOrProductId, storeId) => {
   console.log("[CartContext] removeFromCart called with:", idOrProductId, storeId);
@@ -384,27 +408,61 @@ export function CartProvider({ children }) {
 
 
   const updateQuantity = useCallback(async (idOrProductId, storeId, quantity) => {
-    const qtyNum = Number(quantity);
-    if (!Number.isFinite(qtyNum) || qtyNum <= 0) {
-      return removeFromCart(idOrProductId, storeId);
+  const qtyNum = Number(quantity);
+  if (!Number.isFinite(qtyNum) || qtyNum <= 0) {
+    return removeFromCart(idOrProductId, storeId);
+  }
+
+  // buscar item actual
+  const item = cartItems.find((it) => {
+    const matchesId = String(it.id ?? it.productId) === String(idOrProductId) || String(it.productId) === String(idOrProductId);
+    const storeMatches = storeId == null ? true : String(it.storeId) === String(storeId);
+    return matchesId && storeMatches;
+  });
+
+  if (!item) {
+    return { success: false, error: "item_not_found" };
+  }
+
+  const maxStock = Number(item.stock ?? item.product?.stock ?? Infinity);
+  if (qtyNum > maxStock) {
+    toast.error("Stock insuficiente");
+    return { success: false, error: "stock_insufficient", available: maxStock };
+  }
+
+  const next = cartItems.map((it) => {
+    const matchesId =
+      String(it.id ?? it.productId) === String(idOrProductId) || String(it.productId) === String(idOrProductId);
+    const storeMatches = storeId == null ? true : String(it.storeId) === String(storeId);
+    if (matchesId && storeMatches) {
+      return { ...it, quantity: qtyNum };
     }
-    const next = cartItems.map((it) => {
-      const matchesId =
-        String(it.id ?? it.productId) === String(idOrProductId) || String(it.productId) === String(idOrProductId);
-      const storeMatches = storeId == null ? true : String(it.storeId) === String(storeId);
-      if (matchesId && storeMatches) {
-        return { ...it, quantity: qtyNum };
-      }
-      return it;
-    });
+    return it;
+  });
 
-    const normalizedNext = next.map((it) => ({ ...it, quantity: Number(it.quantity || 0), productId: it.productId ?? it.id ?? null }));
+  const normalizedNext = next.map((it) => ({ ...it, quantity: Number(it.quantity || 0), productId: it.productId ?? it.id ?? null }));
 
-    setCartItems(normalizedNext);
-    saveLocal(normalizedNext);
-    persistCart(normalizedNext).catch(() => {});
+  setCartItems(normalizedNext);
+  saveLocal(normalizedNext);
+
+  try {
+    const res = await persistCart(normalizedNext);
+    if (!res || res.success === false) {
+      // revertir si falla persistencia
+      setCartItems(cartItems);
+      saveLocal(cartItems);
+      toast.error(res?.error || "No se pudo actualizar en el servidor. Se revirtió el cambio.");
+      return { success: false, cart: cartItems };
+    }
     return { success: true, cart: normalizedNext };
-  }, [cartItems, persistCart, removeFromCart]);
+  } catch (err) {
+    setCartItems(cartItems);
+    saveLocal(cartItems);
+    toast.error(err?.message || "Error actualizando cantidad en servidor");
+    return { success: false, error: err?.message || String(err), cart: cartItems };
+  }
+}, [cartItems, persistCart, removeFromCart]);
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;

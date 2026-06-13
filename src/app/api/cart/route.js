@@ -41,18 +41,32 @@ export async function GET(req) {
 
     const userId = await resolveUserIdFromSession(session);
     if (!userId) {
-      // Usuario no identificado: devolver carrito vacío (no 401 para UX)
       return NextResponse.json({ cart: { items: [] } }, { status: 200 });
     }
 
     const cart = await prisma.cart.findFirst({
       where: { userId },
-      include: { items: true },
+      include: { items: { include: { product: true } } },
     });
 
     if (!cart) return NextResponse.json({ cart: { items: [] } }, { status: 200 });
 
-    return NextResponse.json({ cart }, { status: 200 });
+    return NextResponse.json({
+      cart: {
+        id: cart.id,
+        userId: cart.userId,
+        items: cart.items.map(it => ({
+          id: it.id,
+          productId: it.productId,
+          storeId: it.storeId,
+          title: it.title,
+          price: it.price,
+          quantity: it.quantity,
+          image: it.image,
+          stock: it.product?.stock ?? 0,
+        }))
+      }
+    }, { status: 200 });
   } catch (err) {
     console.error("🔥 ERROR GET CART:", err?.message || err);
     return NextResponse.json({ error: "server_error", details: "Error obteniendo carrito" }, { status: 500 });
@@ -80,13 +94,11 @@ export async function POST(req) {
       return NextResponse.json({ error: "bad_request", details: "Items inválidos" }, { status: 400 });
     }
 
-    // Validar cada item mínimamente
     const invalid = items.find((it) => !it || !it.productId || typeof it.quantity !== "number");
     if (invalid) {
       return NextResponse.json({ error: "bad_request", details: "Algún item tiene campos faltantes (productId, quantity)" }, { status: 400 });
     }
 
-    // Enriquecer items con datos del producto (defensivo)
     const enriched = [];
     for (const it of items) {
       const product = await prisma.product.findUnique({ where: { id: it.productId } });
@@ -94,17 +106,21 @@ export async function POST(req) {
         return NextResponse.json({ error: "bad_request", details: `Producto no encontrado: ${it.productId}` }, { status: 400 });
       }
 
+      if (Number(it.quantity) > Number(product.stock ?? 0)) {
+        return NextResponse.json({ error: "stock_insufficient", available: product.stock }, { status: 400 });
+      }
+
       enriched.push({
         productId: it.productId,
-        quantity: Number(it.quantity) || 1,
+        quantity: Number(it.quantity),
         title: product.title || product.name || "Sin título",
-        price: typeof it.price !== "undefined" ? Number(it.price) : Number(product.price || 0),
+        price: Number(product.price || 0),
         storeId: product.storeId || it.storeId || null,
-        image: (product.images && product.images[0]) || product.image || "/images/placeholder.png",
+        image: product.images?.[0] || product.image || "/images/placeholder.png",
+        stock: product.stock ?? 0,
       });
     }
 
-    // Buscar o crear carrito
     let cart = await prisma.cart.findFirst({ where: { userId }, include: { items: true } });
 
     if (!cart) {
@@ -122,10 +138,9 @@ export async function POST(req) {
             })),
           },
         },
-        include: { items: true },
+        include: { items: { include: { product: true } } },
       });
     } else {
-      // Reemplazar items (simplificar lógica: deleteMany + createMany con fallback)
       await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 
       try {
@@ -141,7 +156,6 @@ export async function POST(req) {
           })),
         });
       } catch (e) {
-        // Fallback a create individual si createMany falla
         for (const item of enriched) {
           await prisma.cartItem.create({
             data: {
@@ -157,10 +171,28 @@ export async function POST(req) {
         }
       }
 
-      cart = await prisma.cart.findUnique({ where: { id: cart.id }, include: { items: true } });
+      cart = await prisma.cart.findUnique({
+        where: { id: cart.id },
+        include: { items: { include: { product: true } } },
+      });
     }
 
-    return NextResponse.json({ cart }, { status: 200 });
+    return NextResponse.json({
+      cart: {
+        id: cart.id,
+        userId: cart.userId,
+        items: cart.items.map(it => ({
+          id: it.id,
+          productId: it.productId,
+          storeId: it.storeId,
+          title: it.title,
+          price: it.price,
+          quantity: it.quantity,
+          image: it.image,
+          stock: it.product?.stock ?? 0,
+        }))
+      }
+    }, { status: 200 });
   } catch (err) {
     console.error("🔥 ERROR POST CART:", err?.message || err);
     return NextResponse.json({ error: "server_error", details: "Error actualizando carrito" }, { status: 500 });
