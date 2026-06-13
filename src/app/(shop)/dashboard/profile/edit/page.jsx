@@ -47,7 +47,8 @@ export default function EditProfilePage() {
 
   // Comprueba si hay cambios respecto al snapshot inicial (ignora campos de contraseña vacíos)
   const hasChanges = () => {
-    if (!initial) return true;
+    // Si aún no tenemos snapshot, no permitimos enviar
+    if (!initial) return false;
     if (form.name !== initial.name) return true;
     if (form.city !== initial.city) return true;
     // contraseña: solo cuenta como cambio si el usuario escribió algo
@@ -56,77 +57,78 @@ export default function EditProfilePage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  if (!hasChanges()) {
+    toast("No hay cambios para guardar");
+    return;
+  }
+  if (form.password && form.password !== form.confirmPassword) {
+    toast.error("Las contraseñas no coinciden");
+    return;
+  }
 
-    // Si no hay cambios, no hacemos petición
-    if (!hasChanges()) {
+  setLoading(true);
+  try {
+    const payload = {};
+    if (initial?.name !== form.name) payload.name = form.name;
+    if (initial?.city !== form.city) payload.city = form.city;
+    if (form.password) payload.password = form.password;
+
+    if (Object.keys(payload).length === 0) {
       toast("No hay cambios para guardar");
       return;
     }
 
-    // Si el usuario escribió contraseña, validar confirmación
-    if (form.password && form.password !== form.confirmPassword) {
-      toast.error("Las contraseñas no coinciden");
+    console.log("handleSubmit payload:", payload);
+
+    const res = await fetch("/api/users/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    let data = null;
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("application/json")) {
+      data = await res.json().catch((err) => {
+        console.error("JSON parse error:", err);
+        return null;
+      });
+    } else {
+      const text = await res.text().catch(() => null);
+      data = { message: text || `Respuesta ${res.status}` };
+    }
+
+    if (res.status === 401) {
+      toast.error("No autorizado. Inicia sesión.");
+      return;
+    }
+    if (!res.ok) {
+      const message = data?.error || data?.message || `Error ${res.status}`;
+      toast.error(message);
       return;
     }
 
-    setLoading(true);
-    try {
-      // Construir payload solo con campos modificados
-      const payload = {};
-      if (initial?.name !== form.name) payload.name = form.name;
-      if (initial?.city !== form.city) payload.city = form.city;
-      // Incluir password solo si el usuario escribió una nueva
-      if (form.password && form.password.length > 0) payload.password = form.password;
-
-      // Si por alguna razón payload queda vacío (defensa), no llamar
-      if (Object.keys(payload).length === 0) {
-        toast("No hay cambios para guardar");
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch("/api/users/me", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      if (res.status === 401) {
-        toast.error("No autorizado. Inicia sesión.");
-        setLoading(false);
-        return;
-      }
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        toast.error(err?.error || "Error actualizando perfil");
-        setLoading(false);
-        return;
-      }
-
-      toast.success("Perfil actualizado");
-      // Actualizar snapshot inicial con los cambios aplicados
-      const updated = await res.json().catch(() => null);
-      const newInitial = {
-        name: updated?.name ?? initial?.name ?? form.name,
-        email: updated?.email ?? initial?.email ?? form.email,
-        city: updated?.city ?? initial?.city ?? form.city,
-      };
-      if (mountedRef.current) {
-        setInitial(newInitial);
-        setForm((f) => ({ ...f, password: "", confirmPassword: "" }));
-      }
-      // opcional: redirigir o refrescar sesión si es necesario
-      // router.push("/dashboard");
-    } catch (err) {
-      console.error(err);
-      toast.error("Error inesperado");
-    } finally {
-      if (mountedRef.current) setLoading(false);
+    toast.success(data?.message || "Perfil actualizado");
+    const newInitial = {
+      name: data?.name ?? initial?.name ?? form.name,
+      email: data?.email ?? initial?.email ?? form.email,
+      city: data?.city ?? initial?.city ?? form.city,
+    };
+    if (mountedRef.current) {
+      setInitial(newInitial);
+      setForm((f) => ({ ...f, password: "", confirmPassword: "" }));
     }
-  };
+  } catch (err) {
+    console.error("handleSubmit error:", err);
+    toast.error("Error inesperado al guardar");
+  } finally {
+    if (mountedRef.current) setLoading(false);
+  }
+};
+
+
 
   return (
     <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
@@ -135,6 +137,7 @@ export default function EditProfilePage() {
       <div>
         <label className="block text-sm">Nombres</label>
         <input
+          name="name"
           value={form.name}
           onChange={(e) => handleChange("name", e.target.value)}
           className="w-full border p-2"
@@ -144,6 +147,7 @@ export default function EditProfilePage() {
       <div>
         <label className="block text-sm">Email (no editable)</label>
         <input
+          name="email"
           value={form.email}
           readOnly
           className="w-full border p-2 bg-gray-100 cursor-not-allowed"
@@ -154,11 +158,13 @@ export default function EditProfilePage() {
         <label className="block text-sm">Nueva contraseña</label>
         <input
           type="password"
+          name="newPassword"
+          autoComplete="new-password"
           value={form.password}
           onChange={(e) => handleChange("password", e.target.value)}
-          className="w-full border p-2"
           placeholder="Dejar en blanco para mantener la contraseña actual"
           aria-describedby="password-help"
+          className="w-full border p-2"
         />
         <p id="password-help" className="text-xs text-gray-500 mt-1">
           Deja en blanco para mantener la contraseña actual.
@@ -169,16 +175,19 @@ export default function EditProfilePage() {
         <label className="block text-sm">Confirmar contraseña</label>
         <input
           type="password"
+          name="confirmNewPassword"
+          autoComplete="new-password"
           value={form.confirmPassword}
           onChange={(e) => handleChange("confirmPassword", e.target.value)}
-          className="w-full border p-2"
           placeholder="Solo si cambias la contraseña"
+          className="w-full border p-2"
         />
       </div>
 
       <div>
         <label className="block text-sm">Ciudad</label>
         <input
+          name="city"
           value={form.city}
           onChange={(e) => handleChange("city", e.target.value)}
           className="w-full border p-2"

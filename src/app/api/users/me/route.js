@@ -4,28 +4,25 @@ import { authOptions } from "@/lib/authOptions";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 
-/**
- * PUT /api/users/me
- * Actualiza solo los campos recibidos: name, city, password.
- * No permite cambiar email ni otros campos sensibles desde aquí.
- */
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+function jsonResponse(obj, status = 200) {
+  return new Response(JSON.stringify(obj), { status, headers: JSON_HEADERS });
+}
+
 export async function PUT(req) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401 });
-    }
+    if (!session) return jsonResponse({ error: "No autorizado" }, 401);
 
     const userId = session.user?.id;
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "Usuario no identificado" }), { status: 401 });
-    }
+    if (!userId) return jsonResponse({ error: "Usuario no identificado" }, 401);
 
     let body;
     try {
       body = await req.json();
     } catch (err) {
-      return new Response(JSON.stringify({ error: "Payload inválido" }), { status: 400 });
+      return jsonResponse({ error: "Payload inválido" }, 400);
     }
 
     const updates = {};
@@ -33,17 +30,13 @@ export async function PUT(req) {
     if (typeof body.city === "string") updates.city = body.city.trim();
 
     if (body.password && typeof body.password === "string") {
-      if (body.password.length < 6) {
-        return new Response(JSON.stringify({ error: "La contraseña debe tener al menos 6 caracteres" }), { status: 400 });
-      }
-      const hash = await bcrypt.hash(body.password, 10);
-      // En tu schema Prisma el campo es `password`
-      updates.password = hash;
+      if (body.password.length < 6) return jsonResponse({ error: "La contraseña debe tener al menos 6 caracteres" }, 400);
+      updates.password = await bcrypt.hash(body.password, 10);
     }
 
-    if (Object.keys(updates).length === 0) {
-      return new Response(JSON.stringify({ message: "No hay cambios" }), { status: 200 });
-    }
+    if (Object.keys(updates).length === 0) return jsonResponse({ message: "No hay cambios" }, 200);
+
+    console.log("PUT /api/users/me - userId:", userId, "updates:", updates);
 
     const updated = await prisma.user.update({
       where: { id: userId },
@@ -51,9 +44,9 @@ export async function PUT(req) {
       select: { id: true, name: true, email: true, city: true },
     });
 
-    return new Response(JSON.stringify(updated), { status: 200 });
+    return jsonResponse(updated, 200);
   } catch (err) {
     console.error("Error en PUT /api/users/me:", err);
-    return new Response(JSON.stringify({ error: "Error actualizando perfil" }), { status: 500 });
+    return jsonResponse({ error: "Error actualizando perfil" }, 500);
   }
 }
