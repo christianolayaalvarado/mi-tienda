@@ -1,7 +1,7 @@
 // src/components/navbar/CartPreview.jsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import ReactDOM from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -24,29 +24,45 @@ export default function CartPreview(props) {
   const router = useRouter();
   const { cartItems: ctxCartItems } = useCart() ?? {};
   const [localRaw, setLocalRaw] = useState([]);
-  const [resolvedItems, setResolvedItems] = useState([]);
+  const mountedRef = useRef(false);
 
+  // Leer localStorage solo en cliente y solo actualizar si cambia
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    mountedRef.current = true;
+    if (typeof window === "undefined") return () => (mountedRef.current = false);
+
+    let parsed = [];
     try {
       const val = typeof readLocalCart === "function" ? readLocalCart() : null;
-      if (Array.isArray(val)) setLocalRaw(val);
-      else setLocalRaw(safeParseLocalCart("mi_tienda_cart"));
+      parsed = Array.isArray(val) ? val : safeParseLocalCart("mi_tienda_cart");
     } catch {
-      setLocalRaw(safeParseLocalCart("mi_tienda_cart"));
+      parsed = safeParseLocalCart("mi_tienda_cart");
     }
-  }, [readLocalCart]);
 
-  useEffect(() => {
-    if (Array.isArray(items) && items.length > 0) {
-      setResolvedItems(items);
-      return;
+    // comparar superficialmente para evitar setState innecesario
+    const same =
+      Array.isArray(parsed) &&
+      parsed.length === (localRaw?.length || 0) &&
+      parsed.every((p, i) => {
+        const q = localRaw?.[i];
+        return q && String(q.productId ?? q.id) === String(p.productId ?? p.id) && q.quantity === p.quantity;
+      });
+
+    if (!same && mountedRef.current) {
+      setLocalRaw(parsed);
     }
-    if (Array.isArray(ctxCartItems) && ctxCartItems.length > 0) {
-      setResolvedItems(ctxCartItems);
-      return;
-    }
-    setResolvedItems(localRaw || []);
+
+    return () => {
+      mountedRef.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readLocalCart]); // no dependemos de localRaw aquí para evitar loop
+
+  // resolvedItems derivado (no state) para evitar efectos que llamen a setState
+  const resolvedItems = useMemo(() => {
+    if (Array.isArray(items) && items.length > 0) return items;
+    if (Array.isArray(ctxCartItems) && ctxCartItems.length > 0) return ctxCartItems;
+    return localRaw || [];
   }, [items, ctxCartItems, localRaw]);
 
   const computedSubtotal = useMemo(() => {
@@ -127,8 +143,10 @@ export default function CartPreview(props) {
 
         const key = item.id ?? `${item.productId}-${item.storeId ?? 0}`;
         const quantity = Number(item.quantity || 0);
-        const maxStock = Number(item.stock ?? Infinity);
+        // usar stock del item o del producto si existe
+        const maxStock = Number(item.stock ?? item.product?.stock ?? Infinity);
         const idForActions = item.id ?? item.productId;
+        const disabledInc = quantity >= maxStock;
 
         return (
           <div
@@ -191,7 +209,9 @@ export default function CartPreview(props) {
                 <button
                   type="button"
                   onClick={() => safeOnIncrease(idForActions)}
-                  disabled={quantity >= maxStock}
+                  disabled={disabledInc}
+                  aria-disabled={disabledInc}
+                  title={disabledInc ? "Stock máximo alcanzado" : "Aumentar cantidad"}
                   className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40"
                   aria-label={`Aumentar cantidad de ${displayName}`}
                 >
