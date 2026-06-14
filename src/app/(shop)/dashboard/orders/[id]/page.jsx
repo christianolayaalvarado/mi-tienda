@@ -1,3 +1,4 @@
+// app/(shop)/dashboard/orders/[id]/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,6 +32,26 @@ export default function OrderDetailPage() {
   const [confirming, setConfirming] = useState(false);
   const [proofFile, setProofFile] = useState(null);
 
+  // Métodos de pago por tienda: { [storeId]: [methods] }
+  const [paymentMethodsByStore, setPaymentMethodsByStore] = useState({});
+
+  // Cargar métodos de pago de un seller (storeId)
+  const fetchPaymentMethods = async (storeId) => {
+    if (!storeId) return;
+    try {
+      const res = await fetch(`/api/sellers/${encodeURIComponent(storeId)}/payment-methods`);
+      if (!res.ok) {
+        setPaymentMethodsByStore((prev) => ({ ...prev, [storeId]: [] }));
+        return;
+      }
+      const data = await res.json();
+      setPaymentMethodsByStore((prev) => ({ ...prev, [storeId]: data || [] }));
+    } catch (err) {
+      console.error("Error cargando métodos de pago:", err);
+      setPaymentMethodsByStore((prev) => ({ ...prev, [storeId]: [] }));
+    }
+  };
+
   // Cargar orden
   const fetchOrder = async () => {
     if (!orderId) {
@@ -43,7 +64,7 @@ export default function OrderDetailPage() {
     try {
       const res = await fetch(`/api/orders/${orderId}`);
       if (!res.ok) {
-        const text = await res.text();
+        const text = await res.text().catch(() => null);
         console.error("GET order error:", res.status, text);
         setOrder(null);
         toast.error("Orden no encontrada o no autorizada");
@@ -65,10 +86,27 @@ export default function OrderDetailPage() {
         customerEmail: data.customerEmail || data.order?.customerEmail || "",
         documentNumber: data.documentNumber || data.order?.documentNumber || null,
         paymentProof: data.paymentProof || data.order?.paymentProof || null,
+        paymentProofMime: data.paymentProofMime || data.order?.paymentProofMime || null,
         orderItems: data.orderItems || data.order?.orderItems || [],
       };
 
-      setOrder(normalized);
+      // Convertir orderItems a stores (si tu UI espera stores)
+      const stores = (normalized.orderItems || []).map((oi) => ({
+        id: oi.storeId || oi.store?.id || oi.id,
+        name: oi.store?.name || oi.storeName || `Tienda ${oi.storeId || ""}`,
+        paymentStatus: oi.paymentStatus || normalized.paymentStatus || "unpaid",
+        items: oi.items || [],
+      }));
+
+      const finalOrder = { ...normalized, stores };
+      setOrder(finalOrder);
+
+      // Cargar métodos de pago de cada tienda (no bloquear la UI)
+      if (Array.isArray(stores)) {
+        stores.forEach((store) => {
+          if (store?.id) fetchPaymentMethods(store.id);
+        });
+      }
     } catch (err) {
       console.error(err);
       toast.error("Error cargando orden");
@@ -88,11 +126,23 @@ export default function OrderDetailPage() {
     setProofFile(e.target.files?.[0] || null);
   };
 
-  // subir comprobante
+  // subir comprobante (global por orden)
   const handleUploadProof = async (e) => {
     e.preventDefault();
     if (!proofFile) {
       toast.error("Selecciona un archivo");
+      return;
+    }
+
+    // Validaciones cliente
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    const maxBytes = 8 * 1024 * 1024; // 8MB
+    if (!allowed.includes(proofFile.type)) {
+      toast.error("Tipo de archivo no permitido. Usa JPG, PNG o WEBP.");
+      return;
+    }
+    if (proofFile.size > maxBytes) {
+      toast.error("Archivo demasiado grande. Máximo 8 MB.");
       return;
     }
 
@@ -108,19 +158,36 @@ export default function OrderDetailPage() {
         body: formData,
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Error subiendo comprobante");
+      const text = await res.text().catch(() => null);
+      let json;
+      try {
+        json = text ? JSON.parse(text) : null;
+      } catch {
+        json = null;
       }
+
+      if (!res.ok) {
+        console.error("Upload proof failed:", res.status, text);
+        const message = (json && json.error) || text || "Error subiendo comprobante";
+        throw new Error(message);
+      }
+
+      const returnedUrl = (json && (json.url || (json.order && json.order.paymentProof))) || null;
 
       toast.dismiss(loadingToast);
       toast.success("Comprobante enviado para verificación");
+
       setProofFile(null);
-      fetchOrder();
+
+      if (returnedUrl) {
+        setOrder((prev) => ({ ...prev, paymentProof: returnedUrl, paymentStatus: "pending_verification" }));
+      } else {
+        await fetchOrder();
+      }
     } catch (err) {
       console.error(err);
       toast.dismiss(loadingToast);
-      toast.error("Error al subir comprobante");
+      toast.error(err?.message || "Error al subir comprobante");
     } finally {
       setUploading(false);
     }
@@ -139,7 +206,7 @@ export default function OrderDetailPage() {
       });
 
       if (!res.ok) {
-        const text = await res.text();
+        const text = await res.text().catch(() => null);
         throw new Error(text || "Error confirmando pago");
       }
 
@@ -168,7 +235,7 @@ export default function OrderDetailPage() {
       });
 
       if (!res.ok) {
-        const text = await res.text();
+        const text = await res.text().catch(() => null);
         throw new Error(text || "Error eliminando orden");
       }
 
@@ -259,23 +326,78 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* PAGO (ej. Yape) */}
+      {/* PAGO dinámico por tienda (reemplaza Yape hardcodeado) */}
       {order.paymentStatus !== "paid" && (
-        <div className="border p-4 rounded bg-gray-50">
-          <h3 className="font-semibold mb-2">Pago con Yape</h3>
+        <div className="space-y-4">
+          {Array.isArray(order.stores) && order.stores.length > 0 ? (
+            order.stores.map((store) => (
+              <div key={store.id} className="border p-4 rounded bg-gray-50">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold">{store.name}</h3>
+                  <span className={store.paymentStatus === "paid" ? "text-green-600" : "text-yellow-600"}>
+                    {store.paymentStatus}
+                  </span>
+                </div>
 
-          <p className="text-sm mb-2">
-            Número: <strong>+51 959 502168</strong>
-          </p>
+                {paymentMethodsByStore[store.id] === undefined ? (
+                  <p className="text-sm text-gray-500">Cargando métodos de pago...</p>
+                ) : paymentMethodsByStore[store.id]?.length > 0 ? (
+                  paymentMethodsByStore[store.id].map((pm) => (
+                    <div key={pm.id} className="mb-3 border rounded p-3">
+                      <p className="text-sm mb-1"><strong>Tipo:</strong> {pm.type}</p>
+                      {pm.phone && <p className="text-sm"><strong>Teléfono:</strong> {pm.phone}</p>}
+                      {pm.account && <p className="text-sm"><strong>Cuenta:</strong> {pm.account}</p>}
+                      {pm.cci && <p className="text-sm"><strong>CCI:</strong> {pm.cci}</p>}
+                      {pm.details && <p className="text-sm text-gray-600">{pm.details}</p>}
+                      {pm.qrImageUrl && (
+                        <div className="mt-2">
+                          <img src={pm.qrImageUrl} alt={`QR ${pm.type}`} className="w-40 h-auto" />
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">El vendedor no configuró métodos de pago.</p>
+                )}
 
-          <img src="/images/yape-qr.png" alt="QR Yape" className="w-40 mb-4" />
-
-          <form onSubmit={handleUploadProof}>
-            <input type="file" onChange={handleFileChange} required className="mb-2" />
-            <button type="submit" disabled={uploading} className="bg-purple-600 text-white px-4 py-2 rounded w-full">
-              {uploading ? "Subiendo..." : "Enviar comprobante"}
-            </button>
-          </form>
+                {/* SUBIR COMPROBANTE (global por orden) */}
+                <form onSubmit={handleUploadProof} className="mt-4">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleFileChange}
+                    className="mb-2"
+                  />
+                  <button
+                    type="submit"
+                    disabled={uploading}
+                    className="bg-purple-600 text-white px-4 py-2 rounded w-full"
+                  >
+                    {uploading ? "Subiendo..." : "Enviar comprobante"}
+                  </button>
+                </form>
+              </div>
+            ))
+          ) : (
+            <div className="border p-4 rounded bg-gray-50">
+              <p className="text-sm text-gray-500">No se encontraron tiendas en la orden.</p>
+              <form onSubmit={handleUploadProof} className="mt-4">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleFileChange}
+                  className="mb-2"
+                />
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="bg-purple-600 text-white px-4 py-2 rounded w-full"
+                >
+                  {uploading ? "Subiendo..." : "Enviar comprobante"}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       )}
 

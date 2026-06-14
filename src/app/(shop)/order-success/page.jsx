@@ -1,3 +1,4 @@
+// app/(shop)/order-success/page.jsx
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
@@ -64,14 +65,38 @@ function OrderSuccessContent() {
   const [uploading, setUploading] = useState(false);
   const [proofFile, setProofFile] = useState(null);
 
+  // Nuevo estado: métodos de pago por tienda (storeId -> [methods])
+  const [paymentMethodsByStore, setPaymentMethodsByStore] = useState({});
+
   useEffect(() => {
     if (!orderId) {
       router.push("/");
       return;
     }
-    fetchOrder();
+    // evitar llamada síncrona a setState fuera de función async
+    const load = async () => {
+      await fetchOrder();
+    };
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
+
+  const fetchPaymentMethods = async (storeId) => {
+    if (!storeId) return;
+    try {
+      const res = await fetch(`/api/sellers/${encodeURIComponent(storeId)}/payment-methods`);
+      if (!res.ok) {
+        console.warn("No payment methods for store", storeId, res.status);
+        setPaymentMethodsByStore((prev) => ({ ...prev, [storeId]: [] }));
+        return;
+      }
+      const data = await res.json();
+      setPaymentMethodsByStore((prev) => ({ ...prev, [storeId]: data || [] }));
+    } catch (err) {
+      console.error("Error cargando métodos de pago:", err);
+      setPaymentMethodsByStore((prev) => ({ ...prev, [storeId]: [] }));
+    }
+  };
 
   const fetchOrder = async () => {
     if (!orderId) return;
@@ -88,6 +113,13 @@ function OrderSuccessContent() {
       const data = await res.json();
       const normalized = normalizeOrderResponse(data);
       setOrder(normalized);
+
+      // cargar métodos de pago de cada tienda (no bloquear la UI)
+      if (Array.isArray(normalized.stores)) {
+        normalized.stores.forEach((store) => {
+          if (store?.id) fetchPaymentMethods(store.id);
+        });
+      }
     } catch (err) {
       console.error("Fetch order error:", err);
       toast.error("Error cargando orden");
@@ -224,13 +256,31 @@ function OrderSuccessContent() {
             </div>
           )}
 
-          {/* YAPE: mostrar formulario solo si la tienda no está marcada como pagada */}
+          {/* Métodos de pago dinámicos: mostrar formulario solo si la tienda no está marcada como pagada */}
           {store.paymentStatus !== "paid" && (
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">Pagar con Yape</h3>
-              <p className="text-sm mb-2">Escanea el QR o paga al número:</p>
-              <p className="font-bold text-lg">+51 959 502168</p>
-              <img src="/images/yape-qr.png" alt="QR Yape" className="w-40 mt-2" />
+              <h3 className="font-semibold mb-2">Formas de pago disponibles</h3>
+
+              {paymentMethodsByStore[store.id] === undefined ? (
+                <p className="text-sm text-gray-500">Cargando métodos de pago...</p>
+              ) : paymentMethodsByStore[store.id]?.length > 0 ? (
+                paymentMethodsByStore[store.id].map(pm => (
+                  <div key={pm.id} className="mb-4 border rounded p-3">
+                    <p className="text-sm mb-1"><strong>Tipo:</strong> {pm.type}</p>
+                    {pm.phone && <p className="text-sm"><strong>Teléfono:</strong> {pm.phone}</p>}
+                    {pm.account && <p className="text-sm"><strong>Cuenta:</strong> {pm.account}</p>}
+                    {pm.cci && <p className="text-sm"><strong>CCI:</strong> {pm.cci}</p>}
+                    {pm.details && <p className="text-sm text-gray-600">{pm.details}</p>}
+                    {pm.qrImageUrl && (
+                      <div className="mt-2">
+                        <img src={pm.qrImageUrl} alt={`QR ${pm.type}`} className="w-40 h-auto" />
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">El vendedor no configuró métodos de pago.</p>
+              )}
 
               {/* SUBIR COMPROBANTE */}
               <form onSubmit={handleUploadProof} className="mt-4">
