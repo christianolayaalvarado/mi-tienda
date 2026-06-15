@@ -2,24 +2,23 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 
+// ==============================
+// GET /api/sellers/[sellerId]/payment-methods
+// ==============================
 export async function GET(req, ctx) {
-  // En App Router, ctx.params es una Promise → usar await
   const { sellerId } = await ctx.params;
 
   try {
     const client = await clientPromise;
     const db = client.db("MiTiendaDB");
 
-    const methods = await db
-      .collection("payment_methods")
-      .find({
-        $or: [
-          { storeId: sellerId },
-          { userId: sellerId },
-          { sellerId: sellerId }
-        ]
-      })
-      .toArray();
+    const methods = await db.collection("payment_methods").find({
+      $or: [
+        { storeId: sellerId },
+        { userId: sellerId },
+        { sellerId: sellerId }
+      ]
+    }).toArray();
 
     const normalized = methods.map((m) => ({
       id: m._id?.toString(),
@@ -27,6 +26,7 @@ export async function GET(req, ctx) {
       type: m.type || "unknown",
       phone: m.phone || null,
       account: m.account || null,
+      cci: m.cci || null,
       details: m.details || null,
       qrImageUrl: m.qrImageUrl || null,
       isPrimary: !!m.isPrimary,
@@ -35,12 +35,48 @@ export async function GET(req, ctx) {
       updatedAt: m.updatedAt ? new Date(m.updatedAt).toISOString() : null
     }));
 
-    console.log("sellerId recibido:", sellerId);
-    console.log("methods encontrados:", methods.length);
-
-    return NextResponse.json(normalized, { status: 200 });
+    return NextResponse.json({ methods: normalized }, { status: 200 });
   } catch (err) {
     console.error("Error en GET payment-methods:", err);
-    return NextResponse.json([], { status: 200 });
+    return NextResponse.json({ methods: [] }, { status: 200 });
+  }
+}
+
+// ==============================
+// POST /api/sellers/[sellerId]/payment-methods
+// ==============================
+export async function POST(req, ctx) {
+  const { sellerId } = await ctx.params;
+
+  try {
+    const body = await req.json();
+    const { type, phone, account, cci, details, qrImageUrl, isPrimary } = body;
+
+    const client = await clientPromise;
+    const db = client.db("MiTiendaDB");
+
+    const newMethod = {
+      userId: sellerId,
+      type,
+      phone: phone || null,
+      account: account || null,
+      cci: cci || null,
+      details: details || null,
+      qrImageUrl: qrImageUrl || null,
+      isPrimary: !!isPrimary,
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const result = await db.collection("payment_methods").insertOne(newMethod);
+
+    return NextResponse.json(
+      { id: result.insertedId.toString(), ...newMethod },
+      { status: 201 }
+    );
+  } catch (err) {
+    console.error("Error en POST payment-methods:", err);
+    return NextResponse.json({ error: "Error creando método" }, { status: 500 });
   }
 }

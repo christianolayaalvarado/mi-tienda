@@ -1,10 +1,9 @@
-// src/app/api/orders/route.js
+// app/api/orders/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
-// Helper: agrupar items por storeId
 const groupByStore = (items) => {
   const map = new Map();
   for (const it of items) {
@@ -15,18 +14,15 @@ const groupByStore = (items) => {
   return Array.from(map.entries()).map(([storeId, items]) => ({ storeId, items }));
 };
 
-// Helper: generar orderNumber (formato ORD-YYYYMMDD-XXXX)
 const formatDatePart = (n) => String(n).padStart(2, "0");
 
 // ==============================
-// GET /api/orders  -> listar órdenes del comprador (user)
+// GET /api/orders
 // ==============================
 export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const orders = await prisma.order.findMany({
       where: { userId: session.user.id },
@@ -34,54 +30,15 @@ export async function GET(req) {
         orderItems: {
           include: {
             store: true,
-            items: {
-              include: { product: true },
-            },
+            items: { include: { product: true } },
           },
         },
-        paymentMethod: true, // incluir relación si existe
+        paymentMethod: true,
       },
       orderBy: { createdAt: "desc" },
     });
 
-    const normalized = orders.map((o) => ({
-      id: o.id,
-      orderNumber: o.orderNumber || null,
-      createdAt: o.createdAt,
-      total: o.total,
-      paymentStatus: o.paymentStatus,
-      paymentMethod: o.paymentMethod
-        ? {
-          id: o.paymentMethod.id,
-          type: o.paymentMethod.type,
-          phone: o.paymentMethod.phone,
-          qrImageUrl: o.paymentMethod.qrImageUrl,
-        }
-        : null,
-      customerName: o.customerName,
-      customerEmail: o.customerEmail,
-      documentNumber: o.documentNumber || null,
-      deleted: typeof o.deleted !== "undefined" ? o.deleted : false,
-      deletedReason: o.deletedReason || null,
-      deletedAt: o.deletedAt || null,
-      deletedBy: o.deletedBy || null,
-      paymentProof: o.paymentProof || null,
-      orderItems: (o.orderItems || []).map((oi) => ({
-        id: oi.id,
-        storeId: oi.storeId,
-        store: oi.store ? { id: oi.store.id, name: oi.store.name } : null,
-        paymentStatus: oi.paymentStatus,
-        items: (oi.items || []).map((it) => ({
-          id: it.id,
-          productId: it.productId,
-          product: it.product ? { id: it.product.id, title: it.product.title } : null,
-          quantity: it.quantity,
-          price: it.price,
-        })),
-      })),
-    }));
-
-    return NextResponse.json({ orders: normalized });
+    return NextResponse.json({ orders });
   } catch (err) {
     console.error("GET /api/orders error:", err);
     return NextResponse.json({ error: "Error obteniendo órdenes" }, { status: 500 });
@@ -89,17 +46,15 @@ export async function GET(req) {
 }
 
 // ==============================
-// POST /api/orders  -> crear orden (buyer checkout)
+// POST /api/orders
 // ==============================
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const body = await req.json();
-    const { items, customer = {}, paymentMethod = "manual", total } = body;
+    const { items, customer = {}, total: clientTotal = 0, paymentMethodId } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "No hay items en la orden" }, { status: 400 });
@@ -109,14 +64,75 @@ export async function POST(req) {
       where: { email: session.user.email },
       include: { stores: true },
     });
-
-    if (!user) {
-      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 400 });
-    }
+    if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 400 });
 
     const userId = user.id;
-    const groups = groupByStore(items);
 
+    // --- Recuperar precios y stock oficiales desde DB ---
+    const productIds = Array.from(new Set(items.map((it) => String(it.productId))));
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, price: true, stock: true },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    // Normalizar items y calcular precios en centavos
+    const itemsNormalized = items.map((it) => {
+      const pid = String(it.productId);
+      const product = productMap.get(pid);
+      const unitPrice = product ? Number(product.price) : Number(it.price || 0);
+      const quantity = Number(it.quantity) || 1;
+      return {
+        productId: pid,
+        quantity,
+        unitPrice,
+        priceInCents: Math.round((Number(unitPrice) || 0) * 100),
+        // conservar storeId si viene del cliente (si no, se puede inferir luego)
+        storeId: it.storeId ?? null,
+      };
+    });
+
+    // Verificar existencia de productos
+    const missing = itemsNormalized.filter((it) => !productMap.has(it.productId));
+    if (missing.length > 0) {
+      return NextResponse.json({ error: "Algunos productos no existen" }, { status: 400 });
+    }
+
+    // Verificar stock suficiente
+    const outOfStock = itemsNormalized.filter((it) => {
+      const product = productMap.get(it.productId);
+      return product.stock < it.quantity;
+    });
+    if (outOfStock.length > 0) {
+      return NextResponse.json(
+        { error: "Stock insuficiente para algunos productos", details: outOfStock.map((o) => o.productId) },
+        { status: 409 }
+      );
+    }
+
+    // Calcular serverTotal en centavos y comparar con clientTotal
+    const serverTotalCents = itemsNormalized.reduce((s, it) => s + it.priceInCents * it.quantity, 0);
+    const clientTotalCents = Math.round((Number(clientTotal) || 0) * 100);
+
+    const TOLERANCE_CENTS = 1; // tolerancia mínima
+
+    if (Math.abs(serverTotalCents - clientTotalCents) > TOLERANCE_CENTS) {
+      console.warn("Total mismatch", { serverTotalCents, clientTotalCents });
+      return NextResponse.json(
+        { error: "Total mismatch", serverTotal: serverTotalCents / 100, clientTotal: clientTotalCents / 100 },
+        { status: 400 }
+      );
+    }
+
+    // Agrupar por tienda usando la estructura de itemsNormalized (mantener storeId si existe)
+    const groups = groupByStore(
+      itemsNormalized.map((it) => ({
+        ...it,
+        price: it.unitPrice,
+      }))
+    );
+
+    // Crear orden dentro de transacción y decrementar stock
     const createdOrder = await prisma.$transaction(async (tx) => {
       const now = new Date();
       const y = now.getFullYear();
@@ -134,26 +150,25 @@ export async function POST(req) {
       const seq = String(countToday + 1).padStart(4, "0");
       const orderNumber = `${prefix}-${seq}`;
 
-      // Buscar método de pago principal del primer store
-      const primaryStoreId = groups[0]?.storeId;
-      let primaryPaymentMethod = null;
-      if (primaryStoreId) {
-        primaryPaymentMethod = await tx.paymentMethod.findFirst({
-          where: { storeId: primaryStoreId, isPrimary: true },
+      // Elegir método de pago
+      let chosenPaymentMethod = null;
+      if (paymentMethodId) {
+        chosenPaymentMethod = await tx.paymentMethod.findUnique({ where: { id: paymentMethodId } });
+      } else {
+        chosenPaymentMethod = await tx.paymentMethod.findFirst({
+          where: { userId: userId, isPrimary: true },
         });
       }
 
+      // Crear la orden con total calculado (en unidades monetarias)
       const order = await tx.order.create({
         data: {
           userId,
           orderNumber,
-          total:
-            Number(total) ||
-            items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0),
+          total: serverTotalCents / 100,
           status: "pending",
           paymentStatus: "unpaid",
-          paymentMethodId: primaryPaymentMethod ? primaryPaymentMethod.id : null,
-          paymentMethod: primaryPaymentMethod ? primaryPaymentMethod.type : paymentMethod,
+          paymentMethodId: chosenPaymentMethod ? chosenPaymentMethod.id : null,
           customerName: customer.name || session.user.name || "",
           customerEmail: customer.email || session.user.email || "",
           customerPhone: customer.phone || "",
@@ -166,7 +181,7 @@ export async function POST(req) {
                 create: g.items.map((it) => ({
                   productId: it.productId,
                   quantity: Number(it.quantity) || 1,
-                  price: Number(it.price) || 0,
+                  price: Number(it.unitPrice) || 0,
                 })),
               },
             })),
@@ -178,53 +193,23 @@ export async function POST(req) {
         },
       });
 
-      for (const it of items) {
-        try {
-          await tx.product.update({
-            where: { id: it.productId },
-            data: { stock: { decrement: Number(it.quantity) || 1 } },
-          });
-        } catch (stockErr) {
-          console.error("Error decrementando stock para producto:", it.productId, stockErr);
-        }
+      // Decrementar stock
+      for (const it of itemsNormalized) {
+        await tx.product.update({
+          where: { id: it.productId },
+          data: { stock: { decrement: it.quantity } },
+        });
       }
 
       return order;
     });
 
-    const fullOrder = await prisma.order.findUnique({
-      where: { id: createdOrder.id },
-      include: {
-        orderItems: {
-          include: {
-            store: true,
-            items: { include: { product: true } },
-          },
-        },
-        paymentMethod: true,
-      },
-    });
-
-    if (!fullOrder) {
-      return NextResponse.json({ error: "Orden creada pero no encontrada" }, { status: 500 });
-    }
-
-    const response = {
-      id: fullOrder.id,
-      order: fullOrder,
-      orderNumber: fullOrder.orderNumber || null,
-      deleted: typeof fullOrder.deleted !== "undefined" ? fullOrder.deleted : false,
-      deletedReason: fullOrder.deletedReason || null,
-      deletedAt: fullOrder.deletedAt || null,
-      deletedBy: fullOrder.deletedBy || null,
-    };
-
-    return NextResponse.json(response, {
+    return NextResponse.json(createdOrder, {
       status: 201,
-      headers: { Location: `/api/orders/${fullOrder.id}` },
+      headers: { Location: `/api/orders/${createdOrder.id}` },
     });
   } catch (err) {
-    console.error("POST /api/orders error:", err?.message || err, err?.stack);
+    console.error("POST /api/orders error:", err);
     return NextResponse.json({ error: "Error creando orden" }, { status: 500 });
   }
 }

@@ -32,26 +32,6 @@ export default function OrderDetailPage() {
   const [confirming, setConfirming] = useState(false);
   const [proofFile, setProofFile] = useState(null);
 
-  // Métodos de pago por tienda: { [storeId]: [methods] }
-  const [paymentMethodsByStore, setPaymentMethodsByStore] = useState({});
-
-  // Cargar métodos de pago de un seller (storeId)
-  const fetchPaymentMethods = async (storeId) => {
-    if (!storeId) return;
-    try {
-      const res = await fetch(`/api/sellers/${encodeURIComponent(storeId)}/payment-methods`);
-      if (!res.ok) {
-        setPaymentMethodsByStore((prev) => ({ ...prev, [storeId]: [] }));
-        return;
-      }
-      const data = await res.json();
-      setPaymentMethodsByStore((prev) => ({ ...prev, [storeId]: data || [] }));
-    } catch (err) {
-      console.error("Error cargando métodos de pago:", err);
-      setPaymentMethodsByStore((prev) => ({ ...prev, [storeId]: [] }));
-    }
-  };
-
   // Cargar orden
   const fetchOrder = async () => {
     if (!orderId) {
@@ -80,6 +60,7 @@ export default function OrderDetailPage() {
         orderNumber: data.orderNumber || data.order?.orderNumber || null,
         createdAt: data.createdAt || data.order?.createdAt,
         total: data.total || data.order?.total || 0,
+        status: data.status || data.order?.status || "pending",
         paymentStatus: data.paymentStatus || data.order?.paymentStatus || "unpaid",
         paymentMethod: data.paymentMethod || data.order?.paymentMethod || "",
         customerName: data.customerName || data.order?.customerName || "",
@@ -88,25 +69,19 @@ export default function OrderDetailPage() {
         paymentProof: data.paymentProof || data.order?.paymentProof || null,
         paymentProofMime: data.paymentProofMime || data.order?.paymentProofMime || null,
         orderItems: data.orderItems || data.order?.orderItems || [],
+        deletedAt: data.deletedAt || data.order?.deletedAt || null,
       };
 
       // Convertir orderItems a stores (si tu UI espera stores)
       const stores = (normalized.orderItems || []).map((oi) => ({
         id: oi.storeId || oi.store?.id || oi.id,
         name: oi.store?.name || oi.storeName || `Tienda ${oi.storeId || ""}`,
-        paymentStatus: oi.paymentStatus || normalized.paymentStatus || "unpaid",
+        // no incluimos paymentStatus por tienda para evitar duplicación
         items: oi.items || [],
       }));
 
       const finalOrder = { ...normalized, stores };
       setOrder(finalOrder);
-
-      // Cargar métodos de pago de cada tienda (no bloquear la UI)
-      if (Array.isArray(stores)) {
-        stores.forEach((store) => {
-          if (store?.id) fetchPaymentMethods(store.id);
-        });
-      }
     } catch (err) {
       console.error(err);
       toast.error("Error cargando orden");
@@ -172,6 +147,7 @@ export default function OrderDetailPage() {
         throw new Error(message);
       }
 
+      // Si el backend devuelve una URL o el objeto order con paymentProof, usarlo
       const returnedUrl = (json && (json.url || (json.order && json.order.paymentProof))) || null;
 
       toast.dismiss(loadingToast);
@@ -212,7 +188,7 @@ export default function OrderDetailPage() {
 
       toast.dismiss(loadingToast);
       toast.success("Pago confirmado correctamente");
-      fetchOrder();
+      await fetchOrder();
     } catch (err) {
       console.error(err);
       toast.dismiss(loadingToast);
@@ -254,14 +230,17 @@ export default function OrderDetailPage() {
   if (loading) return <p className="p-4 text-gray-600">Cargando orden...</p>;
   if (!order) return <p className="p-4 text-red-500">Orden no encontrada</p>;
 
+  // Determinar estados para deshabilitar acciones
+  const isDeleted = order?.status === "deleted" || Boolean(order?.deletedAt);
+  const isPaid = order?.paymentStatus === "paid" || order?.paymentStatus === "completed";
+  const disableActions = isDeleted || isPaid;
+
   return (
     <div className="p-6 space-y-6">
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold">
-            Orden #{order.orderNumber || order.id}
-          </h1>
+          <h1 className="text-2xl font-semibold">Orden #{order.orderNumber || order.id}</h1>
 
           <p className="text-gray-600 mt-1">
             Fecha: <strong>{formatDate(order.createdAt)}</strong>
@@ -279,6 +258,7 @@ export default function OrderDetailPage() {
             Total: <strong>S/ {Number(order.total || 0).toFixed(2)}</strong>
           </p>
 
+          {/* Estado de pago: mostrado solo aquí (estado global) */}
           <p className="text-sm mt-1">
             Estado pago:{" "}
             <span
@@ -295,25 +275,30 @@ export default function OrderDetailPage() {
           </p>
         </div>
 
-        <div className="flex gap-2">
-          {order.paymentStatus !== "paid" && (
-            <button
-              onClick={handleConfirmPayment}
-              disabled={confirming}
-              className="bg-green-600 text-white px-4 py-2 rounded"
-            >
-              {confirming ? "Confirmando..." : "✅ Confirmar pago"}
-            </button>
-          )}
-
-          <button
-            onClick={handleDeleteOrder}
-            disabled={deleting}
-            className="bg-red-600 text-white px-4 py-2 rounded"
-          >
-            {deleting ? "Eliminando..." : "🗑 Eliminar"}
-          </button>
+        <div className="text-right">
+          {isDeleted && <p className="text-sm text-red-600">Orden eliminada</p>}
         </div>
+      </div>
+
+      {/* ACCIONES PRINCIPALES */}
+      <div className="flex gap-2">
+        {order.paymentStatus !== "paid" && (
+          <button
+            onClick={handleConfirmPayment}
+            disabled={confirming || disableActions}
+            className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          >
+            {confirming ? "Confirmando..." : "✅ Confirmar pago"}
+          </button>
+        )}
+
+        <button
+          onClick={handleDeleteOrder}
+          disabled={deleting || disableActions}
+          className="bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
+        >
+          {deleting ? "Eliminando..." : "🗑 Eliminar"}
+        </button>
       </div>
 
       {/* COMPROBANTE */}
@@ -326,7 +311,31 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* PAGO dinámico por tienda (reemplaza Yape hardcodeado) */}
+      {/* SUBIR COMPROBANTE (global por orden) */}
+      <div className="border p-4 rounded bg-gray-50">
+        <h2 className="font-semibold mb-2">Enviar comprobante de pago</h2>
+        <form onSubmit={handleUploadProof} className="mb-4">
+          <div className="flex items-center gap-3">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleFileChange}
+              disabled={uploading || disableActions}
+            />
+            <button
+              type="submit"
+              disabled={uploading || disableActions}
+              className="px-4 py-2 bg-purple-600 text-white rounded disabled:opacity-50"
+            >
+              {uploading ? "Subiendo..." : "Enviar comprobante"}
+            </button>
+          </div>
+        </form>
+
+        {!order.paymentProof && <p className="text-sm text-gray-500">No se ha subido comprobante aún.</p>}
+      </div>
+
+      {/* PAGO dinámico por tienda: mostramos solo información de la tienda sin estado */}
       {order.paymentStatus !== "paid" && (
         <div className="space-y-4">
           {Array.isArray(order.stores) && order.stores.length > 0 ? (
@@ -334,81 +343,26 @@ export default function OrderDetailPage() {
               <div key={store.id} className="border p-4 rounded bg-gray-50">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="font-semibold">{store.name}</h3>
-                  <span className={store.paymentStatus === "paid" ? "text-green-600" : "text-yellow-600"}>
-                    {store.paymentStatus}
-                  </span>
                 </div>
 
-                {paymentMethodsByStore[store.id] === undefined ? (
-                  <p className="text-sm text-gray-500">Cargando métodos de pago...</p>
-                ) : paymentMethodsByStore[store.id]?.length > 0 ? (
-                  paymentMethodsByStore[store.id].map((pm) => (
-                    <div key={pm.id} className="mb-3 border rounded p-3">
-                      <p className="text-sm mb-1"><strong>Tipo:</strong> {pm.type}</p>
-                      {pm.phone && <p className="text-sm"><strong>Teléfono:</strong> {pm.phone}</p>}
-                      {pm.account && <p className="text-sm"><strong>Cuenta:</strong> {pm.account}</p>}
-                      {pm.cci && <p className="text-sm"><strong>CCI:</strong> {pm.cci}</p>}
-                      {pm.details && <p className="text-sm text-gray-600">{pm.details}</p>}
-                      {pm.qrImageUrl && (
-                        <div className="mt-2">
-                          <img src={pm.qrImageUrl} alt={`QR ${pm.type}`} className="w-40 h-auto" />
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500">El vendedor no configuró métodos de pago.</p>
-                )}
-
-                {/* SUBIR COMPROBANTE (global por orden) */}
-                <form onSubmit={handleUploadProof} className="mt-4">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleFileChange}
-                    className="mb-2"
-                  />
-                  <button
-                    type="submit"
-                    disabled={uploading}
-                    className="bg-purple-600 text-white px-4 py-2 rounded w-full"
-                  >
-                    {uploading ? "Subiendo..." : "Enviar comprobante"}
-                  </button>
-                </form>
+                <p className="text-sm text-gray-600 mb-2">Información de la tienda</p>
               </div>
             ))
           ) : (
             <div className="border p-4 rounded bg-gray-50">
               <p className="text-sm text-gray-500">No se encontraron tiendas en la orden.</p>
-              <form onSubmit={handleUploadProof} className="mt-4">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleFileChange}
-                  className="mb-2"
-                />
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="bg-purple-600 text-white px-4 py-2 rounded w-full"
-                >
-                  {uploading ? "Subiendo..." : "Enviar comprobante"}
-                </button>
-              </form>
             </div>
           )}
         </div>
       )}
 
-      {/* PRODUCTOS por orderItem (tienda) */}
+      {/* PRODUCTOS por orderItem (tienda) - no repetimos estado de pago aquí */}
       <div className="space-y-4">
         {Array.isArray(order.orderItems) && order.orderItems.length > 0 ? (
           order.orderItems.map((oi) => (
             <div key={oi.id} className="border p-4 rounded">
               <div className="flex justify-between items-center">
                 <h2 className="font-semibold">{oi.store?.name || oi.storeId || "Tienda"}</h2>
-                <p className="text-sm text-gray-500">Estado: {oi.paymentStatus}</p>
               </div>
 
               <div className="mt-3 space-y-2">
@@ -416,12 +370,16 @@ export default function OrderDetailPage() {
                   oi.items.map((it) => (
                     <div key={it.id} className="flex justify-between text-sm">
                       <div>
-                        <div className="font-medium">{it.product?.title || "Producto"}</div>
-                        <div className="text-gray-500 text-xs">Precio unitario: S/ {Number(it.price || 0).toFixed(2)}</div>
+                        <div className="font-medium">{it.product?.title || it.title || it.productName || "Producto"}</div>
+                        <div className="text-gray-500 text-xs">
+                          Precio unitario: S/ {Number(it.price || 0).toFixed(2)}
+                        </div>
                       </div>
                       <div className="text-right">
                         <div>{it.quantity} x</div>
-                        <div className="font-semibold">S/ {(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</div>
+                        <div className="font-semibold">
+                          S/ {(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}
+                        </div>
                       </div>
                     </div>
                   ))

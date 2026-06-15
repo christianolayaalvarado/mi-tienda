@@ -44,7 +44,14 @@ export default function PaymentMethodsPage() {
         return;
       }
       const data = await res.json();
-      setMethods(Array.isArray(data) ? data : []);
+      // Aceptar ambos formatos: array directo o { methods: [...] }
+      if (Array.isArray(data)) {
+        setMethods(data);
+      } else if (Array.isArray(data.methods)) {
+        setMethods(data.methods);
+      } else {
+        setMethods([]);
+      }
     } catch (err) {
       console.error("Fetch payment methods error:", err);
       toast.error("Error cargando métodos de pago");
@@ -55,6 +62,7 @@ export default function PaymentMethodsPage() {
   }
 
   async function uploadFileAndCreateMethod(fileToUpload, formData) {
+    // Si no hay archivo, crear directamente
     if (!fileToUpload) {
       const createRes = await fetch(`/api/sellers/${encodeURIComponent(sellerId)}/payment-methods`, {
         method: "POST",
@@ -68,6 +76,7 @@ export default function PaymentMethodsPage() {
       return createRes.json();
     }
 
+    // Obtener presign para subir el archivo
     const presignRes = await fetch("/api/uploads/presign", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -162,7 +171,7 @@ export default function PaymentMethodsPage() {
         throw new Error(text || "Error marcando principal");
       }
       toast.success("Método marcado como principal");
-      fetchMethods();
+      await fetchMethods();
     } catch (err) {
       console.error(err);
       toast.error("No se pudo marcar principal");
@@ -174,7 +183,6 @@ export default function PaymentMethodsPage() {
     if (!confirm("Eliminar método de pago?")) return;
 
     try {
-      console.log("Deleting:", `/api/sellers/${sellerId}/payment-methods/${pmId}`);
       const res = await fetch(
         `/api/sellers/${encodeURIComponent(sellerId)}/payment-methods/${encodeURIComponent(pmId)}`,
         { method: "DELETE" }
@@ -186,8 +194,7 @@ export default function PaymentMethodsPage() {
         throw new Error(text || `Error eliminando (status ${res.status})`);
       }
 
-      const json = await res.json();
-      console.log("DELETE success:", json);
+      await res.json().catch(() => null);
       setMethods((prev) => prev.filter((m) => m.id !== pmId));
       toast.success("Método eliminado");
     } catch (err) {
