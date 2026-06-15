@@ -95,9 +95,13 @@ model Order {
   userId           String      @db.ObjectId
   user             User        @relation(fields: [userId], references: [id])
   total            Float
-  status           String      @default("pending") // pending, completed, cancelled
-  paymentStatus    String      @default("unpaid") // unpaid, paid, refunded, pending_verification
-  paymentMethod    String? // yape, tarjeta, etc.
+  status           String      @default("pending")
+  paymentStatus    String      @default("unpaid")
+
+  // Relación con PaymentMethod
+  paymentMethodId  String?     @db.ObjectId
+  paymentMethod    PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+
   paymentProof     String?
   paymentProofMime String?
   paidAt           DateTime?
@@ -108,25 +112,41 @@ model Order {
   orderNumber      String?
   orderItems       OrderItem[]
   createdAt        DateTime    @default(now())
-
-  // Campos añadidos para auditoría y control de stock
-  paymentVerifiedBy String? // userId que verificó el pago
+  paymentVerifiedBy String?
   paymentVerifiedAt DateTime?
   proofUploadedBy   String?
   proofUploadedAt   DateTime?
   stockDeducted     Boolean   @default(false)
-
-  // Soft delete
   deleted           Boolean   @default(false)
   deletedAt         DateTime?
   deletedBy         String?
   deletedReason     String?
-
-  // Relación con el historial de la orden
   orderHistories OrderHistory[]
 
   @@index([userId])
+  @@index([paymentMethodId])
 }
+
+model PaymentMethod {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id])
+
+  type       String
+  phone      String?
+  account    String?
+  cci        String?
+  qrImageUrl String?
+  details    String?
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  orders     Order[]  // relación inversa
+}
+
+
+
 
 model OrderItem {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
@@ -147,21 +167,6 @@ model OrderItem {
   @@index([storeId])
 }
 
-model PaymentMethod {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String   @db.ObjectId
-  user       User     @relation(fields: [userId], references: [id])
-
-  type       String   // "yape", "plin", "bank_transfer"
-  phone      String?  // para Yape/Plin
-  account    String?  // número de cuenta bancaria
-  cci        String?  // CCI
-  qrImageUrl String?  // URL del QR (Cloudinary/S3)
-  details    String?  // opcional: token o número encriptado
-  isPrimary  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
 
 
 model OrderItemProduct {

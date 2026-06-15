@@ -7,18 +7,6 @@ import { authOptions } from "@/lib/authOptions";
 // Helper: validar ObjectId (Mongo)
 const isValidObjectId = (id) => typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
 
-/**
- * Route handlers for /api/orders/[id]
- *
- * - GET: devuelve la orden (con autorización: comprador, vendedor de alguna tienda o admin)
- * - DELETE: por defecto soft-delete (owner/seller/admin). Hard delete solo admin y requiere confirm:true
- * - PATCH: acciones (markPaid, markStorePaid) con transacciones y registro en OrderHistory
- * - POST: subir comprobante (formData o JSON { proofUrl })
- *
- * Nota: soft-delete marca deleted=true y registra deletedReason/deletedBy/deletedAt.
- * Hard delete restaura stock, borra relaciones y la orden en una transacción (solo admin).
- */
-
 // GET
 export async function GET(req, context) {
   try {
@@ -41,6 +29,7 @@ export async function GET(req, context) {
           },
         },
         user: true,
+        paymentMethod: true, // incluir relación con método de pago
       },
     });
 
@@ -48,16 +37,55 @@ export async function GET(req, context) {
 
     // autorización: comprador, vendedor de alguna tienda o admin
     const isOwner = String(order.userId) === String(session.user.id);
-    const user = await prisma.user.findUnique({ where: { email: session.user.email }, include: { stores: true } });
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: { stores: true },
+    });
     const sellerStoreIds = (user?.stores || []).map((s) => String(s.id));
-    const isSellerOfOrder = order.orderItems.some((oi) => sellerStoreIds.includes(String(oi.storeId)));
+    const isSellerOfOrder = order.orderItems.some((oi) =>
+      sellerStoreIds.includes(String(oi.storeId))
+    );
     const isAdmin = user?.role === "admin";
 
     if (!isOwner && !isSellerOfOrder && !isAdmin) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    return NextResponse.json(order);
+    // Normalizar respuesta incluyendo método de pago
+    const normalized = {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      createdAt: order.createdAt,
+      total: order.total,
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod
+        ? {
+          id: order.paymentMethod.id,
+          type: order.paymentMethod.type,
+          phone: order.paymentMethod.phone,
+          account: order.paymentMethod.account,
+          qrImageUrl: order.paymentMethod.qrImageUrl,
+          details: order.paymentMethod.details,
+        }
+        : null,
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      orderItems: order.orderItems.map((oi) => ({
+        id: oi.id,
+        storeId: oi.storeId,
+        store: oi.store ? { id: oi.store.id, name: oi.store.name } : null,
+        paymentStatus: oi.paymentStatus,
+        items: oi.items.map((it) => ({
+          id: it.id,
+          productId: it.productId,
+          product: it.product ? { id: it.product.id, title: it.product.title } : null,
+          quantity: it.quantity,
+          price: it.price,
+        })),
+      })),
+    };
+
+    return NextResponse.json(normalized);
   } catch (err) {
     console.error("🔥 ERROR GET ORDER:", err);
     return NextResponse.json({ error: "Error obteniendo orden" }, { status: 500 });

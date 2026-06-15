@@ -1,3 +1,4 @@
+// src/app/api/orders/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -38,27 +39,32 @@ export async function GET(req) {
             },
           },
         },
+        paymentMethod: true, // incluir relación si existe
       },
       orderBy: { createdAt: "desc" },
     });
 
-    // Normalizar la respuesta para que el cliente siempre reciba los campos esperados
     const normalized = orders.map((o) => ({
       id: o.id,
       orderNumber: o.orderNumber || null,
       createdAt: o.createdAt,
       total: o.total,
       paymentStatus: o.paymentStatus,
-      paymentMethod: o.paymentMethod,
+      paymentMethod: o.paymentMethod
+        ? {
+          id: o.paymentMethod.id,
+          type: o.paymentMethod.type,
+          phone: o.paymentMethod.phone,
+          qrImageUrl: o.paymentMethod.qrImageUrl,
+        }
+        : null,
       customerName: o.customerName,
       customerEmail: o.customerEmail,
       documentNumber: o.documentNumber || null,
-      // Campos de eliminación normalizados
       deleted: typeof o.deleted !== "undefined" ? o.deleted : false,
       deletedReason: o.deletedReason || null,
       deletedAt: o.deletedAt || null,
       deletedBy: o.deletedBy || null,
-      // Otros campos útiles
       paymentProof: o.paymentProof || null,
       orderItems: (o.orderItems || []).map((oi) => ({
         id: oi.id,
@@ -99,7 +105,6 @@ export async function POST(req) {
       return NextResponse.json({ error: "No hay items en la orden" }, { status: 400 });
     }
 
-    // Obtener usuario (comprador)
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       include: { stores: true },
@@ -110,36 +115,34 @@ export async function POST(req) {
     }
 
     const userId = user.id;
-
-    // Agrupar por tienda para crear orderItems por store
     const groups = groupByStore(items);
 
-    // Ejecutar en transacción: crear orden con hijos y decrementar stock
     const createdOrder = await prisma.$transaction(async (tx) => {
-      // Generar orderNumber basado en la fecha y la cantidad de órdenes del día
       const now = new Date();
       const y = now.getFullYear();
       const m = formatDatePart(now.getMonth() + 1);
       const d = formatDatePart(now.getDate());
       const prefix = `ORD-${y}${m}${d}`;
 
-      // contar órdenes del día para secuencia
       const startOfDay = new Date(Date.UTC(y, now.getMonth(), now.getDate(), 0, 0, 0));
       const endOfDay = new Date(Date.UTC(y, now.getMonth(), now.getDate(), 23, 59, 59, 999));
 
       const countToday = await tx.order.count({
-        where: {
-          createdAt: {
-            gte: startOfDay,
-            lt: endOfDay,
-          },
-        },
+        where: { createdAt: { gte: startOfDay, lt: endOfDay } },
       });
 
       const seq = String(countToday + 1).padStart(4, "0");
       const orderNumber = `${prefix}-${seq}`;
 
-      // Crear la orden con orderNumber y los orderItems anidados
+      // Buscar método de pago principal del primer store
+      const primaryStoreId = groups[0]?.storeId;
+      let primaryPaymentMethod = null;
+      if (primaryStoreId) {
+        primaryPaymentMethod = await tx.paymentMethod.findFirst({
+          where: { storeId: primaryStoreId, isPrimary: true },
+        });
+      }
+
       const order = await tx.order.create({
         data: {
           userId,
@@ -149,7 +152,8 @@ export async function POST(req) {
             items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0),
           status: "pending",
           paymentStatus: "unpaid",
-          paymentMethod,
+          paymentMethodId: primaryPaymentMethod ? primaryPaymentMethod.id : null,
+          paymentMethod: primaryPaymentMethod ? primaryPaymentMethod.type : paymentMethod,
           customerName: customer.name || session.user.name || "",
           customerEmail: customer.email || session.user.email || "",
           customerPhone: customer.phone || "",
@@ -169,15 +173,11 @@ export async function POST(req) {
           },
         },
         include: {
-          orderItems: {
-            include: {
-              items: true,
-            },
-          },
+          orderItems: { include: { items: true } },
+          paymentMethod: true,
         },
       });
 
-      // Decrementar stock por cada producto (dentro de la misma transacción)
       for (const it of items) {
         try {
           await tx.product.update({
@@ -186,34 +186,29 @@ export async function POST(req) {
           });
         } catch (stockErr) {
           console.error("Error decrementando stock para producto:", it.productId, stockErr);
-          // No abortamos la transacción por un fallo de stock aquí; depende de tu política.
         }
       }
 
       return order;
     });
 
-    // Recuperar la orden completa con relaciones para devolver al cliente
     const fullOrder = await prisma.order.findUnique({
       where: { id: createdOrder.id },
       include: {
         orderItems: {
           include: {
             store: true,
-            items: {
-              include: { product: true },
-            },
+            items: { include: { product: true } },
           },
         },
+        paymentMethod: true,
       },
     });
 
     if (!fullOrder) {
-      // Esto es raro, pero manejamos el caso
       return NextResponse.json({ error: "Orden creada pero no encontrada" }, { status: 500 });
     }
 
-    // Normalizar id y devolver orderNumber y campos de eliminación para que el frontend lo use con seguridad
     const response = {
       id: fullOrder.id,
       order: fullOrder,
