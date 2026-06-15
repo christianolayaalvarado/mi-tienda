@@ -1,84 +1,93 @@
-// app/api/sellers/[sellerId]/payment-methods/[pmId]/route.js
+// src/app/api/sellers/[sellerId]/payment-methods/[pmId]/route.js
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // ajusta si tu prisma está en otra ruta
+import clientPromise from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
 
-// Opcional: función helper para comprobar ownership (descomenta si usas next-auth)
-// import { getServerSession } from "next-auth";
-// async function ensureSellerMatchesSession(sellerId) {
-//   const session = await getServerSession();
-//   if (!session?.user?.id || session.user.id !== sellerId) {
-//     return false;
-//   }
-//   return true;
-// }
+// GET un método específico
+export async function GET(req, ctx) {
+  const { sellerId, pmId } = await ctx.params;
 
-export async function PATCH(req, { params }) {
   try {
-    const { sellerId, pmId } = await params;
-    if (!sellerId || !pmId) {
-      return NextResponse.json({ error: "sellerId or pmId missing" }, { status: 400 });
-    }
+    const client = await clientPromise;
+    const db = client.db("MiTiendaDB");
 
-    const body = await req.json();
-
-    // Si se solicita marcar como principal, desmarcar otros primero
-    if (body.isPrimary) {
-      try {
-        await prisma.paymentMethod.updateMany({
-          where: { userId: sellerId, isPrimary: true },
-          data: { isPrimary: false },
-        });
-      } catch (e) {
-        // Si el campo isPrimary no existe en el modelo, no queremos romper la petición
-        console.warn("Could not unset other primary flags:", e?.message || e);
-      }
-    }
-
-    const updated = await prisma.paymentMethod.update({
-      where: { id: pmId },
-      data: {
-        type: body.type ?? undefined,
-        phone: body.phone ?? null,
-        account: body.account ?? null,
-        cci: body.cci ?? null,
-        qrImageUrl: body.qrImageUrl ?? null,
-        details: body.details ?? null,
-        ...(typeof body.isPrimary !== "undefined" ? { isPrimary: !!body.isPrimary } : {}),
-      },
+    const method = await db.collection("payment_methods").findOne({
+      _id: new ObjectId(pmId),
+      $or: [
+        { storeId: sellerId },
+        { userId: sellerId },
+        { sellerId: sellerId }
+      ]
     });
 
-    return NextResponse.json(updated);
+    if (!method) {
+      return NextResponse.json({ error: "Método no encontrado" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      id: method._id.toString(),
+      userId: method.userId || method.storeId || null,
+      type: method.type || "unknown",
+      phone: method.phone || null,
+      account: method.account || null,
+      details: method.details || null,
+      qrImageUrl: method.qrImageUrl || null,
+      isPrimary: !!method.isPrimary,
+      active: method.active ?? true,
+      createdAt: method.createdAt ? new Date(method.createdAt).toISOString() : null,
+      updatedAt: method.updatedAt ? new Date(method.updatedAt).toISOString() : null
+    });
   } catch (err) {
-    console.error("PATCH payment-method error:", err);
-    // Si el registro no existe prisma lanza, devolvemos 404
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("Error en GET payment-method:", err);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }
 
-export async function DELETE(req, { params }) {
+// PUT actualizar un método
+export async function PUT(req, ctx) {
+  const { sellerId, pmId } = await ctx.params;
+  const body = await req.json();
+
   try {
-    const { sellerId, pmId } = await params;
-    if (!sellerId || !pmId) {
-      return NextResponse.json({ error: "sellerId or pmId missing" }, { status: 400 });
+    const client = await clientPromise;
+    const db = client.db("MiTiendaDB");
+
+    const result = await db.collection("payment_methods").updateOne(
+      { _id: new ObjectId(pmId), storeId: sellerId },
+      { $set: { ...body, updatedAt: new Date() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ error: "Método no encontrado" }, { status: 404 });
     }
 
-    // Log temporal para depuración
-    console.log("DELETE handler hit for sellerId:", sellerId, "pmId:", pmId);
-
-    const existing = await prisma.paymentMethod.findUnique({ where: { id: pmId } });
-    if (!existing) {
-      return NextResponse.json({ error: "Payment method not found" }, { status: 404 });
-    }
-
-    // Opcional: verificar que el método pertenece al sellerId
-    if (existing.userId !== sellerId) {
-      return NextResponse.json({ error: "Not allowed" }, { status: 403 });
-    }
-
-    await prisma.paymentMethod.delete({ where: { id: pmId } });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("DELETE payment-method error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("Error en PUT payment-method:", err);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  }
+}
+
+// DELETE eliminar un método
+export async function DELETE(req, ctx) {
+  const { sellerId, pmId } = await ctx.params;
+
+  try {
+    const client = await clientPromise;
+    const db = client.db("MiTiendaDB");
+
+    const result = await db.collection("payment_methods").deleteOne({
+      _id: new ObjectId(pmId),
+      storeId: sellerId
+    });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: "Método no encontrado" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Error en DELETE payment-method:", err);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }
