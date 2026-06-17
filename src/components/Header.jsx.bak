@@ -1,0 +1,35 @@
+// src/components/Header.jsx
+"use client";
+
+import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
+
+export default function Header() {
+  const { data: session, status } = useSession();
+
+  return (
+    <header className="p-4 flex justify-between items-center border-b bg-white">
+      <div className="flex items-center gap-4">
+        <Link href="/" className="text-lg font-bold">Mi Tienda</Link>
+      </div>
+
+      <div>
+        {status === "loading" ? (
+          <span className="text-sm text-gray-500">Cargando...</span>
+        ) : session?.user ? (
+          <div className="flex items-center gap-3">
+            <span className="text-sm">Hola, <strong>{session.user.name ?? session.user.email}</strong></span>
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="px-3 py-1 bg-gray-200 rounded text-sm"
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        ) : (
+          <Link href="/login" className="px-3 py-1 bg-green-600 text-white rounded text-sm">Entrar</Link>
+        )}
+      </div>
+    </header>
+  );
+}

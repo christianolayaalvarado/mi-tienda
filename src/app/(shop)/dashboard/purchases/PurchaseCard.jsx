@@ -85,7 +85,7 @@ export default function PurchaseCard({ order, showActions, onOrderCancelled }) {
   return (
     <div className="border rounded-lg p-4 mb-4 shadow-sm">
 
-      {/* Header */}
+      {/* Cabecera */}
       <div className="flex justify-between items-center mb-2">
         <h2 className="font-semibold">Orden #{order.id}</h2>
 

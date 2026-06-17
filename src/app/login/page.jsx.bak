@@ -19,17 +19,13 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Evitar setState síncrono dentro del efecto: deferir el reset
-    const reset = setTimeout(() => setProgress(0), 0);
+    setProgress(0);
 
     const interval = setInterval(() => {
       setProgress((prev) => (prev >= 100 ? 100 : prev + 2));
     }, 70);
 
-    return () => {
-      clearTimeout(reset);
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [activeIndex]);
 
   const handleLogin = async (e) => {
@@ -43,33 +39,20 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    try {
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
+    const res = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
 
-      setLoading(false);
+    setLoading(false);
 
-      if (!res) {
-        setError("Error de red. Intenta nuevamente");
-        return;
-      }
-
-      if (res.error) {
-        // next-auth puede devolver mensajes de error útiles
-        setError(res.error || "Credenciales incorrectas");
-        return;
-      }
-
-      // Inicio de sesión correcto
-      router.replace("/dashboard");
-    } catch (err) {
-      setLoading(false);
-      setError("Ocurrió un error inesperado. Intenta de nuevo");
-      // opcional: console.error(err);
+    if (!res || res.error) {
+      setError("Credenciales incorrectas");
+      return;
     }
+
+    router.replace("/dashboard");
   };
 
   const slides = [
@@ -130,13 +113,10 @@ export default function LoginPage() {
 
         {/* DERECHA: Login */}
         <div className="md:w-1/2 w-full flex items-center justify-center px-6">
-          <form onSubmit={handleLogin} className="w-full max-w-md space-y-4" aria-labelledby="login-heading">
-            <h2 id="login-heading" className="text-2xl font-bold text-center">Iniciar sesión</h2>
+          <form onSubmit={handleLogin} className="w-full max-w-md space-y-4">
+            <h2 className="text-2xl font-bold text-center">Iniciar sesión</h2>
 
-            <label className="sr-only" htmlFor="email">Correo</label>
             <input
-              id="email"
-              name="email"
               type="email"
               disabled={loading}
               placeholder="Correo"
@@ -148,15 +128,9 @@ export default function LoginPage() {
               className={`w-full border p-3 rounded-lg outline-none ${
                 error ? "border-red-500" : "focus:ring-2 focus:ring-green-500"
               }`}
-              aria-invalid={!!error}
-              aria-describedby={error ? "login-error" : undefined}
-              required
             />
 
-            <label className="sr-only" htmlFor="password">Contraseña</label>
             <input
-              id="password"
-              name="password"
               type="password"
               disabled={loading}
               placeholder="Contraseña"
@@ -168,25 +142,16 @@ export default function LoginPage() {
               className={`w-full border p-3 rounded-lg outline-none ${
                 error ? "border-red-500" : "focus:ring-2 focus:ring-green-500"
               }`}
-              aria-invalid={!!error}
-              aria-describedby={error ? "login-error" : undefined}
-              required
             />
 
             <button
-              type="submit"
               disabled={loading}
               className="w-full bg-green-600 text-white py-2 rounded disabled:opacity-50"
-              aria-busy={loading}
             >
               {loading ? "Ingresando..." : "Ingresar"}
             </button>
 
-            {error && (
-              <p id="login-error" className="text-red-500 text-sm text-center" role="alert">
-                {error}
-              </p>
-            )}
+            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
           </form>
         </div>
       </div>

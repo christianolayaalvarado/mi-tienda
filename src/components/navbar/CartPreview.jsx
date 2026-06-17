@@ -7,7 +7,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { safeParseLocalCart } from "./utils";
+import {
+  safeParseLocalCart,
+  readCartRaw,
+  removeProductFromCart,
+} from "./utils";
+import toast from "react-hot-toast";
 
 export default function CartPreview(props) {
   const {
@@ -23,42 +28,89 @@ export default function CartPreview(props) {
 
   const router = useRouter();
   const { cartItems: ctxCartItems } = useCart() ?? {};
-  const [localRaw, setLocalRaw] = useState([]);
-  const mountedRef = useRef(false);
-
-  // Leer localStorage solo en cliente y solo actualizar si cambia
-  useEffect(() => {
-    mountedRef.current = true;
-    if (typeof window === "undefined") return () => (mountedRef.current = false);
-
-    let parsed = [];
+  const [localRaw, setLocalRaw] = useState(() => {
     try {
-      const val = typeof readLocalCart === "function" ? readLocalCart() : null;
-      parsed = Array.isArray(val) ? val : safeParseLocalCart("mi_tienda_cart");
+      const raw = typeof window !== "undefined" ? readCartRaw("mi_tienda_cart") : null;
+      return Array.isArray(raw) ? raw : (typeof window !== "undefined" ? safeParseLocalCart("mi_tienda_cart") : []);
     } catch {
-      parsed = safeParseLocalCart("mi_tienda_cart");
+      return [];
     }
+  });
+  const mountedRef = useRef(false);
+  const removingRef = useRef(new Set());
 
-    // comparar superficialmente para evitar setState innecesario
-    const same =
-      Array.isArray(parsed) &&
-      parsed.length === (localRaw?.length || 0) &&
-      parsed.every((p, i) => {
-        const q = localRaw?.[i];
-        return q && String(q.productId ?? q.id) === String(p.productId ?? p.id) && q.quantity === p.quantity;
-      });
-
-    if (!same && mountedRef.current) {
-      setLocalRaw(parsed);
+  // marcar mounted de forma diferida para evitar setState sincrónico en efecto
+  useEffect(() => {
+    let raf = 0;
+    if (typeof window !== "undefined") {
+      raf = requestAnimationFrame(() => { mountedRef.current = true; });
+    } else {
+      mountedRef.current = true;
     }
-
     return () => {
+      if (raf) cancelAnimationFrame(raf);
       mountedRef.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readLocalCart]); // no dependemos de localRaw aquí para evitar loop
+  }, []);
 
-  // resolvedItems derivado (no state) para evitar efectos que llamen a setState
+  const readLocalSnapshot = () => {
+    try {
+      if (typeof readLocalCart === "function") {
+        const val = readLocalCart();
+        if (Array.isArray(val)) return val;
+        if (val && typeof val === "object") {
+          if (Array.isArray(val.items)) return val.items;
+          if (val.cart && Array.isArray(val.cart.items)) return val.cart.items;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      const parsed = readCartRaw("mi_tienda_cart");
+      if (Array.isArray(parsed)) return parsed;
+      return safeParseLocalCart("mi_tienda_cart");
+    } catch {
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e && e.key && e.key !== "mi_tienda_cart" && e.key !== "cart") return;
+      const snapshot = readLocalSnapshot();
+      const same =
+        Array.isArray(snapshot) &&
+        snapshot.length === (localRaw?.length || 0) &&
+        snapshot.every((p, i) => {
+          const q = localRaw?.[i];
+          return q && String(q.productId ?? q.id) === String(p.productId ?? p.id) && q.quantity === p.quantity;
+        });
+      if (!same) setLocalRaw(snapshot);
+    };
+
+    const onCartUpdated = () => {
+      const snapshot = readLocalSnapshot();
+      const same =
+        Array.isArray(snapshot) &&
+        snapshot.length === (localRaw?.length || 0) &&
+        snapshot.every((p, i) => {
+          const q = localRaw?.[i];
+          return q && String(q.productId ?? q.id) === String(p.productId ?? p.id) && q.quantity === p.quantity;
+        });
+      if (!same) setLocalRaw(snapshot);
+    };
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("cart:updated", onCartUpdated);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("cart:updated", onCartUpdated);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localRaw, readLocalCart]);
+
   const resolvedItems = useMemo(() => {
     if (Array.isArray(items) && items.length > 0) return items;
     if (Array.isArray(ctxCartItems) && ctxCartItems.length > 0) return ctxCartItems;
@@ -76,16 +128,13 @@ export default function CartPreview(props) {
   const findLocalName = useMemo(() => {
     return (pid) => {
       if (!localRaw || !Array.isArray(localRaw)) return null;
-      const found = localRaw.find(
-        (x) => String(x.productId ?? x.id) === String(pid)
-      );
+      const found = localRaw.find((x) => String(x.productId ?? x.id) === String(pid));
       return found ? found.name || found.title || null : null;
     };
   }, [localRaw]);
 
   const safeOnIncrease = (id) => {
     try {
-      console.log("[CartPreview] increase requested:", id);
       onIncrease(id);
     } catch (e) {
       console.warn("onIncrease error", e);
@@ -93,18 +142,51 @@ export default function CartPreview(props) {
   };
   const safeOnDecrease = (id) => {
     try {
-      console.log("[CartPreview] decrease requested:", id);
       onDecrease(id);
     } catch (e) {
       console.warn("onDecrease error", e);
     }
   };
-  const safeOnRemove = (id, storeId) => {
+
+  const safeOnRemove = async (id, storeId) => {
+    const idStr = String(id);
+    if (removingRef.current.has(idStr)) return;
+    removingRef.current.add(idStr);
+
+    const previous = localRaw;
+    const optimistic = (previous || []).filter((it) => String(it.productId ?? it.id) !== idStr);
+    setLocalRaw(optimistic);
+
     try {
-      console.log("[CartPreview] remove requested:", { id, storeId });
-      onRemove(id, storeId);
-    } catch (e) {
-      console.warn("onRemove error", e);
+      if (typeof onRemove === "function" && onRemove !== (() => {})) {
+        const result = onRemove(id, storeId);
+        if (result && typeof result.then === "function") {
+          await result;
+        }
+        try { window.dispatchEvent(new CustomEvent("cart:updated", { detail: { removedProductId: id, storeId } })); } catch {}
+        try { window.dispatchEvent(new Event("storage")); } catch {}
+        toast.success("Producto eliminado del carrito");
+        removingRef.current.delete(idStr);
+        return result;
+      }
+
+      const res = removeProductFromCart(id);
+      const snapshot = res || [];
+      setLocalRaw(Array.isArray(snapshot) ? snapshot : []);
+      toast.success("Producto eliminado del carrito");
+      removingRef.current.delete(idStr);
+      return res;
+    } catch (err) {
+      console.error("Error en onRemove:", err);
+      toast.error("No se pudo eliminar el producto");
+      try {
+        const snapshot = readLocalSnapshot();
+        setLocalRaw(snapshot);
+      } catch {
+        setLocalRaw(previous);
+      }
+      removingRef.current.delete(idStr);
+      throw err;
     }
   };
 
@@ -127,9 +209,7 @@ export default function CartPreview(props) {
         const imgSrc =
           item.image ||
           (Array.isArray(item.images) && item.images[0]) ||
-          (item.product &&
-            Array.isArray(item.product.images) &&
-            item.product.images[0]) ||
+          (item.product && Array.isArray(item.product.images) && item.product.images[0]) ||
           item.product?.image ||
           "/images/placeholder.png";
 
@@ -143,21 +223,17 @@ export default function CartPreview(props) {
 
         const key = item.id ?? `${item.productId}-${item.storeId ?? 0}`;
         const quantity = Number(item.quantity || 0);
-        // usar stock del item o del producto si existe
         const maxStock = Number(item.stock ?? item.product?.stock ?? Infinity);
         const idForActions = item.id ?? item.productId;
         const disabledInc = quantity >= maxStock;
+        const removing = removingRef.current.has(String(idForActions));
 
         return (
           <div
             key={key}
-            className="flex items-center gap-3 py-2 border-b last:border-none hover:bg-gray-50 rounded-lg px-2 transition"
+            className={`flex items-center gap-3 py-2 border-b last:border-none hover:bg-gray-50 rounded-lg px-2 transition ${removing ? "opacity-60" : ""}`}
           >
-            <Link
-              href={`/product/${item.productId ?? item.id}`}
-              onClick={onClose}
-              className="w-16 h-16 block"
-            >
+            <Link href={`/product/${item.productId ?? item.id}`} onClick={onClose} className="w-16 h-16 block">
               <img
                 src={imgSrc}
                 alt={displayName}
@@ -172,45 +248,32 @@ export default function CartPreview(props) {
             </Link>
 
             <div className="flex-1 text-sm min-w-0">
-              <Link
-                href={`/product/${item.productId ?? item.id}`}
-                onClick={onClose}
-              >
-                <p
-                  className="truncate font-medium hover:text-green-600 cursor-pointer"
-                  title={displayName}
-                >
+              <Link href={`/product/${item.productId ?? item.id}`} onClick={onClose}>
+                <p className="truncate font-medium hover:text-green-600 cursor-pointer" title={displayName}>
                   {displayName}
                 </p>
               </Link>
 
-              <p className="text-gray-500 text-xs">
-                S/ {Number(item.price || 0).toFixed(2)} × {quantity}
-              </p>
+              <p className="text-gray-500 text-xs">S/ {Number(item.price || 0).toFixed(2)} × {quantity}</p>
 
               <div className="flex items-center gap-2 mt-1">
                 <button
                   type="button"
                   onClick={() => safeOnDecrease(idForActions)}
                   className="px-2 bg-gray-200 rounded hover:bg-gray-300"
-                  disabled={quantity <= 1}
+                  disabled={quantity <= 1 || removing}
                   aria-label={`Disminuir cantidad de ${displayName}`}
                 >
                   −
                 </button>
 
-                <span
-                  className="text-xs w-6 text-center"
-                  aria-live="polite"
-                >
-                  {quantity}
-                </span>
+                <span className="text-xs w-6 text-center" aria-live="polite">{quantity}</span>
 
                 <button
                   type="button"
                   onClick={() => safeOnIncrease(idForActions)}
-                  disabled={disabledInc}
-                  aria-disabled={disabledInc}
+                  disabled={disabledInc || removing}
+                  aria-disabled={disabledInc || removing}
                   title={disabledInc ? "Stock máximo alcanzado" : "Aumentar cantidad"}
                   className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40"
                   aria-label={`Aumentar cantidad de ${displayName}`}
@@ -222,17 +285,13 @@ export default function CartPreview(props) {
 
             <button
               type="button"
-              onClick={() =>
-                safeOnRemove(idForActions, item.storeId ?? undefined)
-              }
+              onClick={() => safeOnRemove(idForActions, item.storeId ?? undefined)}
               className="p-1 rounded hover:bg-red-100 transition"
               aria-label={`Eliminar ${item.title || item.name || "producto"}`}
               title="Eliminar"
+              disabled={removing}
             >
-              <Trash2
-                size={20}
-                className="text-gray-500 hover:text-red-600"
-              />
+              <Trash2 size={20} className={`text-gray-500 ${removing ? "opacity-40" : "hover:text-red-600"}`} />
             </button>
           </div>
         );
@@ -250,7 +309,6 @@ export default function CartPreview(props) {
               type="button"
               className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
               onClick={() => {
-                console.log("[CartPreview] navigate to /cart");
                 onClose?.();
                 setTimeout(() => router.push("/cart"), 50);
               }}

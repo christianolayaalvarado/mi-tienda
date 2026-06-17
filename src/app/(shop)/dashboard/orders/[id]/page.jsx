@@ -29,7 +29,6 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [proofFile, setProofFile] = useState(null);
 
   // Cargar orden
@@ -54,7 +53,6 @@ export default function OrderDetailPage() {
 
       const data = await res.json();
 
-      // Normalizar por seguridad: asegurar que orderItems existe
       const normalized = {
         id: data.id || data._id || data.order?.id || data.order?._id,
         orderNumber: data.orderNumber || data.order?.orderNumber || null,
@@ -62,7 +60,6 @@ export default function OrderDetailPage() {
         total: data.total || data.order?.total || 0,
         status: data.status || data.order?.status || "pending",
         paymentStatus: data.paymentStatus || data.order?.paymentStatus || "unpaid",
-        paymentMethod: data.paymentMethod || data.order?.paymentMethod || "",
         customerName: data.customerName || data.order?.customerName || "",
         customerEmail: data.customerEmail || data.order?.customerEmail || "",
         documentNumber: data.documentNumber || data.order?.documentNumber || null,
@@ -72,11 +69,9 @@ export default function OrderDetailPage() {
         deletedAt: data.deletedAt || data.order?.deletedAt || null,
       };
 
-      // Convertir orderItems a stores (si tu UI espera stores)
       const stores = (normalized.orderItems || []).map((oi) => ({
         id: oi.storeId || oi.store?.id || oi.id,
         name: oi.store?.name || oi.storeName || `Tienda ${oi.storeId || ""}`,
-        // no incluimos paymentStatus por tienda para evitar duplicación
         items: oi.items || [],
       }));
 
@@ -96,7 +91,6 @@ export default function OrderDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
-  // seleccionar archivo
   const handleFileChange = (e) => {
     setProofFile(e.target.files?.[0] || null);
   };
@@ -109,7 +103,6 @@ export default function OrderDetailPage() {
       return;
     }
 
-    // Validaciones cliente
     const allowed = ["image/jpeg", "image/png", "image/webp"];
     const maxBytes = 8 * 1024 * 1024; // 8MB
     if (!allowed.includes(proofFile.type)) {
@@ -147,7 +140,6 @@ export default function OrderDetailPage() {
         throw new Error(message);
       }
 
-      // Si el backend devuelve una URL o el objeto order con paymentProof, usarlo
       const returnedUrl = (json && (json.url || (json.order && json.order.paymentProof))) || null;
 
       toast.dismiss(loadingToast);
@@ -166,35 +158,6 @@ export default function OrderDetailPage() {
       toast.error(err?.message || "Error al subir comprobante");
     } finally {
       setUploading(false);
-    }
-  };
-
-  // confirmar pago (manual - ADMIN / VENDEDOR)
-  const handleConfirmPayment = async () => {
-    if (!confirm("¿Confirmar que el pago fue recibido?")) return;
-
-    setConfirming(true);
-    const loadingToast = toast.loading("Confirmando pago...");
-
-    try {
-      const res = await fetch(`/api/orders/${orderId}/confirm-payment`, {
-        method: "POST",
-      });
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => null);
-        throw new Error(text || "Error confirmando pago");
-      }
-
-      toast.dismiss(loadingToast);
-      toast.success("Pago confirmado correctamente");
-      await fetchOrder();
-    } catch (err) {
-      console.error(err);
-      toast.dismiss(loadingToast);
-      toast.error("Error confirmando pago");
-    } finally {
-      setConfirming(false);
     }
   };
 
@@ -230,7 +193,6 @@ export default function OrderDetailPage() {
   if (loading) return <p className="p-4 text-gray-600">Cargando orden...</p>;
   if (!order) return <p className="p-4 text-red-500">Orden no encontrada</p>;
 
-  // Determinar estados para deshabilitar acciones
   const isDeleted = order?.status === "deleted" || Boolean(order?.deletedAt);
   const isPaid = order?.paymentStatus === "paid" || order?.paymentStatus === "completed";
   const disableActions = isDeleted || isPaid;
@@ -258,7 +220,6 @@ export default function OrderDetailPage() {
             Total: <strong>S/ {Number(order.total || 0).toFixed(2)}</strong>
           </p>
 
-          {/* Estado de pago: mostrado solo aquí (estado global) */}
           <p className="text-sm mt-1">
             Estado pago:{" "}
             <span
@@ -280,22 +241,16 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* ACCIONES PRINCIPALES */}
-      <div className="flex gap-2">
-        {order.paymentStatus !== "paid" && (
-          <button
-            onClick={handleConfirmPayment}
-            disabled={confirming || disableActions}
-            className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
-          >
-            {confirming ? "Confirmando..." : "✅ Confirmar pago"}
-          </button>
-        )}
+      {/* ACCIONES PRINCIPALES: quitar Confirmar pago aquí; confirmación debe hacerse desde Ventas */}
+      <div className="flex gap-2 items-center">
+        <p className="text-sm text-gray-600">
+          La confirmación de pago debe realizarse desde la sección <strong>Ventas</strong>. Aquí solo puedes subir el comprobante o eliminar la orden.
+        </p>
 
         <button
           onClick={handleDeleteOrder}
           disabled={deleting || disableActions}
-          className="bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          className="ml-auto bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
         >
           {deleting ? "Eliminando..." : "🗑 Eliminar"}
         </button>
@@ -335,28 +290,32 @@ export default function OrderDetailPage() {
         {!order.paymentProof && <p className="text-sm text-gray-500">No se ha subido comprobante aún.</p>}
       </div>
 
-      {/* PAGO dinámico por tienda: mostramos solo información de la tienda sin estado */}
-      {order.paymentStatus !== "paid" && (
+      {/* Mostrar tiendas sin estado de pago */}
+      {order.stores && order.stores.length > 0 && (
         <div className="space-y-4">
-          {Array.isArray(order.stores) && order.stores.length > 0 ? (
-            order.stores.map((store) => (
-              <div key={store.id} className="border p-4 rounded bg-gray-50">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold">{store.name}</h3>
-                </div>
-
-                <p className="text-sm text-gray-600 mb-2">Información de la tienda</p>
+          {order.stores.map((store) => (
+            <div key={store.id} className="border p-4 rounded bg-gray-50">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-semibold">{store.name}</h3>
               </div>
-            ))
-          ) : (
-            <div className="border p-4 rounded bg-gray-50">
-              <p className="text-sm text-gray-500">No se encontraron tiendas en la orden.</p>
+              <p className="text-sm text-gray-600 mb-2">Items en esta tienda:</p>
+              <ul className="list-disc pl-5 text-sm">
+                {Array.isArray(store.items) && store.items.length > 0 ? (
+                  store.items.map((it, idx) => (
+                    <li key={idx} className="mb-1">
+                      {it.product?.title || it.title || it.productName || "Producto"} — S/ {Number(it.price || 0).toFixed(2)} x {it.quantity || 1}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500">No hay items en esta tienda.</li>
+                )}
+              </ul>
             </div>
-          )}
+          ))}
         </div>
       )}
 
-      {/* PRODUCTOS por orderItem (tienda) - no repetimos estado de pago aquí */}
+      {/* PRODUCTOS por orderItem (tienda) - sin repetir estado de pago */}
       <div className="space-y-4">
         {Array.isArray(order.orderItems) && order.orderItems.length > 0 ? (
           order.orderItems.map((oi) => (

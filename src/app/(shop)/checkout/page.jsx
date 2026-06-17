@@ -12,8 +12,106 @@ import toast from "react-hot-toast";
  * - Normaliza items y calcula total
  * - Envía orden a POST /api/orders
  * - Limpia carrito y redirige a /orders/[id] o /orders tras crear la orden
+ *
+ * Corrección añadida:
+ * - Limpieza automática del carrito local eliminando productos ya pagados
+ *   (consulta /api/orders/paid-product-ids y remueve productIds del localStorage).
  */
 
+/* -------------------------
+   Utilidades para el carrito
+   ------------------------- */
+function readCartRaw() {
+  try {
+    const raw = localStorage.getItem("cart");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
+  } catch {
+    return null;
+  }
+}
+
+function writeCartRaw(value) {
+  try {
+    if (value == null) {
+      localStorage.removeItem("cart");
+    } else {
+      localStorage.setItem("cart", JSON.stringify(value));
+    }
+    // Disparar evento storage para sincronizar otras pestañas
+    try {
+      window.dispatchEvent(new Event("storage"));
+    } catch {
+      // ignore
+    }
+  } catch (err) {
+    console.warn("No se pudo escribir carrito:", err);
+  }
+}
+
+/**
+ * Elimina del carrito local todos los items cuyo productId esté en productIdsToRemove (array de strings).
+ * Soporta formatos de carrito: array, { items: [...] }, { cart: { items: [...] } }.
+ */
+function removeProductsFromCart(productIdsToRemove = []) {
+  if (!Array.isArray(productIdsToRemove) || productIdsToRemove.length === 0) return;
+
+  const raw = readCartRaw();
+  if (!raw) return;
+
+  const normalizeItemPid = (it, idx) => {
+    return it?.productId ?? it?.id ?? `unknown-${idx}`;
+  };
+
+  // Si es array raíz
+  if (Array.isArray(raw)) {
+    const filtered = raw.filter((it, idx) => {
+      const pid = normalizeItemPid(it, idx);
+      return !productIdsToRemove.includes(String(pid));
+    });
+    writeCartRaw(filtered.length ? filtered : null);
+    return;
+  }
+
+  // Si es { items: [...] }
+  if (raw && typeof raw === "object" && Array.isArray(raw.items)) {
+    const filteredItems = raw.items.filter((it, idx) => {
+      const pid = normalizeItemPid(it, idx);
+      return !productIdsToRemove.includes(String(pid));
+    });
+    if (filteredItems.length === 0) {
+      writeCartRaw(null);
+    } else {
+      writeCartRaw({ ...raw, items: filteredItems });
+    }
+    return;
+  }
+
+  // Si es { cart: { items: [...] } }
+  if (raw && typeof raw === "object" && raw.cart && Array.isArray(raw.cart.items)) {
+    const filteredItems = raw.cart.items.filter((it, idx) => {
+      const pid = normalizeItemPid(it, idx);
+      return !productIdsToRemove.includes(String(pid));
+    });
+    if (filteredItems.length === 0) {
+      writeCartRaw(null);
+    } else {
+      writeCartRaw({ ...raw, cart: { ...raw.cart, items: filteredItems } });
+    }
+    return;
+  }
+
+  // Si no reconocemos el formato, no hacemos nada
+  console.warn("Formato de carrito no reconocido, no se eliminó nada.");
+}
+
+/* -------------------------
+   Componente CheckoutPage
+   ------------------------- */
 export default function CheckoutPage({ params }) {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -130,6 +228,35 @@ export default function CheckoutPage({ params }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
+  // Limpieza automática: eliminar del carrito productos ya pagados por el usuario
+  useEffect(() => {
+    const cleanupPaidItems = async () => {
+      try {
+        // Llamada al endpoint que devuelve productIds de órdenes pagadas del usuario
+        const res = await fetch("/api/orders/paid-product-ids", { method: "GET" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const productIds = Array.isArray(data?.productIds) ? data.productIds : [];
+        if (productIds.length > 0) {
+          removeProductsFromCart(productIds);
+          // recargar estado local del carrito
+          const raw = readCartRaw();
+          const normalized = normalizeCart(raw || "[]");
+          setRawCart(raw);
+          setOrderItems(normalized);
+        }
+      } catch (err) {
+        console.warn("No se pudo limpiar carrito automáticamente:", err);
+      }
+    };
+
+    // Ejecutar solo si hay sesión y no estamos en loading
+    if (status !== "loading") {
+      cleanupPaidItems();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
   useEffect(() => {
     setPaymentMethodId(null);
   }, [sellerId]);
@@ -207,6 +334,12 @@ export default function CheckoutPage({ params }) {
       // Éxito: limpiar carrito y redirigir
       try {
         localStorage.removeItem("cart");
+        // también actualizar estado local inmediatamente
+        setRawCart(null);
+        setOrderItems([]);
+        try {
+          window.dispatchEvent(new Event("storage"));
+        } catch {}
       } catch (e) {
         console.warn("No se pudo limpiar localStorage:", e);
       }
