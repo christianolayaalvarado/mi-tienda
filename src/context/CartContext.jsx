@@ -16,13 +16,61 @@ export function CartProvider({ children }) {
   const [persisting, setPersisting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // contador que cambia solo cuando hacemos broadcast (mutaciones)
+  const [cartVersion, setCartVersion] = useState(0);
+
   const canUseLocal = typeof window !== "undefined" && !!window.localStorage;
   const triedOnceRef = useRef(false);
+
+  // BroadcastChannel y tabId para evitar procesar mensajes propios
+  const bcRef = useRef(null);
+  const tabIdRef = useRef(null);
+
+  // Guard para evitar reentradas simultáneas en fetchCart
+  const isFetchingRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      tabIdRef.current = (Math.random().toString(36).slice(2) + Date.now().toString(36));
+      // Exponer para que otras partes de la app puedan comparar (opcional)
+      window.__MI_TIENDA_TAB_ID__ = tabIdRef.current;
+    } catch (e) {
+      tabIdRef.current = String(Date.now());
+      window.__MI_TIENDA_TAB_ID__ = tabIdRef.current;
+    }
+
+    if ("BroadcastChannel" in window) {
+      bcRef.current = new BroadcastChannel("mi_tienda_cart_channel");
+      bcRef.current.onmessage = (ev) => {
+        try {
+          const msg = ev?.data;
+          if (!msg || typeof msg !== "object") return;
+          if (msg.type !== "cart:updated") return;
+          if (msg.origin === tabIdRef.current) return; // ignorar mensajes propios
+          // revalidar desde servidor cuando otra pestaña actualiza
+          fetchCart();
+        } catch (e) {
+          // ignore
+        }
+      };
+    }
+
+    return () => {
+      try {
+        bcRef.current?.close();
+      } catch (e) {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const saveLocal = (items) => {
     if (!canUseLocal) return;
     try {
       window.localStorage.setItem("mi_tienda_cart", JSON.stringify(items));
+      try {
+        window.localStorage.setItem("mi_tienda_cart_last_update", String(Date.now()));
+      } catch (e) {}
     } catch (e) {
       console.warn("No se pudo guardar carrito en localStorage", e);
     }
@@ -46,36 +94,66 @@ export function CartProvider({ children }) {
     }
   };
 
+  // setAndSave acepta opts.broadcast (default true).
+  // Cuando broadcast = false no dispara eventos para evitar loops de revalidación.
+  // Además: solo incrementa cartVersion cuando broadcast === true.
+  const setAndSave = useCallback((items, opts = {}) => {
+    const { broadcast = true } = opts;
+    setCartItems(items);
+    saveLocal(items);
+
+    if (broadcast) {
+      setCartVersion((v) => v + 1);
+    }
+
+    if (broadcast && typeof window !== "undefined") {
+      try {
+        // evento en la misma pestaña (incluye origin en detail)
+        window.dispatchEvent(new CustomEvent("cart:updated", { detail: { origin: tabIdRef.current } }));
+      } catch (e) {}
+    }
+
+    if (broadcast) {
+      try {
+        bcRef.current?.postMessage({ type: "cart:updated", origin: tabIdRef.current });
+      } catch (e) {}
+    }
+  }, []);
+
   const fetchCart = useCallback(async () => {
+    // evitar reentradas simultáneas
+    if (isFetchingRef.current) return { cart: null, skipped: true };
     if (isSyncing) return { cart: null, skipped: true };
 
+    isFetchingRef.current = true;
     setLoading(true);
     try {
       const user = await fetchSession();
       if (!user) {
         const local = loadLocal();
-        setCartItems(local);
+        // lectura local: no broadcast
+        setAndSave(local, { broadcast: false });
         setLoading(false);
         return { cart: null, fallback: true, skipped: true };
       }
 
       if (triedOnceRef.current) {
         const local = loadLocal();
-        setCartItems(local);
+        setAndSave(local, { broadcast: false });
         setLoading(false);
         return { cart: null, fallback: true };
       }
 
-      const res = await fetch("/api/cart", { method: "GET", credentials: "include", headers: { Accept: "application/json" } });
+      const res = await fetch("/api/cart", { method: "GET", credentials: "same-origin", headers: { Accept: "application/json" } });
 
       if (!res.ok) {
         if (res.status === 401) {
           triedOnceRef.current = true;
-          setCartItems(loadLocal());
+          setAndSave(loadLocal(), { broadcast: false });
           setLoading(false);
           return { cart: null, fallback: true, status: 401 };
         }
-        setCartItems(loadLocal());
+        setAndSave(loadLocal(), { broadcast: false });
         setLoading(false);
         return { cart: null, fallback: true, status: res.status };
       }
@@ -83,53 +161,52 @@ export function CartProvider({ children }) {
       const data = await res.json().catch(() => null);
       const local = loadLocal();
 
-      // dentro de fetchCart, reemplaza la creación de `items` por:
-const items = (data?.cart?.items || []).map((it) => {
-  const image =
-    it.image ||
-    it.product?.image ||
-    (Array.isArray(it.product?.images) && it.product.images[0]) ||
-    (Array.isArray(it.images) && it.images[0]) ||
-    null;
+      const items = (data?.cart?.items || []).map((it) => {
+        const image =
+          it.image ||
+          it.product?.image ||
+          (Array.isArray(it.product?.images) && it.product.images[0]) ||
+          (Array.isArray(it.images) && it.images[0]) ||
+          null;
 
-  const localMatch = local.find((l) => String(l.productId ?? l.id) === String(it.productId ?? it.id));
-  const nameFromLocal = localMatch ? (localMatch.name || localMatch.title || null) : null;
-  const imageFromLocal = localMatch ? (localMatch.image || null) : null;
+        const localMatch = local.find((l) => String(l.productId ?? l.id) === String(it.productId ?? it.id));
+        const nameFromLocal = localMatch ? (localMatch.name || localMatch.title || null) : null;
+        const imageFromLocal = localMatch ? (localMatch.image || null) : null;
 
-  return {
-    id: it.id,
-    productId: it.productId ?? it.id ?? null,
-    storeId: it.storeId,
-    name: it.product?.title || it.title || it.name || nameFromLocal || "",
-    price: it.price,
-    quantity: Number(it.quantity || 0),
-    image: image || imageFromLocal || null,
-    // <-- incluir stock si viene del servidor (o del producto)
-    stock: typeof it.stock !== "undefined" ? Number(it.stock) : Number(it.product?.stock ?? Infinity),
-    product: it.product ?? null, // opcional, útil para UI si necesitas más datos
-  };
-});
-
+        return {
+          id: it.id,
+          productId: it.productId ?? it.id ?? null,
+          storeId: it.storeId,
+          name: it.product?.title || it.title || it.name || nameFromLocal || "",
+          price: typeof it.price !== "undefined" ? Number(it.price) : (it.product?.price ? Number(it.product.price) : 0),
+          quantity: Number(it.quantity || 0),
+          image: image || imageFromLocal || null,
+          stock: typeof it.stock !== "undefined" ? Number(it.stock) : Number(it.product?.stock ?? Infinity),
+          product: it.product ?? null,
+        };
+      });
 
       if ((items.length === 0 || items.every((i) => !i.productId)) && local.length > 0) {
-        setCartItems(local);
-        saveLocal(local);
+        // fallback a local, no broadcast
+        setAndSave(local, { broadcast: false });
         setLoading(false);
         return { cart: null, fallback: true };
       }
 
-      setCartItems(items);
-      saveLocal(items);
+      // lectura desde servidor: NO broadcast para evitar loop
+      setAndSave(items, { broadcast: false });
       setLoading(false);
       return { cart: data?.cart || null, fallback: false };
     } catch (err) {
       console.warn("fetchCart error:", err);
       const local = loadLocal();
-      setCartItems(local);
+      setAndSave(local, { broadcast: false });
       setLoading(false);
       return { cart: null, fallback: true, error: err?.message || String(err) };
+    } finally {
+      isFetchingRef.current = false;
     }
-  }, [isSyncing]);
+  }, [isSyncing, setAndSave]);
 
   const persistCart = useCallback(async (items) => {
     setPersisting(true);
@@ -148,12 +225,12 @@ const items = (data?.cart?.items || []).map((it) => {
         try {
           const user = await fetchSession();
           if (!user) {
-            setCartItems([]);
-            saveLocal([]);
+            // mutación local: broadcast true por defecto
+            setAndSave([]);
             return { success: true, status: 200, cart: null, note: "no_session_local_cleared" };
           }
 
-          const delRes = await fetch("/api/cart", { method: "DELETE", credentials: "include" });
+          const delRes = await fetch("/api/cart", { method: "DELETE", credentials: "same-origin" });
           if (!delRes.ok) {
             const text = await delRes.text().catch(() => null);
             if (delRes.status === 401) {
@@ -163,9 +240,21 @@ const items = (data?.cart?.items || []).map((it) => {
             throw new Error(text || "Error al vaciar carrito en servidor");
           }
 
-          setCartItems([]);
-          saveLocal([]);
-          return { success: true, status: 200, cart: null };
+          const delData = await delRes.json().catch(() => null);
+          const serverItems = (delData?.cart?.items || []).map((it) => ({
+            id: it.id,
+            productId: it.productId ?? it.id ?? null,
+            storeId: it.storeId,
+            name: it.title ?? it.product?.title ?? "",
+            price: typeof it.price !== "undefined" ? Number(it.price) : (it.product?.price ? Number(it.product.price) : 0),
+            quantity: Number(it.quantity || 0),
+            image: it.image ?? it.product?.image ?? null,
+            product: it.product ?? null,
+          }));
+
+          // mutación desde servidor: broadcast (notificar otras pestañas)
+          setAndSave(serverItems);
+          return { success: true, status: 200, cart: delData?.cart || null };
         } catch (err) {
           toast.error(err?.message || "No se pudo vaciar carrito en servidor");
           saveLocal(items);
@@ -189,7 +278,7 @@ const items = (data?.cart?.items || []).map((it) => {
       const res = await fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        credentials: "include",
+        credentials: "same-origin",
         body: JSON.stringify({ items: normalized }),
       });
 
@@ -215,28 +304,27 @@ const items = (data?.cart?.items || []).map((it) => {
 
       const data = await res.json().catch(() => null);
       const serverItems = (data?.cart?.items || []).map((it) => {
-  const image =
-    it.image ||
-    it.product?.image ||
-    (Array.isArray(it.product?.images) && it.product.images[0]) ||
-    (Array.isArray(it.images) && it.images[0]) ||
-    null;
-  return {
-    id: it.id,
-    productId: it.productId ?? it.id ?? null,
-    storeId: it.storeId,
-    name: it.product?.title || it.title || it.name || "",
-    price: it.price,
-    quantity: Number(it.quantity || 0),
-    image: image || null,
-    stock: typeof it.stock !== "undefined" ? Number(it.stock) : Number(it.product?.stock ?? Infinity),
-    product: it.product ?? null,
-  };
-});
+        const image =
+          it.image ||
+          it.product?.image ||
+          (Array.isArray(it.product?.images) && it.product.images[0]) ||
+          (Array.isArray(it.images) && it.images[0]) ||
+          null;
+        return {
+          id: it.id,
+          productId: it.productId ?? it.id ?? null,
+          storeId: it.storeId,
+          name: it.product?.title || it.title || it.name || "",
+          price: typeof it.price !== "undefined" ? Number(it.price) : (it.product?.price ? Number(it.product.price) : 0),
+          quantity: Number(it.quantity || 0),
+          image: image || null,
+          stock: typeof it.stock !== "undefined" ? Number(it.stock) : Number(it.product?.stock ?? Infinity),
+          product: it.product ?? null,
+        };
+      });
 
-
-      setCartItems(serverItems);
-      saveLocal(serverItems);
+      // mutación desde servidor: broadcast true (notificar)
+      setAndSave(serverItems);
       return { success: true, status: res.status, cart: data?.cart || null };
     } catch (err) {
       toast.error(err?.message || "No se pudo persistir carrito");
@@ -252,217 +340,285 @@ const items = (data?.cart?.items || []).map((it) => {
       setPersisting(false);
       setTimeout(() => setIsSyncing(false), 250);
     }
-  }, []);
+  }, [setAndSave]);
 
   const clearCart = useCallback(async () => {
     setLoading(true);
     try {
-      setCartItems([]);
-      saveLocal([]);
+      // mutación local: broadcast true
+      setAndSave([]);
       const user = await fetchSession();
       if (!user) {
         setLoading(false);
         return { success: true, note: "local_cleared_no_session" };
       }
-      const res = await fetch("/api/cart", { method: "DELETE", credentials: "include" });
+      const res = await fetch("/api/cart", { method: "DELETE", credentials: "same-origin" });
       if (!res.ok) {
         const text = await res.text().catch(() => null);
         toast.error("No se pudo limpiar carrito en backend");
         setLoading(false);
         return { success: false, status: res.status, text };
       }
+      const data = await res.json().catch(() => null);
+      const serverItems = (data?.cart?.items || []).map((it) => ({
+        id: it.id,
+        productId: it.productId ?? it.id ?? null,
+        storeId: it.storeId,
+        name: it.title ?? it.product?.title ?? "",
+        price: typeof it.price !== "undefined" ? Number(it.price) : (it.product?.price ? Number(it.product.price) : 0),
+        quantity: Number(it.quantity || 0),
+        image: it.image ?? it.product?.image ?? null,
+        product: it.product ?? null,
+      }));
+      // mutación desde servidor: broadcast true
+      setAndSave(serverItems);
       setLoading(false);
-      return { success: true };
+      return { success: true, cart: data?.cart || null };
     } catch (err) {
       toast.error("Error limpiando carrito");
       setLoading(false);
       return { success: false, error: err?.message || String(err) };
     }
-  }, []);
+  }, [setAndSave]);
 
   const addToCart = useCallback(async (product, qty = 1) => {
-  try {
-    const productId = product.productId ?? product.id;
-    const storeId = product.storeId ?? product.store?.id ?? product.storeId;
-    if (!productId) throw new Error("Producto inválido (falta productId)");
+    try {
+      const productId = product.productId ?? product.id;
+      const storeId = product.storeId ?? product.store?.id ?? product.storeId;
+      if (!productId) throw new Error("Producto inválido (falta productId)");
 
-    // determinar stock conocido (prioriza product.stock si viene en el objeto)
-    const productStock = typeof product.stock !== "undefined" ? Number(product.stock) : Number(product.product?.stock ?? Infinity);
+      const productStock = typeof product.stock !== "undefined" ? Number(product.stock) : Number(product.product?.stock ?? Infinity);
 
-    const existingIndex = cartItems.findIndex(
-      (it) =>
-        (String(it.productId) === String(productId) || String(it.id) === String(productId)) &&
-        (storeId == null ? true : String(it.storeId) === String(storeId))
-    );
-
-    let next;
-    if (existingIndex >= 0) {
-      const existing = cartItems[existingIndex];
-      const newQty = Number(existing.quantity || 0) + Number(qty);
-      if (newQty > productStock) {
-        toast.error("Stock insuficiente");
-        return { success: false, error: "stock_insufficient", available: productStock, cart: cartItems };
-      }
-      next = cartItems.map((it, idx) =>
-        idx === existingIndex ? { ...it, quantity: newQty } : it
+      const existingIndex = cartItems.findIndex(
+        (it) =>
+          (String(it.productId) === String(productId) || String(it.id) === String(productId)) &&
+          (storeId == null ? true : String(it.storeId) === String(storeId))
       );
-    } else {
-      if (Number(qty) > productStock) {
-        toast.error("Stock insuficiente");
-        return { success: false, error: "stock_insufficient", available: productStock, cart: cartItems };
-      }
-      const image = product.image || (Array.isArray(product.images) && product.images[0]) || null;
-      next = [
-        ...cartItems,
-        {
-          id: product.id ?? undefined,
-          productId,
-          storeId,
-          name: product.name || product.title || "",
-          price: Number(product.price) || 0,
-          quantity: Number(qty) || 1,
-          image,
-          stock: productStock,
-          product: product.product ?? null,
-        },
-      ];
-    }
 
-    setCartItems(next);
-    saveLocal(next);
-
-    const res = await persistCart(next);
-
-    if (!res || res.success === false) {
-      if (res?.status === 401) {
-        try {
-          if (typeof window !== "undefined") {
-            sessionStorage.setItem(
-              "pendingAdd",
-              JSON.stringify({
-                items: next.map((it) => ({ productId: it.productId, quantity: it.quantity, storeId: it.storeId })),
-                ts: Date.now(),
-              })
-            );
-          }
-        } catch (e) {}
-        return { success: false, status: 401, error: "auth_required", cart: next };
+      let next;
+      if (existingIndex >= 0) {
+        const existing = cartItems[existingIndex];
+        const newQty = Number(existing.quantity || 0) + Number(qty);
+        if (newQty > productStock) {
+          toast.error("Stock insuficiente");
+          return { success: false, error: "stock_insufficient", available: productStock, cart: cartItems };
+        }
+        next = cartItems.map((it, idx) =>
+          idx === existingIndex ? { ...it, quantity: newQty } : it
+        );
+      } else {
+        if (Number(qty) > productStock) {
+          toast.error("Stock insuficiente");
+          return { success: false, error: "stock_insufficient", available: productStock, cart: cartItems };
+        }
+        const image = product.image || (Array.isArray(product.images) && product.images[0]) || null;
+        next = [
+          ...cartItems,
+          {
+            id: product.id ?? undefined,
+            productId,
+            storeId,
+            name: product.name || product.title || "",
+            price: Number(product.price) || 0,
+            quantity: Number(qty) || 1,
+            image,
+            stock: productStock,
+            product: product.product ?? null,
+          },
+        ];
       }
 
-      toast.error(res?.error || "No se pudo sincronizar con el servidor. Se guardó localmente.");
-      return { success: false, error: res?.error || "persist_failed", cart: next };
+      // Optimistic update (local)
+      setAndSave(next);
+
+      const res = await persistCart(next);
+
+      if (res && res.success) {
+        // persistCart ya llamó a setAndSave(serverItems) con broadcast true
+        return { success: true, status: res.status || 200, cart: res.cart || next };
+      }
+
+      if (!res || res.success === false) {
+        if (res?.status === 401) {
+          try {
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem(
+                "pendingAdd",
+                JSON.stringify({
+                  items: next.map((it) => ({ productId: it.productId, quantity: it.quantity, storeId: it.storeId })),
+                  ts: Date.now(),
+                })
+              );
+            }
+          } catch (e) {}
+          return { success: false, status: 401, error: "auth_required", cart: next };
+        }
+
+        toast.error(res?.error || "No se pudo sincronizar con el servidor. Se guardó localmente.");
+        return { success: false, error: res?.error || "persist_failed", cart: next };
+      }
+
+      return { success: true, status: res.status || 200, cart: res.cart || next };
+    } catch (err) {
+      toast.error(err?.message || "No se pudo agregar al carrito");
+      return { success: false, error: err?.message || String(err) };
     }
-
-    return { success: true, status: res.status || 200, cart: res.cart || next };
-  } catch (err) {
-    toast.error(err?.message || "No se pudo agregar al carrito");
-    return { success: false, error: err?.message || String(err) };
-  }
-}, [cartItems, persistCart]);
-
+  }, [cartItems, persistCart, setAndSave]);
 
   const removeFromCart = useCallback(async (idOrProductId, storeId) => {
-  console.log("[CartContext] removeFromCart called with:", idOrProductId, storeId);
+    const prev = cartItems.slice();
 
-  const prev = cartItems.slice();
+    const next = cartItems.filter((it) => {
+      const sameId = String(it.id) === String(idOrProductId);
+      const sameProductId = String(it.productId) === String(idOrProductId);
 
-  const next = cartItems.filter((it) => {
-    const sameId = String(it.id) === String(idOrProductId);
-    const sameProductId = String(it.productId) === String(idOrProductId);
+      if (!(sameId || sameProductId)) return true;
 
-    if (!(sameId || sameProductId)) return true; // no coincide → mantener
+      if (!storeId) return false;
 
-    // si coincide id/productId y no hay storeId → eliminar
-    if (!storeId) return false;
+      return String(it.storeId) !== String(storeId);
+    });
 
-    // si coincide id/productId y storeId también coincide → eliminar
-    return String(it.storeId) !== String(storeId);
-  });
+    const normalizedNext = next.map((it) => ({
+      ...it,
+      quantity: Number(it.quantity || 0),
+      productId: it.productId ?? it.id ?? null,
+    }));
 
-  const normalizedNext = next.map((it) => ({
-    ...it,
-    quantity: Number(it.quantity || 0),
-    productId: it.productId ?? it.id ?? null,
-  }));
+    // Optimistic update (local)
+    setAndSave(normalizedNext);
 
-  setCartItems(normalizedNext);
-  saveLocal(normalizedNext);
+    try {
+      const res = await persistCart(normalizedNext);
 
-  try {
-    const res = await persistCart(normalizedNext);
-    if (!res || res.success === false) {
-      setCartItems(prev);
-      saveLocal(prev);
+      if (res && res.success) {
+        // persistCart already setAndSave(serverItems) with broadcast true
+        return { success: true, cart: res.cart || normalizedNext };
+      }
+
+      // fallback: revalidate from server if persist didn't return cart
+      const get = await fetch("/api/cart", { credentials: "same-origin", headers: { Accept: "application/json" } });
+      if (get.ok) {
+        const data = await get.json().catch(() => null);
+        const items = (data?.cart?.items || []).map((it) => ({
+          id: it.id,
+          productId: it.productId ?? it.id ?? null,
+          storeId: it.storeId,
+          name: it.title ?? it.product?.title ?? "",
+          price: Number(it.price ?? it.product?.price ?? 0),
+          quantity: Number(it.quantity || 0),
+          image: it.image ?? it.product?.image ?? null,
+          product: it.product ?? null,
+        }));
+        // lectura desde servidor: no broadcast
+        setAndSave(items, { broadcast: false });
+        return { success: true, cart: items };
+      }
+
+      // revertir en fallo
+      setAndSave(prev);
       toast.error(res?.error || "No se pudo eliminar en el servidor. Se revirtió el cambio.");
       return { success: false, cart: prev };
+    } catch (err) {
+      setAndSave(prev);
+      toast.error(err?.message || "Error al eliminar en servidor");
+      return { success: false, error: err?.message || String(err), cart: prev };
     }
-    return { success: true, cart: normalizedNext };
-  } catch (err) {
-    setCartItems(prev);
-    saveLocal(prev);
-    toast.error(err?.message || "Error al eliminar en servidor");
-    return { success: false, error: err?.message || String(err), cart: prev };
-  }
-}, [cartItems, persistCart]);
-
-
+  }, [cartItems, persistCart, setAndSave]);
 
   const updateQuantity = useCallback(async (idOrProductId, storeId, quantity) => {
-  const qtyNum = Number(quantity);
-  if (!Number.isFinite(qtyNum) || qtyNum <= 0) {
-    return removeFromCart(idOrProductId, storeId);
-  }
-
-  // buscar item actual
-  const item = cartItems.find((it) => {
-    const matchesId = String(it.id ?? it.productId) === String(idOrProductId) || String(it.productId) === String(idOrProductId);
-    const storeMatches = storeId == null ? true : String(it.storeId) === String(storeId);
-    return matchesId && storeMatches;
-  });
-
-  if (!item) {
-    return { success: false, error: "item_not_found" };
-  }
-
-  const maxStock = Number(item.stock ?? item.product?.stock ?? Infinity);
-  if (qtyNum > maxStock) {
-    toast.error("Stock insuficiente");
-    return { success: false, error: "stock_insufficient", available: maxStock };
-  }
-
-  const next = cartItems.map((it) => {
-    const matchesId =
-      String(it.id ?? it.productId) === String(idOrProductId) || String(it.productId) === String(idOrProductId);
-    const storeMatches = storeId == null ? true : String(it.storeId) === String(storeId);
-    if (matchesId && storeMatches) {
-      return { ...it, quantity: qtyNum };
+    const qtyNum = Number(quantity);
+    if (!Number.isFinite(qtyNum) || qtyNum <= 0) {
+      return removeFromCart(idOrProductId, storeId);
     }
-    return it;
-  });
 
-  const normalizedNext = next.map((it) => ({ ...it, quantity: Number(it.quantity || 0), productId: it.productId ?? it.id ?? null }));
+    const item = cartItems.find((it) => {
+      const matchesId = String(it.id ?? it.productId) === String(idOrProductId) || String(it.productId) === String(idOrProductId);
+      const storeMatches = storeId == null ? true : String(it.storeId) === String(storeId);
+      return matchesId && storeMatches;
+    });
 
-  setCartItems(normalizedNext);
-  saveLocal(normalizedNext);
+    if (!item) {
+      return { success: false, error: "item_not_found" };
+    }
 
-  try {
-    const res = await persistCart(normalizedNext);
-    if (!res || res.success === false) {
-      // revertir si falla persistencia
-      setCartItems(cartItems);
-      saveLocal(cartItems);
+    const maxStock = Number(item.stock ?? item.product?.stock ?? Infinity);
+    if (qtyNum > maxStock) {
+      toast.error("Stock insuficiente");
+      return { success: false, error: "stock_insufficient", available: maxStock };
+    }
+
+    const next = cartItems.map((it) => {
+      const matchesId =
+        String(it.id ?? it.productId) === String(idOrProductId) || String(it.productId) === String(idOrProductId);
+      const storeMatches = storeId == null ? true : String(it.storeId) === String(storeId);
+      if (matchesId && storeMatches) {
+        return { ...it, quantity: qtyNum };
+      }
+      return it;
+    });
+
+    const normalizedNext = next.map((it) => ({ ...it, quantity: Number(it.quantity || 0), productId: it.productId ?? it.id ?? null }));
+
+    // Optimistic update
+    setAndSave(normalizedNext);
+
+    try {
+      const res = await persistCart(normalizedNext);
+      if (res && res.success) {
+        return { success: true, cart: res.cart || normalizedNext };
+      }
+
+      // fallback: revalidate server state
+      const get = await fetch("/api/cart", { credentials: "same-origin", headers: { Accept: "application/json" } });
+      if (get.ok) {
+        const data = await get.json().catch(() => null);
+        const items = (data?.cart?.items || []).map((it) => ({
+          id: it.id,
+          productId: it.productId ?? it.id ?? null,
+          storeId: it.storeId,
+          name: it.title ?? it.product?.title ?? "",
+          price: Number(it.price ?? it.product?.price ?? 0),
+          quantity: Number(it.quantity || 0),
+          image: it.image ?? it.product?.image ?? null,
+          product: it.product ?? null,
+        }));
+        // lectura desde servidor: no broadcast
+        setAndSave(items, { broadcast: false });
+        return { success: true, cart: items };
+      }
+
+      // revertir
+      setAndSave(cartItems);
       toast.error(res?.error || "No se pudo actualizar en el servidor. Se revirtió el cambio.");
       return { success: false, cart: cartItems };
+    } catch (err) {
+      setAndSave(cartItems);
+      toast.error(err?.message || "Error actualizando cantidad en servidor");
+      return { success: false, error: err?.message || String(err), cart: cartItems };
     }
-    return { success: true, cart: normalizedNext };
-  } catch (err) {
-    setCartItems(cartItems);
-    saveLocal(cartItems);
-    toast.error(err?.message || "Error actualizando cantidad en servidor");
-    return { success: false, error: err?.message || String(err), cart: cartItems };
-  }
-}, [cartItems, persistCart, removeFromCart]);
+  }, [cartItems, persistCart, removeFromCart, setAndSave]);
 
+  // Process pendingAdd after login (if any)
+  useEffect(() => {
+    async function processPending() {
+      if (typeof window === "undefined") return;
+      try {
+        const raw = sessionStorage.getItem("pendingAdd");
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!parsed?.items) return;
+        const res = await persistCart(parsed.items);
+        if (res && res.success) {
+          sessionStorage.removeItem("pendingAdd");
+        }
+      } catch (e) {}
+    }
+
+    if (status === "authenticated") {
+      processPending();
+    }
+  }, [status, persistCart]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -479,13 +635,18 @@ const items = (data?.cart?.items || []).map((it) => {
     cartItems,
     loading,
     persisting,
+    cartVersion,
     fetchCart,
     persistCart,
     addToCart,
     removeFromCart,
     updateQuantity,
     clearCart,
-    getTotal: () => cartItems.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0),
+    getTotal: () => cartItems.reduce((s, it) => {
+      const price = Number(it.price ?? it.product?.price ?? 0);
+      const qty = Number(it.quantity ?? 0);
+      return s + price * qty;
+    }, 0),
     getCount: () => cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0),
   };
 

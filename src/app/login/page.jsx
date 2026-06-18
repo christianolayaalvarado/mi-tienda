@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 
@@ -17,19 +17,17 @@ export default function LoginPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams?.get("callbackUrl") ?? "/";
 
   useEffect(() => {
-    // Evitar setState síncrono dentro del efecto: deferir el reset
-    const reset = setTimeout(() => setProgress(0), 0);
+    setProgress(0);
 
     const interval = setInterval(() => {
       setProgress((prev) => (prev >= 100 ? 100 : prev + 2));
     }, 70);
 
-    return () => {
-      clearTimeout(reset);
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [activeIndex]);
 
   const handleLogin = async (e) => {
@@ -48,9 +46,12 @@ export default function LoginPage() {
         email,
         password,
         redirect: false,
+        callbackUrl,
       });
 
       setLoading(false);
+
+      console.log("signIn response:", res);
 
       if (!res) {
         setError("Error de red. Intenta nuevamente");
@@ -58,17 +59,16 @@ export default function LoginPage() {
       }
 
       if (res.error) {
-        // next-auth puede devolver mensajes de error útiles
         setError(res.error || "Credenciales incorrectas");
         return;
       }
 
-      // Inicio de sesión correcto
-      router.replace("/dashboard");
+      const destination = res.url ?? callbackUrl ?? "/";
+      router.replace(destination);
     } catch (err) {
       setLoading(false);
+      console.error("login error:", err);
       setError("Ocurrió un error inesperado. Intenta de nuevo");
-      // opcional: console.error(err);
     }
   };
 
@@ -93,12 +93,7 @@ export default function LoginPage() {
             {slides.map((slide, index) => (
               <SwiperSlide key={index} className="h-full">
                 <div className="relative w-full h-full">
-                  <Image
-                    src={slide.image}
-                    alt={slide.title}
-                    fill
-                    className="object-cover"
-                  />
+                  <Image src={slide.image} alt={slide.title} fill className="object-cover" />
                   <div className="absolute inset-0 bg-black/40" />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <h2 className="text-white text-2xl md:text-3xl font-bold text-center px-4">
@@ -111,11 +106,7 @@ export default function LoginPage() {
                         <div
                           style={{
                             width:
-                              i < activeIndex
-                                ? "100%"
-                                : i === activeIndex
-                                ? `${progress}%`
-                                : "0%",
+                              i < activeIndex ? "100%" : i === activeIndex ? `${progress}%` : "0%",
                           }}
                           className="h-full bg-green-500/40 transition-all duration-75"
                         />
@@ -130,13 +121,10 @@ export default function LoginPage() {
 
         {/* DERECHA: Login */}
         <div className="md:w-1/2 w-full flex items-center justify-center px-6">
-          <form onSubmit={handleLogin} className="w-full max-w-md space-y-4" aria-labelledby="login-heading">
-            <h2 id="login-heading" className="text-2xl font-bold text-center">Iniciar sesión</h2>
+          <form onSubmit={handleLogin} className="w-full max-w-md space-y-4">
+            <h2 className="text-2xl font-bold text-center">Iniciar sesión</h2>
 
-            <label className="sr-only" htmlFor="email">Correo</label>
             <input
-              id="email"
-              name="email"
               type="email"
               disabled={loading}
               placeholder="Correo"
@@ -148,15 +136,9 @@ export default function LoginPage() {
               className={`w-full border p-3 rounded-lg outline-none ${
                 error ? "border-red-500" : "focus:ring-2 focus:ring-green-500"
               }`}
-              aria-invalid={!!error}
-              aria-describedby={error ? "login-error" : undefined}
-              required
             />
 
-            <label className="sr-only" htmlFor="password">Contraseña</label>
             <input
-              id="password"
-              name="password"
               type="password"
               disabled={loading}
               placeholder="Contraseña"
@@ -168,25 +150,17 @@ export default function LoginPage() {
               className={`w-full border p-3 rounded-lg outline-none ${
                 error ? "border-red-500" : "focus:ring-2 focus:ring-green-500"
               }`}
-              aria-invalid={!!error}
-              aria-describedby={error ? "login-error" : undefined}
-              required
             />
 
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-green-600 text-white py-2 rounded disabled:opacity-50"
-              aria-busy={loading}
             >
               {loading ? "Ingresando..." : "Ingresar"}
             </button>
 
-            {error && (
-              <p id="login-error" className="text-red-500 text-sm text-center" role="alert">
-                {error}
-              </p>
-            )}
+            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
           </form>
         </div>
       </div>

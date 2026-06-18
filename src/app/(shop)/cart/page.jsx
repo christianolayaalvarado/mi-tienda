@@ -2,12 +2,11 @@
 "use client";
 
 /**
- * Cart page actualizado:
- * - Edición inline de cantidad con bloqueo por stock y debounce.
- * - Aviso transitorio "El carrito está vacío" que se cierra automáticamente.
- * - Modal reutilizable para confirmaciones.
+ * Cart page:
+ * - Edición inline de cantidad con debounce y bloqueo por stock.
  * - Animación de colapso al eliminar items.
- * - Sincronización con CartContext y safeParseLocalCart.
+ * - Sincronización automática con CartContext (cartVersion + eventos + BroadcastChannel).
+ * - Fallbacks a localStorage y revalidación segura.
  */
 
 import React, { useEffect, useState, useRef } from "react";
@@ -91,7 +90,15 @@ function ModalConfirm({
    CartPage
    ------------------------- */
 export default function CartPage() {
-  const { cartItems, removeFromCart, clearCart, fetchCart, updateQuantity } = useCart();
+  const {
+    cartItems,
+    removeFromCart,
+    clearCart,
+    fetchCart,
+    updateQuantity,
+    cartVersion,
+  } = useCart();
+
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -125,7 +132,31 @@ export default function CartPage() {
   // TAX_RATE local fallback (solo si backend no responde)
   const TAX_RATE_FALLBACK = 0.18; // 18% ejemplo
 
-  // Mapear displayItems a partir de cartItems o localStorage
+  // mounted para evitar hydration mismatch en elementos que dependen del cliente
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Evitar doble revalidación inicial (Strict Mode / múltiples efectos)
+  const skipInitialRevalidateRef = useRef(true);
+
+  // Helper: mapear items del servidor/context a displayItems
+  const mapServerItemsToDisplay = (items) =>
+    (items || []).map((it) => ({
+      id: it.id,
+      productId: it.productId ?? it.id ?? null,
+      storeId: it.storeId,
+      title: it.title || it.name || it.product?.title || "",
+      price: Number(it.price || 0),
+      quantity: Number(it.quantity || 0),
+      image:
+        it.image ||
+        it.product?.image ||
+        (Array.isArray(it.product?.images) && it.product.images[0]) ||
+        null,
+      stock: it.stock ?? it.product?.stock ?? undefined,
+    }));
+
+  // Inicializar displayItems desde localStorage o cartItems (si ya hay)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -143,68 +174,13 @@ export default function CartPage() {
           stock: it.stock ?? undefined,
         }))
       );
+    } else if (Array.isArray(cartItems) && cartItems.length > 0) {
+      setDisplayItems(mapServerItemsToDisplay(cartItems));
     } else {
       setDisplayItems([]);
     }
-
-    (async () => {
-      try {
-        if (status === "loading") return;
-        const user = await fetchSession();
-        if (!user) return;
-
-        setLoadingServer(true);
-        if (typeof fetchCart === "function") {
-          const res = await fetchCart();
-          if (res?.cart?.items && Array.isArray(res.cart.items) && res.cart.items.length > 0) {
-            const mapped = res.cart.items.map((it) => ({
-              id: it.id,
-              productId: it.productId ?? it.id ?? null,
-              storeId: it.storeId,
-              title: it.title || it.product?.title || it.name || "",
-              price: Number(it.price || 0),
-              quantity: Number(it.quantity || 0),
-              image:
-                it.image ||
-                it.product?.image ||
-                (Array.isArray(it.product?.images) && it.product.images[0]) ||
-                null,
-              stock: it.stock ?? it.product?.stock ?? undefined,
-            }));
-            setDisplayItems(mapped);
-          }
-        } else {
-          const res = await fetch("/api/cart", { credentials: "include", headers: { Accept: "application/json" } });
-          if (!res.ok) {
-            setLoadingServer(false);
-            return;
-          }
-          const data = await res.json().catch(() => null);
-          const serverItems = (data?.cart?.items || []).map((it) => ({
-            id: it.id,
-            productId: it.productId ?? it.id ?? null,
-            storeId: it.storeId,
-            title: it.title || it.product?.title || it.name || "",
-            price: Number(it.price || 0),
-            quantity: Number(it.quantity || 0),
-            image:
-              it.image ||
-              it.product?.image ||
-              (Array.isArray(it.product?.images) && it.product.images[0]) ||
-              null,
-            stock: it.stock ?? it.product?.stock ?? undefined,
-          }));
-          if (serverItems.length > 0) setDisplayItems(serverItems);
-        }
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn("Error sincronizando carrito:", err);
-      } finally {
-        setLoadingServer(false);
-      }
-    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, []);
 
   // Sincronizar displayItems cuando cartItems del contexto cambian
   useEffect(() => {
@@ -234,7 +210,6 @@ export default function CartPage() {
 
     if (missing.length === 0) return;
 
-    // evitar llamadas duplicadas
     const unique = Array.from(new Set(missing));
     unique.forEach(async (pid) => {
       try {
@@ -245,7 +220,6 @@ export default function CartPage() {
         const stock = typeof data.stock === "number" ? data.stock : data.available ?? null;
         if (stock === null || stock === undefined) return;
         setStockMap((prev) => ({ ...prev, [pid]: stock }));
-        // también actualizar displayItems entry.stock para reflejarlo en la UI
         setDisplayItems((prev) => prev.map((it) => (String(it.productId) === String(pid) ? { ...it, stock } : it)));
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -255,7 +229,159 @@ export default function CartPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayItems]);
 
-  // Cálculos de resumen
+  // Revalidar cuando cartVersion cambie o cuando se dispare evento cart:updated
+  useEffect(() => {
+    let mountedFlag = true;
+
+    async function revalidate() {
+      try {
+        if (typeof fetchCart === "function") {
+          setLoadingServer(true);
+          const res = await fetchCart();
+          if (!mountedFlag) return;
+          if (res?.cart?.items && Array.isArray(res.cart.items)) {
+            setDisplayItems(mapServerItemsToDisplay(res.cart.items));
+            if ((res.cart.items || []).length === 0) {
+              setShowEmptyNotice(true);
+              setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
+            }
+          } else {
+            setDisplayItems([]);
+          }
+        } else {
+          setLoadingServer(true);
+          const r = await fetch("/api/cart", { credentials: "same-origin", headers: { Accept: "application/json" } });
+          if (!mountedFlag) return;
+          if (r.ok) {
+            const data = await r.json().catch(() => null);
+            const items = mapServerItemsToDisplay(data?.cart?.items || []);
+            setDisplayItems(items);
+            if (items.length === 0) {
+              setShowEmptyNotice(true);
+              setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
+            }
+          }
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("Error revalidando carrito:", err);
+      } finally {
+        if (mountedFlag) setLoadingServer(false);
+      }
+    }
+
+    // Si es la primera vez que se monta, ejecutar una única revalidación controlada y evitar continuar con el resto del efecto
+    if (skipInitialRevalidateRef.current) {
+      skipInitialRevalidateRef.current = false;
+      (async () => {
+        try {
+          if (typeof fetchCart === "function") {
+            setLoadingServer(true);
+            const res = await fetchCart();
+            if (!mountedFlag) return;
+            if (res?.cart?.items && Array.isArray(res.cart.items)) {
+              setDisplayItems(mapServerItemsToDisplay(res.cart.items));
+              if ((res.cart.items || []).length === 0) {
+                setShowEmptyNotice(true);
+                setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
+              }
+            } else {
+              setDisplayItems([]);
+            }
+          } else {
+            setLoadingServer(true);
+            const r = await fetch("/api/cart", { credentials: "same-origin", headers: { Accept: "application/json" } });
+            if (!mountedFlag) return;
+            if (r.ok) {
+              const data = await r.json().catch(() => null);
+              const items = mapServerItemsToDisplay(data?.cart?.items || []);
+              setDisplayItems(items);
+              if (items.length === 0) {
+                setShowEmptyNotice(true);
+                setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
+              }
+            }
+          }
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn("Initial revalidate failed:", err);
+        } finally {
+          if (mountedFlag) setLoadingServer(false);
+        }
+      })();
+      // Salimos del efecto para evitar la revalidación duplicada inicial
+      return () => {
+        mountedFlag = false;
+      };
+    }
+
+    // Revalidate on cartVersion change
+    revalidate();
+
+    // Listen to window event (dispatched by CartContext) for same-tab updates
+    let debounceTimer = null;
+    const onCartUpdated = (ev) => {
+      try {
+        const origin = ev?.detail?.origin;
+        if (origin && origin === window.__MI_TIENDA_TAB_ID__) return;
+      } catch (e) {}
+      if (loadingServer) return;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        revalidate();
+      }, 120);
+    };
+    window.addEventListener("cart:updated", onCartUpdated);
+
+    // Also listen to storage changes (other tabs)
+    const onStorage = (e) => {
+      if (e.key === "mi_tienda_cart_last_update") {
+        if (loadingServer) return;
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          revalidate();
+        }, 120);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      mountedFlag = false;
+      window.removeEventListener("cart:updated", onCartUpdated);
+      window.removeEventListener("storage", onStorage);
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartVersion, fetchCart, loadingServer]);
+
+  // Escuchar BroadcastChannel (opcional) para sincronizar entre pestañas
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("BroadcastChannel" in window)) return;
+    const bc = new BroadcastChannel("mi_tienda_cart_channel");
+    const handler = (ev) => {
+      try {
+        const msg = ev?.data;
+        if (!msg || typeof msg !== "object") return;
+        if (msg.type !== "cart:updated") return;
+        if (msg.origin === window.__MI_TIENDA_TAB_ID__) return;
+        if (loadingServer) return;
+        // revalidate via fetchCart
+        if (typeof fetchCart === "function") {
+          fetchCart().then((res) => {
+            if (res?.cart?.items) setDisplayItems(mapServerItemsToDisplay(res.cart.items));
+          }).catch(() => {});
+        }
+      } catch (e) {}
+    };
+    bc.addEventListener("message", handler);
+    return () => bc.removeEventListener("message", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchCart, loadingServer]);
+
+  /* -------------------------
+     Cálculos de resumen
+     ------------------------- */
   const subtotal = (displayItems || []).reduce(
     (s, it) => s + Number(it.price || 0) * Number(it.quantity || 0),
     0
@@ -270,14 +396,11 @@ export default function CartPage() {
 
   /* -------------------------
      Cantidad inline: handlers
-     - handleChangeQuantity: aplica optimista y debounce la actualización real
-     - canIncrease: verifica stockMap / item.stock
      ------------------------- */
   const canIncrease = (item) => {
     const pid = item.productId ?? item.id;
     const knownStock = item.stock ?? stockMap[pid];
     if (knownStock === undefined || knownStock === null) {
-      // si no conocemos stock, permitir (pero la llamada backend puede fallar)
       return true;
     }
     return Number(item.quantity || 0) < Number(knownStock);
@@ -285,10 +408,8 @@ export default function CartPage() {
 
   const handleChangeQuantity = (item, newQty) => {
     const idKey = String(item.id ?? item.productId);
-    // límite mínimo 1
     if (newQty < 1) newQty = 1;
 
-    // Si stock conocido y newQty > stock, bloquear y notificar
     const pid = item.productId ?? item.id;
     const knownStock = item.stock ?? stockMap[pid];
     if (knownStock !== undefined && newQty > knownStock) {
@@ -296,28 +417,22 @@ export default function CartPage() {
       return;
     }
 
-    // Actualización optimista en UI
     setDisplayItems((prev) => prev.map((it) => (String(it.id ?? it.productId) === idKey ? { ...it, quantity: newQty } : it)));
 
-    // Limpiar timer previo
     if (qtyTimers.current[idKey]) {
       clearTimeout(qtyTimers.current[idKey]);
     }
 
-    // Debounce: esperar antes de llamar al backend/context
     qtyTimers.current[idKey] = setTimeout(async () => {
       try {
-        // Si tu contexto tiene updateQuantity, úsalo; si no, puedes llamar a una API
         if (typeof updateQuantity === "function") {
           const res = await updateQuantity(idKey, newQty);
           if (!res || res.success === false) {
-            // revertir si falla
             setDisplayItems((prev) => prev.map((it) => (String(it.id ?? it.productId) === idKey ? { ...it, quantity: item.quantity } : it)));
             toast.error(res?.error || "No se pudo actualizar la cantidad");
             return;
           }
         } else {
-          // fallback: llamar a API /api/cart/update
           const res = await fetch("/api/cart/update", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -325,22 +440,17 @@ export default function CartPage() {
             body: JSON.stringify({ productId: pid, quantity: newQty }),
           });
           if (!res.ok) {
-            // revertir
             setDisplayItems((prev) => prev.map((it) => (String(it.id ?? it.productId) === idKey ? { ...it, quantity: item.quantity } : it)));
             toast.error("No se pudo actualizar la cantidad");
             return;
           }
         }
-        // éxito: opcionalmente refrescar cart context
         if (typeof fetchCart === "function") {
           try {
             await fetchCart();
-          } catch (e) {
-            // ignore
-          }
+          } catch (e) {}
         }
       } catch (err) {
-        // revertir en error
         setDisplayItems((prev) => prev.map((it) => (String(it.id ?? it.productId) === idKey ? { ...it, quantity: item.quantity } : it)));
         // eslint-disable-next-line no-console
         console.error("Error actualizando cantidad:", err);
@@ -348,12 +458,21 @@ export default function CartPage() {
       } finally {
         delete qtyTimers.current[idKey];
       }
-    }, 350); // debounce 350ms
+    }, 350);
   };
 
   /* -------------------------
      Eliminación: performRemove y confirm flow
      ------------------------- */
+  const triggerEmptyNotice = () => {
+    setShowEmptyNotice(true);
+    // cerrar cualquier modal abierto
+    setShowClearModal(false);
+    setItemToConfirm(null);
+    // auto-dismiss
+    setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
+  };
+
   const performRemove = async (item) => {
     const idOrProductId = item.id ?? item.productId;
     if (!idOrProductId) {
@@ -383,63 +502,85 @@ export default function CartPage() {
         return;
       }
 
-      const el = itemRefs.current[String(idOrProductId)];
-      if (!el) {
+      // Asegurar que displayItems refleje el cambio localmente si no fue así.
+      const existsInDisplay = displayItems.some((x) => String(x.id ?? x.productId) === String(idOrProductId));
+      if (existsInDisplay) {
         setDisplayItems((prev) => prev.filter((x) => String(x.id ?? x.productId) !== String(idOrProductId)));
-        setRemovingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(String(idOrProductId));
-          return next;
-        });
-        toast.success("Producto eliminado");
-        // si quedó vacío, mostrar aviso transitorio
-        setTimeout(() => {
-          if ((displayItems.length - 1) <= 0) {
-            triggerEmptyNotice();
-          }
-        }, 50);
-        return;
       }
 
-      const measuredHeight = el.scrollHeight;
-      setCollapsing((prev) => ({ ...prev, [String(idOrProductId)]: measuredHeight }));
-
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          setCollapsing((prev) => ({ ...prev, [String(idOrProductId)]: 0 }));
-        }, 10);
-      });
-
-      setTimeout(() => {
-        setDisplayItems((prev) => {
-          const next = prev.filter((x) => String(x.id ?? x.productId) !== String(idOrProductId));
-          // si quedó vacío, mostrar aviso transitorio
-          if (next.length === 0) {
-            triggerEmptyNotice();
-          }
-          return next;
-        });
-        setCollapsing((prev) => {
-          const next = { ...prev };
-          delete next[String(idOrProductId)];
-          return next;
-        });
-        setRemovingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(String(idOrProductId));
-          return next;
-        });
-        toast.success("Producto eliminado");
-      }, ANIMATION_DURATION + 20);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Error eliminando item:", err);
       setRemovingIds((prev) => {
         const next = new Set(prev);
         next.delete(String(idOrProductId));
         return next;
       });
-      toast.error("Error eliminando el producto");
+
+      toast.success("Producto eliminado");
+
+      // si quedó vacío, mostrar aviso transitorio
+      setTimeout(() => {
+        if ((displayItems.length - 1) <= 0) {
+          triggerEmptyNotice();
+        }
+      }, 50);
+    } catch (err) {
+      setRemovingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(String(idOrProductId));
+        return next;
+      });
+      // eslint-disable-next-line no-console
+      console.error("Error en performRemove:", err);
+      toast.error("Error eliminando producto");
+    }
+  };
+
+  const handleRemove = async (idOrProductId, storeId) => {
+    const idKey = idOrProductId;
+    const el = itemRefs.current[idKey];
+    if (el && el.getBoundingClientRect) {
+      try {
+        const measuredHeight = el.scrollHeight;
+        setCollapsing((prev) => ({ ...prev, [String(idOrProductId)]: measuredHeight }));
+
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            setCollapsing((prev) => ({ ...prev, [String(idOrProductId)]: 0 }));
+          }, 10);
+        });
+
+        setTimeout(async () => {
+          setDisplayItems((prev) => {
+            const next = prev.filter((x) => String(x.id ?? x.productId) !== String(idOrProductId));
+            if (next.length === 0) {
+              triggerEmptyNotice();
+            }
+            return next;
+          });
+          setCollapsing((prev) => {
+            const next = { ...prev };
+            delete next[String(idOrProductId)];
+            return next;
+          });
+          setRemovingIds((prev) => {
+            const next = new Set(prev);
+            next.delete(String(idOrProductId));
+            return next;
+          });
+
+          await performRemove({ id: idOrProductId, productId: idOrProductId, storeId });
+        }, ANIMATION_DURATION + 20);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error("Error eliminando item:", err);
+        setRemovingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(String(idOrProductId));
+          return next;
+        });
+        toast.error("Error eliminando el producto");
+      }
+    } else {
+      await performRemove({ id: idOrProductId, productId: idOrProductId, storeId });
     }
   };
 
@@ -459,22 +600,12 @@ export default function CartPage() {
   const openClearModal = () => setShowClearModal(true);
   const closeClearModal = () => setShowClearModal(false);
 
-  const triggerEmptyNotice = () => {
-    setShowEmptyNotice(true);
-    // cerrar cualquier modal abierto
-    setShowClearModal(false);
-    setItemToConfirm(null);
-    // auto-dismiss
-    setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
-  };
-
   const handleClearCartConfirm = async () => {
     try {
       const res = await clearCart();
       if (res && res.success) {
         setDisplayItems([]);
         toast.success("Carrito vaciado");
-        // mostrar aviso transitorio
         triggerEmptyNotice();
 
         if (typeof fetchCart === "function") {
@@ -630,6 +761,13 @@ export default function CartPage() {
       </div>
     );
   }
+
+  /* -------------------------
+     Render principal (cuando hay items)
+     ------------------------- */
+  const subtotalDisplay = subtotal;
+  const taxes = taxEstimate;
+  const total = totalDisplayed;
 
   // Item count for header
   const totalItemsCount = (displayItems || []).reduce((acc, it) => acc + Number(it.quantity || 0), 0);

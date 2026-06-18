@@ -1,224 +1,198 @@
-// app/api/cart/route.js
+// src/app/api/cart/route.js
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
+import prisma from "@/lib/prisma";
 
 /**
- * Helper: extraer userId desde session de forma consistente.
+ * GET /api/cart
  */
-async function resolveUserIdFromSession(session) {
-  if (!session) return null;
-  if (session.user?.id) return session.user.id;
-  if (session.user?.email) {
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-    return user?.id ?? null;
-  }
-  return null;
-}
-
-/**
- * Helper: logging para 401 (útil en Vercel)
- */
-function logUnauthorized(req, note = "") {
-  try {
-    const forwarded = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    const ua = req.headers.get("user-agent") || "unknown";
-    const referer = req.headers.get("referer") || "unknown";
-    console.warn(`[API CART] 401 unauth - ${note} - ip:${forwarded} ua:${ua} referer:${referer} ts:${new Date().toISOString()}`);
-  } catch (e) {
-    console.warn("[API CART] 401 unauth (logging failed)", e);
-  }
-}
-
 export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      logUnauthorized(req, "GET no session");
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "auth_required" }, { status: 401 });
     }
 
-    const userId = await resolveUserIdFromSession(session);
-    if (!userId) {
-      return NextResponse.json({ cart: { items: [] } }, { status: 200 });
-    }
+    const userId = String(session.user.id);
 
     const cart = await prisma.cart.findFirst({
       where: { userId },
       include: { items: { include: { product: true } } },
     });
 
-    if (!cart) return NextResponse.json({ cart: { items: [] } }, { status: 200 });
+    if (!cart) {
+      return NextResponse.json({ cart: { items: [] } });
+    }
 
-    return NextResponse.json({
-      cart: {
-        id: cart.id,
-        userId: cart.userId,
-        items: cart.items.map(it => ({
-          id: it.id,
-          productId: it.productId,
-          storeId: it.storeId,
-          title: it.title,
-          price: it.price,
-          quantity: it.quantity,
-          image: it.image,
-          stock: it.product?.stock ?? 0,
-        }))
-      }
-    }, { status: 200 });
+    const enrichedItems = (cart.items || []).map((it) => ({
+      id: it.id,
+      productId: it.productId,
+      storeId: it.storeId,
+      title: it.title ?? it.product?.title ?? "",
+      price:
+        typeof it.price !== "undefined" && it.price !== null
+          ? Number(it.price)
+          : it.product?.price
+            ? Number(it.product.price)
+            : 0,
+      quantity: Number(it.quantity || 0),
+      image: it.image ?? it.product?.image ?? "",
+      product: it.product ?? null,
+      createdAt: it.createdAt,
+    }));
+
+    const enrichedCart = { ...cart, items: enrichedItems };
+
+    console.log(
+      "[API CART GET] enrichedCart:",
+      JSON.stringify({ userId, itemsCount: enrichedItems.length }, null, 2)
+    );
+
+    return NextResponse.json({ cart: enrichedCart });
   } catch (err) {
-    console.error("🔥 ERROR GET CART:", err?.message || err);
-    return NextResponse.json({ error: "server_error", details: "Error obteniendo carrito" }, { status: 500 });
+    console.error("[API CART GET] error:", err);
+    return NextResponse.json(
+      { error: "internal_error", message: String(err) },
+      { status: 500 }
+    );
   }
 }
 
+/**
+ * POST /api/cart
+ * Replace/create items for the user's cart
+ */
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      logUnauthorized(req, "POST no session");
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "auth_required" }, { status: 401 });
     }
+    const userId = String(session.user.id);
+    const body = await req.json().catch(() => ({}));
+    const items = Array.isArray(body.items) ? body.items : [];
 
-    const userId = await resolveUserIdFromSession(session);
-    if (!userId) {
-      return NextResponse.json({ error: "bad_request", details: "Usuario no identificado" }, { status: 400 });
-    }
+    const normalized = items
+      .map((it) => ({
+        productId: it.productId ?? it.id ?? null,
+        quantity: Number(it.quantity || 0),
+        storeId: it.storeId ?? null,
+        price:
+          typeof it.price !== "undefined" && it.price !== null
+            ? Number(it.price)
+            : undefined,
+        title: it.title ?? undefined,
+        image: it.image ?? undefined,
+      }))
+      .filter(
+        (it) =>
+          it.productId != null &&
+          it.productId !== "" &&
+          Number.isFinite(it.quantity) &&
+          it.quantity > 0
+      );
 
-    const body = await req.json().catch(() => null);
-    if (!body) return NextResponse.json({ error: "bad_request", details: "Payload inválido" }, { status: 400 });
-
-    const { items } = body;
-    if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: "bad_request", details: "Items inválidos" }, { status: 400 });
-    }
-
-    const invalid = items.find((it) => !it || !it.productId || typeof it.quantity !== "number");
-    if (invalid) {
-      return NextResponse.json({ error: "bad_request", details: "Algún item tiene campos faltantes (productId, quantity)" }, { status: 400 });
-    }
-
-    const enriched = [];
-    for (const it of items) {
-      const product = await prisma.product.findUnique({ where: { id: it.productId } });
-      if (!product) {
-        return NextResponse.json({ error: "bad_request", details: `Producto no encontrado: ${it.productId}` }, { status: 400 });
-      }
-
-      if (Number(it.quantity) > Number(product.stock ?? 0)) {
-        return NextResponse.json({ error: "stock_insufficient", available: product.stock }, { status: 400 });
-      }
-
-      enriched.push({
-        productId: it.productId,
-        quantity: Number(it.quantity),
-        title: product.title || product.name || "Sin título",
-        price: Number(product.price || 0),
-        storeId: product.storeId || it.storeId || null,
-        image: product.images?.[0] || product.image || "/images/placeholder.png",
-        stock: product.stock ?? 0,
-      });
-    }
-
-    let cart = await prisma.cart.findFirst({ where: { userId }, include: { items: true } });
-
+    let cart = await prisma.cart.findFirst({ where: { userId } });
     if (!cart) {
-      cart = await prisma.cart.create({
-        data: {
-          userId,
-          items: {
-            create: enriched.map((e) => ({
-              productId: e.productId,
-              quantity: e.quantity,
-              title: e.title,
-              price: e.price,
-              storeId: e.storeId,
-              image: e.image,
-            })),
-          },
-        },
-        include: { items: { include: { product: true } } },
-      });
-    } else {
-      await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
-
-      try {
-        await prisma.cartItem.createMany({
-          data: enriched.map((e) => ({
-            cartId: cart.id,
-            productId: e.productId,
-            quantity: e.quantity,
-            title: e.title,
-            price: e.price,
-            storeId: e.storeId,
-            image: e.image,
-          })),
-        });
-      } catch (e) {
-        for (const item of enriched) {
-          await prisma.cartItem.create({
-            data: {
-              cartId: cart.id,
-              productId: item.productId,
-              quantity: item.quantity,
-              title: item.title,
-              price: item.price,
-              storeId: item.storeId,
-              image: item.image,
-            },
-          });
-        }
-      }
-
-      cart = await prisma.cart.findUnique({
-        where: { id: cart.id },
-        include: { items: { include: { product: true } } },
-      });
+      cart = await prisma.cart.create({ data: { userId } });
     }
 
-    return NextResponse.json({
-      cart: {
-        id: cart.id,
-        userId: cart.userId,
-        items: cart.items.map(it => ({
-          id: it.id,
-          productId: it.productId,
-          storeId: it.storeId,
-          title: it.title,
-          price: it.price,
-          quantity: it.quantity,
-          image: it.image,
-          stock: it.product?.stock ?? 0,
-        }))
-      }
-    }, { status: 200 });
+    // Remove previous items (replace behavior)
+    await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+    // Fetch products to enrich fallback values
+    const productIds = [...new Set(normalized.map((i) => i.productId))];
+    const products =
+      productIds.length > 0
+        ? await prisma.product.findMany({ where: { id: { in: productIds } } })
+        : [];
+    const prodMap = Object.fromEntries(products.map((p) => [String(p.id), p]));
+
+    const createManyData = normalized.map((it) => {
+      const prod = prodMap[String(it.productId)];
+      const priceToSave =
+        typeof it.price !== "undefined" ? it.price : prod?.price ?? 0;
+
+      return {
+        cartId: cart.id,
+        productId: it.productId,
+        quantity: it.quantity,
+        storeId: it.storeId ?? null,
+        price: priceToSave,
+        title: prod?.title ?? it.title ?? "",
+        image: prod?.image ?? it.image ?? "",
+      };
+    });
+
+    // Debug: log createManyData shape (remove after debugging)
+    console.log("[API CART POST] createManyData:", JSON.stringify(createManyData, null, 2));
+
+    if (createManyData.length > 0) {
+      // NOTE: skipDuplicates removed because Mongo connector doesn't support it
+      await prisma.cartItem.createMany({ data: createManyData });
+      // If you need to avoid duplicates on Mongo, consider creating items one-by-one:
+      // for (const row of createManyData) {
+      //   await prisma.cartItem.create({ data: row }).catch(e => console.warn("create item error", e));
+      // }
+    }
+
+    const updated = await prisma.cart.findUnique({
+      where: { id: cart.id },
+      include: { items: { include: { product: true } } },
+    });
+
+    const enrichedItems = (updated.items || []).map((it) => ({
+      id: it.id,
+      productId: it.productId,
+      storeId: it.storeId,
+      title: it.title ?? it.product?.title ?? "",
+      price:
+        typeof it.price !== "undefined" && it.price !== null
+          ? Number(it.price)
+          : it.product?.price
+            ? Number(it.product.price)
+            : 0,
+      quantity: Number(it.quantity || 0),
+      image: it.image ?? it.product?.image ?? "",
+      product: it.product ?? null,
+      createdAt: it.createdAt,
+    }));
+
+    return NextResponse.json({ cart: { ...updated, items: enrichedItems } });
   } catch (err) {
-    console.error("🔥 ERROR POST CART:", err?.message || err);
-    return NextResponse.json({ error: "server_error", details: "Error actualizando carrito" }, { status: 500 });
+    console.error("[API CART POST] error:", err);
+    return NextResponse.json(
+      { error: "internal_error", message: String(err) },
+      { status: 500 }
+    );
   }
 }
 
+/**
+ * DELETE /api/cart
+ */
 export async function DELETE(req) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      logUnauthorized(req, "DELETE no session");
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "auth_required" }, { status: 401 });
     }
-
-    const userId = await resolveUserIdFromSession(session);
-    if (!userId) return NextResponse.json({ success: true }, { status: 200 });
+    const userId = String(session.user.id);
 
     const cart = await prisma.cart.findFirst({ where: { userId } });
-    if (!cart) return NextResponse.json({ success: true }, { status: 200 });
+    if (!cart) {
+      return NextResponse.json({ success: true, cart: null });
+    }
 
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
-    await prisma.cart.delete({ where: { id: cart.id } });
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({ success: true, cart: { items: [] } });
   } catch (err) {
-    console.error("🔥 ERROR DELETE CART:", err?.message || err);
-    return NextResponse.json({ error: "server_error", details: "Error eliminando carrito" }, { status: 500 });
+    console.error("[API CART DELETE] error:", err);
+    return NextResponse.json(
+      { error: "internal_error", message: String(err) },
+      { status: 500 }
+    );
   }
 }
