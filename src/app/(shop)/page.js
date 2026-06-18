@@ -10,8 +10,7 @@ export const metadata = {
     url: "https://mi-tienda-app-theta.vercel.app/?page=1",
     images: [
       {
-        // URL absoluta a la imagen en public/images/og/mi-og.jpg
-        url: "https://mi-tienda-app-git-master-christianolayaalvarados-projects.vercel.app/?page=1",
+        url: "https://mi-tienda-app-theta.vercel.app/images/og/mi-og.jpg?v=1",
         width: 800,
         height: 630,
         alt: "Venta de productos en Mi Tienda",
