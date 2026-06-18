@@ -15,6 +15,17 @@ export async function middleware(req: NextRequest) {
     // Solo comprobar token cuando la ruta lo requiera (evita coste en todas las peticiones)
     if (pathname.startsWith("/dashboard")) {
       const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+      console.log("[middleware] pathname:", pathname, "tokenExists:", !!token);
+
+      // Intento seguro de leer cookies (Edge runtime puede exponer req.cookies)
+      try {
+        const cookies: Record<string, string> = {};
+        for (const [k, v] of req.cookies.entries()) cookies[k] = v;
+        console.log("[middleware] cookies:", cookies);
+      } catch (e) {
+        console.log("[middleware] cookies read error:", e?.message ?? e);
+      }
+
       if (!token) {
         const loginUrl = new URL("/login", req.url);
         loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);

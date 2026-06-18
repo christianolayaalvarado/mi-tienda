@@ -1,4 +1,4 @@
-// lib/authOptions.js
+// src/lib/authOptions.js
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcrypt";
@@ -57,6 +57,7 @@ export const authOptions = {
         token.name = user.name ?? token.name;
         token.store = user.store ?? token.store;
         token.storeCode = user.storeCode ?? token.storeCode;
+        console.log("[next-auth][jwt] created token for:", token.email ?? token.id);
       }
       return token;
     },
@@ -72,12 +73,13 @@ export const authOptions = {
           store: token.store,
           storeCode: token.storeCode,
         };
+        console.log("[next-auth][session] session for:", session.user.email ?? session.user.id);
       }
       return session;
     },
   },
 
-  // Configuración de cookies: secure solo en producción
+  // Configuración de cookies: explícita y con secure true (HTTPS)
   cookies: {
     sessionToken: {
       name: "next-auth.session-token",
@@ -85,7 +87,9 @@ export const authOptions = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
+        // Si necesitas soporte para subdominios, descomenta y ajusta:
+        // domain: process.env.NODE_ENV === "production" ? "mi-tienda-app-theta.vercel.app" : undefined,
       },
     },
   },
