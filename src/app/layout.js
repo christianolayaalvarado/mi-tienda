@@ -21,6 +21,26 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Mi tienda",
   description: "Catálogo de productos",
+  openGraph: {
+    type: "website",
+    title: "Mi Tienda — Productos",
+    description: "Encuentra los mejores productos en Mi Tienda",
+    url: "https://mi-tienda-app-theta.vercel.app/?page=1",
+    images: [
+      {
+        url: "https://mi-tienda-app-theta.vercel.app/images/og/mi-og.jpg?v=1",
+        width: 800,
+        height: 630,
+        alt: "Venta de productos en Mi Tienda",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mi Tienda — Productos",
+    description: "Encuentra los mejores productos en Mi Tienda",
+    images: ["https://mi-tienda-app-theta.vercel.app/images/og/mi-og.jpg?v=1"],
+  },
 };
 
 export default function RootLayout({ children }) {
