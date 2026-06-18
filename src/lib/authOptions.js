@@ -14,27 +14,64 @@ export const authOptions = {
         email: { label: "Correo", type: "text" },
         password: { label: "Contraseña", type: "password" },
       },
+
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            console.log("[auth][authorize] missing credentials");
+            return null;
+          }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
-          include: { stores: true },
-        });
+          const email = credentials.email.toLowerCase();
+          console.log("[auth][authorize] lookup:", email);
 
-        if (!user || !user.password) return null;
+          const user = await prisma.user.findUnique({
+            where: { email },
+            include: { stores: true },
+          });
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) return null;
+          if (!user) {
+            console.log("[auth][authorize] user not found:", email);
+            return null;
+          }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          store: user.stores?.[0]?.name || "",
-          storeCode: user.stores?.[0]?.code || "",
-        };
+          if (!user.password) {
+            console.log("[auth][authorize] user has no password:", email);
+            return null;
+          }
+
+          // Intentar bcrypt; si falla por binario, usar bcryptjs como fallback
+          let isValid = false;
+          try {
+            isValid = await bcrypt.compare(credentials.password, user.password);
+          } catch (e) {
+            console.log("[auth][authorize] bcrypt.compare error, falling back to bcryptjs:", e?.message);
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const bcryptjs = require("bcryptjs");
+            isValid = bcryptjs.compareSync(credentials.password, user.password);
+          }
+
+          console.log("[auth][authorize] password valid:", !!isValid, "for:", email);
+          if (!isValid) return null;
+
+          console.log("[auth][authorize] success:", email); return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            store: user.stores?.[0]?.name || "",
+            storeCode: user.stores?.[0]?.code || "",
+          };
+        } catch (err) {
+          console.error("[auth][authorize] unexpected error:", err);
+          return null;
+        }
       },
+
+
+
+
+
+
     }),
   ],
 
