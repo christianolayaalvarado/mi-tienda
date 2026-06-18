@@ -14,17 +14,36 @@ export async function middleware(req: NextRequest) {
 
     // Solo comprobar token cuando la ruta lo requiera (evita coste en todas las peticiones)
     if (pathname.startsWith("/dashboard")) {
-      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-      console.log("[middleware] pathname:", pathname, "tokenExists:", !!token);
+      // Intentar leer cookie de forma compatible con Edge runtime
+      let sessionCookie = undefined;
 
-      // Intento seguro de leer cookies (Edge runtime puede exponer req.cookies)
       try {
-        const cookies: Record<string, string> = {};
-        for (const [k, v] of req.cookies.entries()) cookies[k] = v;
-        console.log("[middleware] cookies:", cookies);
+        // Intento directo por nombre (NextRequest.cookies.get)
+        sessionCookie =
+          req.cookies.get("next-auth.session-token")?.value ||
+          req.cookies.get("__Secure-next-auth.session-token")?.value ||
+          req.cookies.get("__Host-next-auth.session-token")?.value;
       } catch (e) {
-        console.log("[middleware] cookies read error:", e?.message ?? e);
+        // Si falla, lo ignoramos y usamos header cookie como fallback
+        sessionCookie = undefined;
       }
+
+      // Fallback: leer header Cookie y parsear manualmente si existe
+      if (!sessionCookie) {
+        const cookieHeader = req.headers.get("cookie");
+        if (cookieHeader) {
+          // parse simple: buscar next-auth.session-token o variantes
+          const match = cookieHeader.match(/(?:^|;\s*)(?:__Host-)?(?:__Secure-)?next-auth\.session-token=([^;]+)/);
+          if (match) sessionCookie = decodeURIComponent(match[1]);
+        }
+      }
+
+      // Log temporal para depuración en Vercel
+      console.log("[middleware] pathname:", pathname, "sessionCookieExists:", !!sessionCookie);
+
+      // Usar getToken para validar token (getToken leerá cookies internamente también)
+      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+      console.log("[middleware] getToken returned:", !!token);
 
       if (!token) {
         const loginUrl = new URL("/login", req.url);
