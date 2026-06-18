@@ -16,33 +16,26 @@ export async function middleware(req: NextRequest) {
       // Llamada interna al endpoint de sesión, pasando la cookie de la petición
       const sessionUrl = new URL("/api/auth/session", req.url).toString();
 
-      const resp = await fetch(sessionUrl, {
-        method: "GET",
-        headers: {
-          cookie: req.headers.get("cookie") || "",
-        },
-        cache: "no-store",
-      });
+            const resp = await fetch(sessionUrl, {
+              method: "GET",
+              headers: {
+                cookie: req.headers.get("cookie") || "",
+              },
+              cache: "no-store",
+            });
 
-      if (!resp.ok) {
-        console.log("[middleware] session endpoint returned non-ok:", resp.status);
-        const loginUrl = new URL("/login", req.url);
-        loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
-        return NextResponse.redirect(loginUrl);
-      }
+            if (!resp.ok) {
+              const loginUrl = new URL("/login", req.url);
+              loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+              return NextResponse.redirect(loginUrl);
+            }
 
-      const data = await resp.json().catch((e) => {
-        console.log("[middleware] error parsing session json:", e?.message ?? e);
-        return null;
-      });
-
-      console.log("[middleware] session check, hasUser:", !!(data && data.user));
-
-      if (!data || !data.user) {
-        const loginUrl = new URL("/login", req.url);
-        loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
-        return NextResponse.redirect(loginUrl);
-      }
+            const data = await resp.json().catch(() => null);
+            if (!data || !data.user) {
+              const loginUrl = new URL("/login", req.url);
+              loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+              return NextResponse.redirect(loginUrl);
+            }
     }
 
     return NextResponse.next();
