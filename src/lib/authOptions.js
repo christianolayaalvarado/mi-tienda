@@ -1,4 +1,4 @@
-// lib/authOptions.js
+// src/lib/authOptions.js
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcrypt";
@@ -14,27 +14,64 @@ export const authOptions = {
         email: { label: "Correo", type: "text" },
         password: { label: "Contraseña", type: "password" },
       },
+
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            console.log("[auth][authorize] missing credentials");
+            return null;
+          }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
-          include: { stores: true },
-        });
+          const email = credentials.email.toLowerCase();
+          console.log("[auth][authorize] lookup:", email);
 
-        if (!user || !user.password) return null;
+          const user = await prisma.user.findUnique({
+            where: { email },
+            include: { stores: true },
+          });
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) return null;
+          if (!user) {
+            console.log("[auth][authorize] user not found:", email);
+            return null;
+          }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          store: user.stores?.[0]?.name || "",
-          storeCode: user.stores?.[0]?.code || "",
-        };
+          if (!user.password) {
+            console.log("[auth][authorize] user has no password:", email);
+            return null;
+          }
+
+          // Intentar bcrypt; si falla por binario, usar bcryptjs como fallback
+          let isValid = false;
+          try {
+            isValid = await bcrypt.compare(credentials.password, user.password);
+          } catch (e) {
+            console.log("[auth][authorize] bcrypt.compare error, falling back to bcryptjs:", e?.message);
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const bcryptjs = require("bcryptjs");
+            isValid = bcryptjs.compareSync(credentials.password, user.password);
+          }
+
+          console.log("[auth][authorize] password valid:", !!isValid, "for:", email);
+          if (!isValid) return null;
+
+          console.log("[auth][authorize] success:", email); return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            store: user.stores?.[0]?.name || "",
+            storeCode: user.stores?.[0]?.code || "",
+          };
+        } catch (err) {
+          console.error("[auth][authorize] unexpected error:", err);
+          return null;
+        }
       },
+
+
+
+
+
+
     }),
   ],
 
@@ -57,6 +94,7 @@ export const authOptions = {
         token.name = user.name ?? token.name;
         token.store = user.store ?? token.store;
         token.storeCode = user.storeCode ?? token.storeCode;
+        console.log("[next-auth][jwt] created token for:", token.email ?? token.id);
       }
       return token;
     },
@@ -72,12 +110,13 @@ export const authOptions = {
           store: token.store,
           storeCode: token.storeCode,
         };
+        console.log("[next-auth][session] session for:", session.user.email ?? session.user.id);
       }
       return session;
     },
   },
 
-  // Configuración de cookies: secure solo en producción
+  // Configuración de cookies: explícita y con secure true (HTTPS)
   cookies: {
     sessionToken: {
       name: "next-auth.session-token",
@@ -85,7 +124,9 @@ export const authOptions = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
+        // Si necesitas soporte para subdominios, descomenta y ajusta:
+        // domain: process.env.NODE_ENV === "production" ? "mi-tienda-app-theta.vercel.app" : undefined,
       },
     },
   },
