@@ -130,7 +130,13 @@ export default function NavbarContent() {
   return (
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-6">
-        <Link href="/" className="text-2xl font-bold text-green-600">MiTienda</Link>
+        <Link href="/" className="flex items-center">
+          <img 
+            src="/images/logo.png" 
+            alt="Logo MiTienda" 
+            className="h-10 w-auto navbar-logo"
+          />
+        </Link>
 
         <div className="flex-1">
           <SearchBox initial={currentSearch} onSearch={(val) => setSearch(val)} />

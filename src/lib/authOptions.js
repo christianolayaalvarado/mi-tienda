@@ -40,42 +40,40 @@ export const authOptions = {
             return null;
           }
 
-          // Intentar bcrypt; si falla por binario, usar bcryptjs como fallback
+          // 🔒 Bloquear login si no está verificado
+          if (!user.emailVerified) {
+            console.log("[auth][authorize] user not verified:", email);
+            throw new Error("Cuenta no verificada");
+          }
+
+          // Validar contraseña
           let isValid = false;
           try {
             isValid = await bcrypt.compare(credentials.password, user.password);
           } catch (e) {
             console.log("[auth][authorize] bcrypt.compare error, falling back to bcryptjs:", e?.message);
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
             const bcryptjs = require("bcryptjs");
             isValid = bcryptjs.compareSync(credentials.password, user.password);
           }
 
-          console.log("[auth][authorize] password valid:", !!isValid, "for:", email);
           if (!isValid) return null;
 
-          console.log("[auth][authorize] success:", email); return {
+          return {
             id: user.id,
             email: user.email,
             name: user.name,
             store: user.stores?.[0]?.name || "",
             storeCode: user.stores?.[0]?.code || "",
+            emailVerified: user.emailVerified, // 🔹 añadimos este campo
           };
         } catch (err) {
           console.error("[auth][authorize] unexpected error:", err);
           return null;
         }
       },
-
-
-
-
-
-
     }),
   ],
 
-  // Usamos JWT en sesión (ajusta a "database" si prefieres sesiones en DB)
   session: {
     strategy: "jwt",
     maxAge: 60 * 60 * 24, // 1 día
@@ -86,7 +84,6 @@ export const authOptions = {
   },
 
   callbacks: {
-    // Guardar id y datos relevantes en el token JWT al iniciar sesión
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id ?? token.id;
@@ -94,12 +91,12 @@ export const authOptions = {
         token.name = user.name ?? token.name;
         token.store = user.store ?? token.store;
         token.storeCode = user.storeCode ?? token.storeCode;
+        token.emailVerified = user.emailVerified ?? token.emailVerified; // 🔹 persistimos en el token
         console.log("[next-auth][jwt] created token for:", token.email ?? token.id);
       }
       return token;
     },
 
-    // Exponer id y campos útiles en session.user para que el backend los use
     async session({ session, token }) {
       if (token) {
         session.user = {
@@ -109,6 +106,7 @@ export const authOptions = {
           name: token.name,
           store: token.store,
           storeCode: token.storeCode,
+          emailVerified: token.emailVerified, // 🔹 disponible en session.user
         };
         console.log("[next-auth][session] session for:", session.user.email ?? session.user.id);
       }
@@ -116,7 +114,6 @@ export const authOptions = {
     },
   },
 
-  // Configuración de cookies: explícita y con secure true (HTTPS)
   cookies: {
     sessionToken: {
       name: "next-auth.session-token",
@@ -125,13 +122,10 @@ export const authOptions = {
         sameSite: "lax",
         path: "/",
         secure: true,
-        // Si necesitas soporte para subdominios, descomenta y ajusta:
-        // domain: process.env.NODE_ENV === "production" ? "mi-tienda-app-theta.vercel.app" : undefined,
       },
     },
   },
 
-  // No incluir el valor aquí; usar process.env en tu entorno
   secret: process.env.NEXTAUTH_SECRET,
 };
 

@@ -3,6 +3,25 @@
 @tailwind utilities;
 
 /* Variables personalizadas */
+
+.navbar-logo {
+  height: 45px;
+  width: auto;
+  transition: filter 0.3s ease;
+}
+
+:root {
+  --logo-filter: none;
+}
+
+[data-theme="dark"] {
+  --logo-filter: brightness(0) invert(1);
+}
+
+.navbar-logo {
+  filter: var(--logo-filter);
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

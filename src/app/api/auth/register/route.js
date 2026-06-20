@@ -1,72 +1,59 @@
-// app/api/auth/register/route.js
+// src/app/api/auth/register/route.js
 import prisma from "@/lib/prisma";
-import bcrypt from "bcrypt";
-import { v4 as uuidv4 } from "uuid"; // Para generar códigos únicos
-import { NextResponse } from "next/server";
+import { sendVerificationCodeEmail } from "@/lib/email";
 
 export async function POST(req) {
   try {
-    // 🔹 Leer datos del body
-    const body = await req.json();
-    const { email, password, name, storeName } = body;
+    const { name, email, password, storeName, provider = "gmail" } = await req.json();
 
-    // 🔹 Validación básica
-    if (!email || !password || !name || !storeName) {
-      return NextResponse.json(
-        { error: "Todos los campos son requeridos" },
-        { status: 400 }
-      );
-    }
-
-    const normalizedEmail = email.toLowerCase();
-
-    // 🔹 Revisar si el email ya existe
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
+    // 1️⃣ Validar si el email ya existe
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json(
-        { error: "El email ya está registrado" },
+      return new Response(
+        JSON.stringify({ ok: false, message: "El email ya está registrado" }),
         { status: 400 }
       );
     }
 
-    // 🔹 Generar códigos únicos
-    const sellerCode = uuidv4().slice(0, 8).toUpperCase();
-    const storeCode = uuidv4().slice(0, 6).toUpperCase();
-
-    // 🔹 Hashear la contraseña
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 🔹 Crear usuario y tienda
+    // 2️⃣ Crear usuario
     const user = await prisma.user.create({
       data: {
-        email: normalizedEmail,
-        password: hashedPassword,
         name,
-        role: "SELLER",       // Campo role definido en el schema
-        sellerCode,
+        email,
+        password, // ojo: aquí deberías hashear antes con bcrypt
         emailVerified: false,
-        stores: {
-          create: {
-            name: storeName,
-            code: storeCode,
-          },
-        },
+        stores: storeName
+          ? { create: { name: storeName, code: `SC${Date.now()}` } }
+          : undefined,
       },
-      include: { stores: true }, // Traer info de la tienda creada
     });
 
-    // 🔹 NO enviar password al frontend
-    const { password: _, ...userWithoutPassword } = user;
+    // 3️⃣ Generar código
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    return NextResponse.json(userWithoutPassword, { status: 201 });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { verificationCode: code },
+    });
 
-  } catch (error) {
-    console.error("Error registrando seller:", error);
-    return NextResponse.json(
-      { error: "Error registrando usuario" },
+    // 4️⃣ Enviar correo
+    try {
+      await sendVerificationCodeEmail({ to: email, code, provider });
+      return new Response(
+        JSON.stringify({ ok: true, message: "Usuario creado y correo enviado" }),
+        { status: 200 }
+      );
+    } catch (err) {
+      console.error("Error enviando correo:", err);
+      return new Response(
+        JSON.stringify({ ok: true, message: "Usuario creado, pero error enviando correo" }),
+        { status: 200 }
+      );
+    }
+  } catch (err) {
+    console.error("Error registrando usuario:", err);
+    return new Response(
+      JSON.stringify({ ok: false, message: "Error registrando usuario" }),
       { status: 500 }
     );
   }

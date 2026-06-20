@@ -37,26 +37,27 @@ model Store {
 }
 
 model Product {
-  id                String             @id @default(auto()) @map("_id") @db.ObjectId
-  title             String
-  price             Float
-  stock             Int
-  categoryId        String             @db.ObjectId
-  category          Category           @relation(fields: [categoryId], references: [id])
-  storeId           String             @db.ObjectId
-  store             Store              @relation(fields: [storeId], references: [id])
-  userId            String             @db.ObjectId
-  user              User               @relation(fields: [userId], references: [id])
-  description       String?
-  images            String[]
-  cartItems         CartItem[]
-  createdAt         DateTime           @default(now())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  price     Float
+  stock     Int
+  categoryId String  @db.ObjectId
+  category   Category @relation(fields: [categoryId], references: [id])
+  storeId    String   @db.ObjectId
+  store      Store    @relation(fields: [storeId], references: [id])
+  userId     String?  @db.ObjectId   // 🔹 opcional
+  user       User?    @relation(fields: [userId], references: [id]) // 🔹 opcional
+  description String?
+  images      String[]
+  cartItems   CartItem[]
+  createdAt   DateTime @default(now())
   orderItemProducts OrderItemProduct[]
 
   @@index([categoryId])
   @@index([storeId])
   @@index([userId])
 }
+
 
 model Category {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
@@ -198,3 +199,10 @@ model OrderHistory {
   @@index([orderId])
 }
 
+model VerificationCode {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String
+  code      String
+  expires   DateTime
+  createdAt DateTime @default(now())
+}
