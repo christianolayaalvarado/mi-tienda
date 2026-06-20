@@ -1,4 +1,3 @@
-// src/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -6,12 +5,16 @@ export async function middleware(req: NextRequest) {
   try {
     const { pathname } = req.nextUrl;
 
-    // Ignorar recursos estáticos
-    if (pathname.startsWith("/_next") || pathname.startsWith("/static") || pathname.includes(".")) {
+    // Ignorar recursos estáticos o internos
+    if (
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/static") ||
+      pathname.includes(".")
+    ) {
       return NextResponse.next();
     }
 
-    // Solo proteger rutas bajo /dashboard
+    // Proteger rutas bajo /dashboard
     if (pathname.startsWith("/dashboard")) {
       const sessionUrl = new URL("/api/auth/session", req.url).toString();
 
@@ -40,14 +43,17 @@ export async function middleware(req: NextRequest) {
 
       // 🚨 Si el usuario no está verificado
       if (!data.user.emailVerified) {
-        const confirmUrl = new URL(`/auth/confirm-code?email=${data.user.email}`, req.url);
+        const confirmUrl = new URL(
+          `/auth/confirm-code?email=${encodeURIComponent(data.user.email)}`,
+          req.url
+        );
         return NextResponse.redirect(confirmUrl);
       }
     }
 
     return NextResponse.next();
   } catch (err) {
-    console.error("[middleware] unexpected error:", err);
+    console.error("[middleware] error inesperado:", err);
     return NextResponse.next();
   }
 }

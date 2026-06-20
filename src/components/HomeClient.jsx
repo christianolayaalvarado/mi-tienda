@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useMemo } from "react";
 import ProductCard from "@/components/ProductCard";
 
 export default function HomeClient() {
-  // Router / params (hooks cliente)
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // ---------------- PARAMS (lectura segura)
+  // ---------------- PARAMS (lectura segura y memoizada)
   const currentSearch = searchParams?.get("search") || "";
   const currentCategory = searchParams?.get("category") || "";
   const currentSort = searchParams?.get("sort") || "";
-  const currentPage = Number(searchParams?.get("page") || 1);
+  const currentPage = Number(searchParams?.get("page") || 1) || 1;
 
   // ---------------- STATES
   const [products, setProducts] = useState([]);
@@ -24,6 +23,20 @@ export default function HomeClient() {
   const fetchController = useRef(null);
   const isFirstLoad = useRef(true);
   const mounted = useRef(false);
+
+  // evitar renderizar una paginación enorme
+  const safeTotalPages = Math.max(1, Math.min(Number(totalPages || 1), 500));
+
+  // memoizar parámetros para evitar recrear URLSearchParams en cada render
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (currentSearch) params.set("search", currentSearch);
+    if (currentCategory) params.set("category", currentCategory);
+    if (currentSort) params.set("sort", currentSort);
+    params.set("page", String(currentPage || 1));
+    params.set("limit", "15");
+    return params.toString();
+  }, [currentSearch, currentCategory, currentSort, currentPage]);
 
   // ---------------- FETCH PRODUCTS (robusto)
   const fetchProducts = async () => {
@@ -37,20 +50,13 @@ export default function HomeClient() {
       }
       fetchController.current = new AbortController();
 
-      const params = new URLSearchParams();
-      if (currentSearch) params.set("search", currentSearch);
-      if (currentCategory) params.set("category", currentCategory);
-      if (currentSort) params.set("sort", currentSort);
-      params.set("page", String(currentPage || 1));
-      params.set("limit", "15"); // <- pedir 15 por página
-
-      const res = await fetch(`/api/products?${params.toString()}`, {
+      const res = await fetch(`/api/products?${queryString}`, {
         signal: fetchController.current.signal,
         headers: { Accept: "application/json" },
       });
 
-      // Si la respuesta no es JSON, leer texto para debug y lanzar error
       const contentType = res.headers.get("content-type") || "";
+
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         console.error("API /api/products responded with non-ok status:", res.status, text);
@@ -65,7 +71,6 @@ export default function HomeClient() {
 
       const data = await res.json();
 
-      // Validaciones básicas del payload
       if (!data || !Array.isArray(data.products)) {
         console.error("Payload inesperado de /api/products:", data);
         throw new Error("Respuesta inválida del servidor");
@@ -78,7 +83,6 @@ export default function HomeClient() {
       setTotalPages(Number(data.totalPages || 1));
     } catch (err) {
       if (err?.name === "AbortError") {
-        // petición abortada por navegación o nueva búsqueda: silencioso
         return;
       }
       console.error("Error fetch productos:", err);
@@ -97,58 +101,53 @@ export default function HomeClient() {
       mounted.current = false;
       if (fetchController.current) {
         try { fetchController.current.abort(); } catch {}
+        fetchController.current = null;
       }
     };
   }, []);
 
   useEffect(() => {
-    // Primera carga: ejecutar inmediatamente
     if (isFirstLoad.current) {
       isFirstLoad.current = false;
       fetchProducts();
       return;
     }
-    // Debounce ligero para evitar llamadas excesivas
     const t = setTimeout(() => {
       if (mounted.current) fetchProducts();
     }, 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSearch, currentCategory, currentSort, currentPage]);
+  }, [queryString]);
 
   // ---------------- PAGINACIÓN (navegación segura)
   const changePage = (page) => {
-    if (page < 1 || page > totalPages) return;
+    if (page < 1 || page > safeTotalPages) return;
 
     const params = new URLSearchParams();
     if (currentSearch) params.set("search", currentSearch);
     if (currentCategory) params.set("category", currentCategory);
     if (currentSort) params.set("sort", currentSort);
     params.set("page", String(page));
-    params.set("limit", "15"); // <- mantener limit consistente
+    params.set("limit", "15");
 
-    // router.push en cliente; no forzamos scroll si el usuario lo desea
     router.push(`/?${params.toString()}`, { scroll: false });
   };
 
   // ---------------- RENDER
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
-      {/* Mensaje de error */}
       {error && (
         <div className="mb-4 text-center text-sm text-red-600">
           {error}
         </div>
       )}
 
-      {/* LOADING */}
       {loading && (
         <p className="text-center text-sm text-gray-500 mb-4">
           Cargando productos...
         </p>
       )}
 
-      {/* GRID */}
       {!loading && products.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {products.map((product, idx) => (
@@ -157,13 +156,11 @@ export default function HomeClient() {
         </div>
       )}
 
-      {/* EMPTY */}
       {!loading && products.length === 0 && (
         <p className="text-center">No se encontraron productos.</p>
       )}
 
-      {/* PAGINACIÓN */}
-      {totalPages > 1 && (
+      {safeTotalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
           <button
             onClick={() => changePage(currentPage - 1)}
@@ -173,7 +170,7 @@ export default function HomeClient() {
             ←
           </button>
 
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          {Array.from({ length: safeTotalPages }, (_, i) => i + 1).map((page) => (
             <button
               key={page}
               onClick={() => changePage(page)}
@@ -186,7 +183,7 @@ export default function HomeClient() {
 
           <button
             onClick={() => changePage(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === safeTotalPages}
             className="px-3 py-1 border rounded disabled:opacity-50"
           >
             →

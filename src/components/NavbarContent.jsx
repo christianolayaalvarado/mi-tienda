@@ -1,12 +1,10 @@
-// src/components/NavbarContent.jsx
 "use client";
 
-import Link from "next/link";
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useSession } from "next-auth/react";
-
 import SearchBox from "./navbar/SearchBox";
 import CartPreview from "./navbar/CartPreview";
 import UserMenu from "./navbar/UserMenu";
@@ -23,11 +21,12 @@ export default function NavbarContent() {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
 
-  // useCart debe ser un hook estable exportado desde el contexto
+  // Cart context (assume hook returns stable API)
   const cartCtx = useCart();
   const cartItems = useMemo(() => cartCtx?.cartItems ?? [], [cartCtx?.cartItems]);
-  const subtotal = Number(cartCtx?.getTotal?.() ?? 0);
+  const subtotal = Number(typeof cartCtx?.getTotal === "function" ? cartCtx.getTotal() : 0);
 
+  // Cart operations (memoized callbacks)
   const increaseQuantity = useCallback((id) => {
     const item = cartItems.find((i) => String(i.id ?? i.productId) === String(id));
     const currentQty = item ? Number(item.quantity || 0) : 0;
@@ -51,7 +50,6 @@ export default function NavbarContent() {
         try { window.dispatchEvent(new Event("storage")); } catch {}
         return result;
       }
-      // fallback a util local
       return removeProductFromCart(id);
     } catch (err) {
       console.error("[NavbarContent] removeFromCart error:", err);
@@ -59,28 +57,32 @@ export default function NavbarContent() {
     }
   }, [cartCtx]);
 
+  // Query params
   const currentSearch = searchParams?.get("search") || "";
   const currentCategory = searchParams?.get("category") || "";
   const currentSort = searchParams?.get("sort") || "";
 
+  // Local UI state
   const [search, setSearch] = useState(currentSearch);
   const [cartOpen, setCartOpen] = useState(false);
 
-  // mounted: diferir el setState para evitar render encadenado
+  // mounted flag to avoid router.push during SSR/hydration
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    let raf = 0;
-    raf = typeof window !== "undefined" ? requestAnimationFrame(() => setMounted(true)) : 0;
+    // defer setMounted to next frame to avoid synchronous setState in effect
+    if (typeof window === "undefined") return;
+    const raf = requestAnimationFrame(() => setMounted(true));
     return () => {
-      if (raf) cancelAnimationFrame(raf);
+      cancelAnimationFrame(raf);
     };
   }, []);
 
-  // Inicializar localRaw de forma perezosa para evitar setState en efecto
+  // localRaw cart (lazy init, guarded)
   const [localRaw, setLocalRaw] = useState(() => {
     try {
-      const raw = typeof window !== "undefined" ? readCartRaw("mi_tienda_cart") : null;
-      return Array.isArray(raw) ? raw : (typeof window !== "undefined" ? safeParseLocalCart("mi_tienda_cart") : []);
+      if (typeof window === "undefined") return [];
+      const raw = readCartRaw("mi_tienda_cart");
+      return Array.isArray(raw) ? raw : safeParseLocalCart("mi_tienda_cart");
     } catch {
       return [];
     }
@@ -88,7 +90,7 @@ export default function NavbarContent() {
 
   const cartRef = useRef(null);
 
-  // Escuchar storage y evento personalizado cart:updated
+  // Listen storage and custom events to keep localRaw in sync
   useEffect(() => {
     const onStorage = (e) => {
       if (e && e.key && e.key !== "mi_tienda_cart" && e.key !== "cart") return;
@@ -109,31 +111,41 @@ export default function NavbarContent() {
       }
     };
 
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("cart:updated", onCartUpdated);
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", onStorage);
+      window.addEventListener("cart:updated", onCartUpdated);
+    }
 
     return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("cart:updated", onCartUpdated);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("storage", onStorage);
+        window.removeEventListener("cart:updated", onCartUpdated);
+      }
     };
   }, []);
 
+  // Update URL when search changes (deferred until mounted)
   useEffect(() => {
     if (!mounted) return;
-    router.push(buildURL({ searchVal: search, categoryVal: currentCategory, sortVal: currentSort, pageVal: "1" }));
+    const url = buildURL({ searchVal: search, categoryVal: currentCategory, sortVal: currentSort, pageVal: "1" });
+    router.push(url);
   }, [search, currentCategory, currentSort, mounted, router]);
 
-  const count = (Array.isArray(cartItems) && cartItems.length > 0)
-    ? cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0)
-    : (localRaw || []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+  // Count items (prefer cart context, fallback to local storage)
+  const count = useMemo(() => {
+    if (Array.isArray(cartItems) && cartItems.length > 0) {
+      return cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+    }
+    return (Array.isArray(localRaw) ? localRaw : []).reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+  }, [cartItems, localRaw]);
 
   return (
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-6">
         <Link href="/" className="flex items-center">
-          <img 
-            src="/images/logo.png" 
-            alt="Logo MiTienda" 
+          <img
+            src="/images/logo.png"
+            alt="Logo MiTienda"
             className="h-10 w-auto navbar-logo"
           />
         </Link>

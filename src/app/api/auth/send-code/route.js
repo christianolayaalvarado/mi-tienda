@@ -1,10 +1,18 @@
-// src/app/api/auth/send-code/route.js
 import prisma from "@/lib/prisma";
 import { sendVerificationCodeEmail } from "@/lib/email";
 
 export async function POST(req) {
   try {
-    const { email, provider = "gmail" } = await req.json();
+    const { email: rawEmail, provider = "gmail" } = await req.json();
+
+    if (!rawEmail) {
+      return new Response(
+        JSON.stringify({ ok: false, message: "Email requerido" }),
+        { status: 400 }
+      );
+    }
+
+    const email = String(rawEmail).toLowerCase().trim();
 
     // 1️⃣ Buscar usuario
     const user = await prisma.user.findUnique({ where: { email } });
@@ -20,14 +28,21 @@ export async function POST(req) {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { verificationCode: code },
+      data: {
+        verificationCode: code,
+        verificationSentAt: new Date(),
+      },
     });
 
     // 3️⃣ Enviar correo
     try {
       await sendVerificationCodeEmail({ to: email, code, provider });
       return new Response(
-        JSON.stringify({ ok: true, message: "Código reenviado correctamente" }),
+        JSON.stringify({
+          ok: true,
+          message: "Código reenviado correctamente",
+          email,
+        }),
         { status: 200 }
       );
     } catch (err) {

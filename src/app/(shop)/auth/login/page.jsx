@@ -1,4 +1,3 @@
-// src/app/(shop)/auth/login/page.jsx
 "use client";
 
 import { useState } from "react";
@@ -8,6 +7,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -15,6 +15,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     setMessage("Iniciando sesión...");
 
     try {
@@ -25,21 +26,23 @@ export default function LoginPage() {
       });
 
       const data = await res.json();
-      if (data.ok) {
-        if (!data.user.emailVerified) {
+
+      if (res.ok && data.ok) {
+        if (!data.user?.emailVerified) {
           setMessage("❌ Tu cuenta aún no está verificada. Revisa tu correo o solicita un nuevo código.");
-          // Opcional: redirigir a confirm-code
           router.push(`/auth/confirm-code?email=${encodeURIComponent(form.email)}`);
         } else {
           setMessage("✅ Login exitoso. Redirigiendo al dashboard...");
           router.push("/dashboard"); // Ajusta según tu ruta real
         }
       } else {
-        setMessage(`❌ Error: ${data.message}`);
+        setMessage(`❌ Error: ${data.error || data.message || "Credenciales inválidas"}`);
       }
     } catch (err) {
       console.error(err);
       setMessage("❌ Error interno del servidor");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,6 +59,7 @@ export default function LoginPage() {
           onChange={handleChange}
           className="w-full border px-3 py-2 rounded-md"
           required
+          disabled={loading}
         />
       </label>
 
@@ -68,14 +72,16 @@ export default function LoginPage() {
           onChange={handleChange}
           className="w-full border px-3 py-2 rounded-md"
           required
+          disabled={loading}
         />
       </label>
 
       <button
         type="submit"
+        disabled={loading}
         className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
       >
-        Entrar
+        {loading ? "Ingresando..." : "Entrar"}
       </button>
 
       {message && <p className="mt-4 text-sm">{message}</p>}

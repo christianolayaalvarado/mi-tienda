@@ -14,6 +14,8 @@ model User {
   name          String?
   role          String   @default("USER")
   emailVerified Boolean  @default(false)
+  verificationCode String?
+  verificationSentAt DateTime?
   sellerCode    String?
   city          String?
   createdAt     DateTime @default(now())
@@ -26,15 +28,16 @@ model User {
 }
 
 model Store {
-  id         String      @id @default(auto()) @map("_id") @db.ObjectId
-  name       String
-  code       String      @unique
-  userId     String      @db.ObjectId
-  user       User        @relation(fields: [userId], references: [id])
-  products   Product[]
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  code      String   @unique
+  userId    String?  @db.ObjectId
+  user      User?    @relation(fields: [userId], references: [id])
+  products  Product[]
   orderItems OrderItem[]
-  createdAt  DateTime    @default(now())
+  createdAt DateTime @default(now())
 }
+
 
 model Product {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId

@@ -1,4 +1,3 @@
-// src/app/api/auth/login/route.js
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -35,11 +34,6 @@ export async function POST(req) {
 
     if (!user) {
       return new Response(JSON.stringify({ ok: false, message: "Credenciales inválidas" }), { status: 401 });
-    }
-
-    // Verificación de email
-    if (!user.emailVerified) {
-      return new Response(JSON.stringify({ ok: false, message: "Cuenta no verificada" }), { status: 403 });
     }
 
     // Comparar contraseña (bcrypt, con fallback a bcryptjs si hay problemas)

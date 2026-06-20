@@ -1,4 +1,3 @@
-// src/app/register/page.jsx
 "use client";
 
 import { useState } from "react";
@@ -25,12 +24,16 @@ export default function RegisterPage() {
       });
 
       const data = await res.json();
-      if (data.ok) {
-        setMessage("✅ Usuario creado. Redirigiendo a confirmación...");
+
+      if (res.ok) {
+        // ✅ Validación segura: si stores existe, mostrar nombre
+        const storeName = data.stores?.[0]?.name ? ` con la tienda "${data.stores[0].name}"` : "";
+        setMessage(`✅ Usuario "${data.name}" creado${storeName}. Redirigiendo a confirmación...`);
+
         // Redirigir a la página de confirmación con el email
         router.push(`/confirm-code?email=${encodeURIComponent(form.email)}`);
       } else {
-        setMessage(`❌ Error: ${data.message}`);
+        setMessage(`❌ Error: ${data.error || data.message}`);
       }
     } catch (err) {
       console.error(err);

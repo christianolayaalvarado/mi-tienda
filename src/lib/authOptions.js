@@ -1,8 +1,8 @@
 // src/lib/authOptions.js
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import bcrypt from "bcrypt";
 import prisma from "./prisma";
+import bcrypt from "bcrypt";
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
@@ -16,59 +16,81 @@ export const authOptions = {
       },
 
       async authorize(credentials) {
+        // Validaciones básicas de entrada
+        if (!credentials?.email || !credentials?.password) {
+          // Credenciales incompletas -> fallo de autenticación
+          return null;
+        }
+
+        const email = String(credentials.email).toLowerCase().trim();
+
         try {
-          if (!credentials?.email || !credentials?.password) {
-            console.log("[auth][authorize] missing credentials");
-            return null;
-          }
-
-          const email = credentials.email.toLowerCase();
-          console.log("[auth][authorize] lookup:", email);
-
+          // Buscar usuario por email
           const user = await prisma.user.findUnique({
             where: { email },
             include: { stores: true },
           });
 
           if (!user) {
-            console.log("[auth][authorize] user not found:", email);
+            // Usuario no existe
             return null;
           }
 
           if (!user.password) {
-            console.log("[auth][authorize] user has no password:", email);
+            // Usuario creado por OAuth u otro método sin contraseña local
             return null;
           }
 
-          // 🔒 Bloquear login si no está verificado
+          // Bloquear login si la cuenta no está verificada
           if (!user.emailVerified) {
-            console.log("[auth][authorize] user not verified:", email);
+            // Caso esperado: devolver error claro para el cliente
+            // Lanzamos la excepción para que NextAuth la propague como res.error
             throw new Error("Cuenta no verificada");
           }
 
-          // Validar contraseña
+          // Comparar contraseña (bcrypt nativo, con fallback a bcryptjs si falla)
           let isValid = false;
           try {
             isValid = await bcrypt.compare(credentials.password, user.password);
-          } catch (e) {
-            console.log("[auth][authorize] bcrypt.compare error, falling back to bcryptjs:", e?.message);
-            const bcryptjs = require("bcryptjs");
-            isValid = bcryptjs.compareSync(credentials.password, user.password);
+          } catch (bcryptErr) {
+            // Fallback a bcryptjs en entornos donde bcrypt binario falla
+            try {
+              // require dinámico para evitar bundling en entornos donde no se necesita
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const bcryptjs = require("bcryptjs");
+              isValid = bcryptjs.compareSync(credentials.password, user.password);
+            } catch (fallbackErr) {
+              // Si ambos fallan, tratar como error interno
+              console.error("[auth][authorize] password compare error:", fallbackErr);
+              throw new Error("Error interno de autenticación");
+            }
           }
 
-          if (!isValid) return null;
+          if (!isValid) {
+            // Contraseña inválida
+            return null;
+          }
 
+          // Devolver el objeto de usuario que NextAuth almacenará en token/session
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             store: user.stores?.[0]?.name || "",
             storeCode: user.stores?.[0]?.code || "",
-            emailVerified: user.emailVerified, // 🔹 añadimos este campo
+            emailVerified: user.emailVerified ?? false,
           };
         } catch (err) {
+          // Si es un error esperado (por ejemplo "Cuenta no verificada"), relanzarlo
+          if (err?.message === "Cuenta no verificada") {
+            // No lo marcamos como "unexpected" en logs; es un flujo válido
+            throw err;
+          }
+
+          // Para errores inesperados, loguear y devolver null o lanzar un error genérico
           console.error("[auth][authorize] unexpected error:", err);
-          return null;
+          // Lanzar un error genérico para que NextAuth devuelva un mensaje controlado
+          throw new Error("Error interno de autenticación");
         }
       },
     }),
@@ -91,8 +113,7 @@ export const authOptions = {
         token.name = user.name ?? token.name;
         token.store = user.store ?? token.store;
         token.storeCode = user.storeCode ?? token.storeCode;
-        token.emailVerified = user.emailVerified ?? token.emailVerified; // 🔹 persistimos en el token
-        console.log("[next-auth][jwt] created token for:", token.email ?? token.id);
+        token.emailVerified = user.emailVerified ?? token.emailVerified;
       }
       return token;
     },
@@ -106,9 +127,8 @@ export const authOptions = {
           name: token.name,
           store: token.store,
           storeCode: token.storeCode,
-          emailVerified: token.emailVerified, // 🔹 disponible en session.user
+          emailVerified: token.emailVerified ?? false,
         };
-        console.log("[next-auth][session] session for:", session.user.email ?? session.user.id);
       }
       return session;
     },
@@ -121,7 +141,7 @@ export const authOptions = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
       },
     },
   },
