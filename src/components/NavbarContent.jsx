@@ -172,6 +172,9 @@ export default function NavbarContent() {
             />
           </Link>
 
+          {/* Spacer pushes actions to the right edge */}
+          <div className="flex-1" />
+
           <button
             type="button"
             aria-label={`Abrir carrito, ${count} items`}
