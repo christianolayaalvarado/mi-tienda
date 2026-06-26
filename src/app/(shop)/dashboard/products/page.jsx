@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import useCategories from "@/hooks/useCategories";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -155,7 +156,9 @@ export default function ProductsPage() {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
+      <Breadcrumbs />
+
+      <div className="flex justify-between items-center mb-4 mt-4">
         <h1 className="text-2xl font-bold">Mis Productos</h1>
 
         <div className="flex gap-2">

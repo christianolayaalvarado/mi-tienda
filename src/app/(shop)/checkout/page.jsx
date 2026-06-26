@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import PaymentMethodSelector from "../../../components/PaymentMethodSelector";
 import toast from "react-hot-toast";
 import { fetchSession } from "@/lib/useSessionCheck";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 /* -------------------------
    Utilidades para el carrito
@@ -451,7 +452,9 @@ export default function CheckoutPage({ params }) {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">Checkout</h1>
+      <Breadcrumbs />
+
+      <h1 className="text-2xl font-semibold mb-4 mt-4">Checkout</h1>
 
       {error && <div className="mb-4 text-red-600">{error}</div>}
 

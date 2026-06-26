@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
 import cloudinary from "@/lib/cloudinary";
+import { validateCsrf } from "@/lib/csrf";
 
 /* Helpers */
 const isDataUri = (str) => typeof str === "string" && str.startsWith("data:");
@@ -72,6 +73,9 @@ export async function GET(req) {
 /* POST: crear producto (seller) */
 export async function POST(req) {
   try {
+    const csrfErr = validateCsrf(req);
+    if (csrfErr) return csrfErr;
+
     const session = await getServerAuthUser(req);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
@@ -132,6 +136,9 @@ export async function POST(req) {
 /* PUT: editar producto (owner o admin) */
 export async function PUT(req) {
   try {
+    const csrfErr = validateCsrf(req);
+    if (csrfErr) return csrfErr;
+
     const session = await getServerAuthUser(req);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
@@ -224,6 +231,9 @@ export async function PUT(req) {
 /* DELETE: eliminar múltiples productos (solo del owner) */
 export async function DELETE(req) {
   try {
+    const csrfErr = validateCsrf(req);
+    if (csrfErr) return csrfErr;
+
     const session = await getServerAuthUser(req);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 

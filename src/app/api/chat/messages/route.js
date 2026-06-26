@@ -2,10 +2,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
+import { validateCsrf } from "@/lib/csrf";
 
 // POST - Enviar mensaje
 export async function POST(req) {
   try {
+    const csrfErr = validateCsrf(req);
+    if (csrfErr) return csrfErr;
+
     const authUser = await getServerAuthUser(req);
     if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 

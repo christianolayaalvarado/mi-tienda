@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 function formatDate(iso) {
   try {
@@ -146,9 +147,10 @@ export default function OrdersPage() {
 
   return (
     <div className="p-6">
+      <Breadcrumbs />
 
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 mt-4">
         <h1 className="text-2xl font-bold">Mis Órdenes</h1>
 
         <button

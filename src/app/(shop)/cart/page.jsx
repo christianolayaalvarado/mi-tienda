@@ -16,6 +16,7 @@ import { useSession } from "next-auth/react";
 import { fetchSession } from "@/lib/useSessionCheck";
 import { safeParseLocalCart } from "@/components/navbar/utils";
 import toast from "react-hot-toast";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 /* -------------------------
    ModalConfirm (reutilizable)
@@ -740,7 +741,9 @@ export default function CartPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
+      <Breadcrumbs />
+
+      <div className="flex items-center justify-between mb-6 mt-4">
         <h1 className="text-2xl font-bold">Carrito</h1>
         <div className="text-sm text-gray-600">
           {totalItemsCount} {totalItemsCount === 1 ? "item" : "items"}

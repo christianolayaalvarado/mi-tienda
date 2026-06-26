@@ -1,7 +1,6 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
-
-const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "change_this_secret";
+import { getJwtSecret } from "./getJwtSecret";
 
 export async function getAuthUserFromCookie() {
   try {
@@ -10,7 +9,7 @@ export async function getAuthUserFromCookie() {
 
     if (!tokenValue) return null;
 
-    const payload = jwt.verify(decodeURIComponent(tokenValue), JWT_SECRET);
+    const payload = jwt.verify(decodeURIComponent(tokenValue), getJwtSecret());
     if (!payload?.email) return null;
 
     return payload;

@@ -2,12 +2,16 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
+import { validateCsrf } from "@/lib/csrf";
 
 const isValidObjectId = (id) => typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
 
 // PUT - Actualizar reseña
 export async function PUT(req, context) {
   try {
+    const csrfErr = validateCsrf(req);
+    if (csrfErr) return csrfErr;
+
     const params = await context.params;
     const reviewId = params?.id;
     if (!reviewId || !isValidObjectId(reviewId)) {
@@ -51,6 +55,9 @@ export async function PUT(req, context) {
 // DELETE - Eliminar reseña
 export async function DELETE(req, context) {
   try {
+    const csrfErr = validateCsrf(req);
+    if (csrfErr) return csrfErr;
+
     const params = await context.params;
     const reviewId = params?.id;
     if (!reviewId || !isValidObjectId(reviewId)) {

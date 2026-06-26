@@ -3,8 +3,8 @@ import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
+import { getJwtSecret } from "./getJwtSecret";
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
 const DEBUG = Boolean(process.env.DEBUG_SERVER_AUTH === "true");
 
 function getCookieValueFromHeader(cookieHeader = "", name) {
@@ -62,7 +62,7 @@ export async function getServerAuthUser(req) {
     }
 
     // 4) Verificar JWT
-    const payload = jwt.verify(tokenValue, JWT_SECRET);
+    const payload = jwt.verify(tokenValue, getJwtSecret());
     if (!payload || !payload.email) {
       if (DEBUG) console.log("[serverAuth] token payload invalid or missing email");
       return null;

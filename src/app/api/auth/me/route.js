@@ -1,7 +1,6 @@
 // src/app/api/auth/me/route.js
 import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+import { getJwtSecret } from "@/lib/getJwtSecret";
 
 function getCookieValue(cookieHeader, name) {
   if (!cookieHeader) return undefined;
@@ -30,7 +29,7 @@ export async function GET(req) {
 
     let payload;
     try {
-      payload = jwt.verify(token, JWT_SECRET);
+      payload = jwt.verify(token, getJwtSecret());
     } catch (err) {
       return new Response(JSON.stringify({ ok: false, message: "Token inválido o expirado" }), { status: 401, headers: { "Content-Type": "application/json" } });
     }

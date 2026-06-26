@@ -120,6 +120,9 @@ export const authOptions = {
   },
 
   secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
+
+  // NOTE: A strong JWT secret is enforced by getJwtSecret.js in custom JWT routes.
+  // NextAuth uses NEXTAUTH_SECRET which should also be set to a strong value.
 };
 
 export default authOptions;

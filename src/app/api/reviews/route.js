@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
+import { validateCsrf } from "@/lib/csrf";
 
 // GET - Listar reseñas de un producto
 export async function GET(req) {
@@ -36,6 +37,9 @@ export async function GET(req) {
 // POST - Crear reseña
 export async function POST(req) {
   try {
+    const csrfErr = validateCsrf(req);
+    if (csrfErr) return csrfErr;
+
     const authUser = await getServerAuthUser(req);
     if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 

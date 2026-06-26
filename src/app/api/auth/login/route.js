@@ -3,8 +3,7 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { checkRateLimit } from "@/lib/rateLimit";
-
-const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+import { getJwtSecret } from "@/lib/getJwtSecret";
 const TOKEN_MAX_AGE = 60 * 60 * 24; // 1 day in seconds
 const COOKIE_SAMESITE = process.env.COOKIE_SAMESITE || "Lax";
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
@@ -108,7 +107,7 @@ export async function POST(req) {
       storeCode: user.stores?.[0]?.code || null,
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_MAX_AGE });
+    const token = jwt.sign(payload, getJwtSecret(), { expiresIn: TOKEN_MAX_AGE });
 
     const cookie = buildSetCookieHeader("token", token, {
       maxAge: TOKEN_MAX_AGE,
