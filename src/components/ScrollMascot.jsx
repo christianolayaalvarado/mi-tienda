@@ -132,11 +132,19 @@ export default function ScrollMascot() {
     }
   }, [progress]);
 
-  // Mensajes aleatorios cada 10s
+  // Mensajes aleatorios: 10s visible, 10s vacío (cada 20s)
   useEffect(() => {
+    let showPhase = true;
     encourageTimer.current = setInterval(() => {
-      setMessage(pickRandom(ENCOURAGE_MESSAGES));
-      setMsgKey((k) => k + 1);
+      if (showPhase) {
+        setMessage(pickRandom(ENCOURAGE_MESSAGES));
+        setMsgKey((k) => k + 1);
+        showPhase = false;
+      } else {
+        setMessage("");
+        setMsgKey((k) => k + 1);
+        showPhase = true;
+      }
     }, 10000);
     return () => clearInterval(encourageTimer.current);
   }, []);
@@ -173,12 +181,14 @@ export default function ScrollMascot() {
         style={{ top: `${mascotTop}px` }}
       >
         {/* Burbuja */}
-        <div key={msgKey} className="absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
-          <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
-            {message}
-            <div className="absolute left-full top-1/2 -translate-y-1/2 -ml-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[5px] border-l-white" />
+        {message && (
+          <div key={msgKey} className="absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
+            <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
+              {message}
+              <div className="absolute left-full top-1/2 -translate-y-1/2 -ml-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[5px] border-l-white" />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* SVG Shopito */}
         <div className={`transition-transform duration-200 ${isWaving || isJumping ? "animate-[wiggle_0.4s_ease-in-out_3]" : "group-hover:scale-110"}`}>
