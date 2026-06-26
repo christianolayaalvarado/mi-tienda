@@ -298,14 +298,17 @@ export default function ScrollMascot() {
   }, []);
 
   // Calculate walkX directly from progress (no state, no infinite loop)
-  // Always positive: mascot moves LEFT from the right edge, never RIGHT (outside viewport)
+  // Always positive: mascot moves LEFT from its base position
   const walkX = (() => {
     const gr = gridRightRef.current;
     if (!gr) return 0;
-    const rightLimit = (typeof window !== "undefined" ? window.innerWidth : 1200) - 40;
-    const walkableSpace = rightLimit - gr;
+    const rightEdge = (typeof window !== "undefined" ? window.innerWidth : 1200);
+    // Mascot base is ~120px from right edge (to fit 220px bubble above)
+    // Walk limit: from base to the product grid right edge
+    const mascotBaseFromRight = 120;
+    const walkableSpace = rightEdge - mascotBaseFromRight - gr;
     if (walkableSpace <= 0) return 0;
-    const maxOffset = Math.min(walkableSpace, 30);
+    const maxOffset = Math.min(walkableSpace, 20);
     return Math.abs(Math.sin(progress * Math.PI * 6)) * maxOffset;
   })();
 
@@ -371,8 +374,8 @@ export default function ScrollMascot() {
 
       {/* Mascot */}
       <div
-        className="absolute right-0 sm:right-1 pointer-events-auto cursor-pointer group"
-        style={{ top: `${mascotTop}px`, transition: "top 0.1s linear", transform: `translateX(${walkX}px)` }}
+        className="absolute right-12 sm:right-[120px] pointer-events-auto cursor-pointer group"
+        style={{ top: `${mascotTop}px`, transition: "top 0.1s linear", transform: `translateX(-${walkX}px)` }}
       >
         {/* Speech bubble — flips based on mascot position */}
         {message && (
