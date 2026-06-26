@@ -57,14 +57,18 @@ body {
   scrollbar-width: none;
 }
 
-/* Animación de saludo para la mascota */
-@keyframes wave {
+/* Animaciones de la mascota ScrollTracker */
+@keyframes waveHand {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-20deg); }
-  50% { transform: rotate(15deg); }
-  75% { transform: rotate(-10deg); }
+  20% { transform: rotate(-25deg); }
+  40% { transform: rotate(20deg); }
+  60% { transform: rotate(-15deg); }
+  80% { transform: rotate(10deg); }
 }
 
-.animate-\[wave_0\.5s_ease-in-out_2\] {
-  animation: wave 0.5s ease-in-out 2;
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-6deg) scale(1.05); }
+  50% { transform: rotate(6deg) scale(1.05); }
+  75% { transform: rotate(-3deg) scale(1.02); }
 }
