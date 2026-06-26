@@ -127,6 +127,7 @@ model Order {
   deletedAt         DateTime?
   deletedBy         String?
   deletedReason     String?
+  refundStatus      String    @default("none")  // none | pending | processed
   orderHistories OrderHistory[]
 
   @@index([userId])

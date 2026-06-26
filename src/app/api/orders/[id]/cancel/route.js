@@ -1,82 +1,182 @@
-import { NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/authOptions"
+// src/app/api/orders/[id]/cancel/route.js
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { getServerAuthUser } from "@/lib/serverAuth";
+import { sendOrderCancelledTemplate } from "@/lib/email";
+import { orderCancelledBuyerTemplate, orderCancelledSellerTemplate } from "@/lib/emailTemplates";
 
-const prisma = new PrismaClient()
+const isValidObjectId = (id) => typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
 
-export async function POST(req, { params }) {
+export async function POST(req, context) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    const params = await context.params;
+    const orderId = params?.id;
+    if (!orderId || !isValidObjectId(orderId)) {
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const orderId = params.id
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    // 🔍 Buscar orden con sub-órdenes y productos
+    const body = await req.json().catch(() => ({}));
+    const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+    if (!reason) {
+      return NextResponse.json({ error: "El motivo de cancelación es obligatorio" }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: authUser.email },
+      include: { stores: true },
+    });
+
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         orderItems: {
           include: {
-            items: true,
+            store: { include: { user: { select: { email: true, name: true } } } },
+            items: { include: { product: true } },
           },
         },
+        user: { select: { email: true, name: true } },
       },
-    })
+    });
 
-    if (!order) {
-      return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 })
+    if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
+
+    if (order.status === "cancelled") {
+      return NextResponse.json({ error: "La orden ya está cancelada" }, { status: 400 });
     }
 
-    if (order.userId !== session.user.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    const isOwner = String(order.userId) === String(authUser.id);
+    const sellerStoreIds = (user?.stores || []).map((s) => String(s.id));
+    const isSellerOfOrder = order.orderItems.some((oi) => sellerStoreIds.includes(String(oi.storeId)));
+    const isAdmin = user?.role === "admin";
+
+    if (!isOwner && !isSellerOfOrder && !isAdmin) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    if (order.status !== "pending") {
-      return NextResponse.json(
-        { error: "Solo se pueden cancelar órdenes pendientes" },
-        { status: 400 }
-      )
+    const hasPaymentProof = !!order.paymentProof;
+    const hasPayment = order.paymentStatus === "paid" || order.paymentStatus === "pending_verification";
+
+    // Si tiene comprobante pero no está pagado, solo el vendedor/admin puede cancelar
+    if (hasPaymentProof && !hasPayment && !isSellerOfOrder && !isAdmin) {
+      return NextResponse.json({
+        error: "Solo el vendedor puede cancelar órdenes con comprobante pendiente de verificación",
+      }, { status: 403 });
     }
 
-    // 🔄 Devolver stock de TODOS los productos
-    for (const sub of order.orderItems) {
-      for (const item of sub.items) {
-        await prisma.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              increment: item.quantity,
-            },
-          },
-        })
+    const result = await prisma.$transaction(async (tx) => {
+      // Restaurar stock si fue descontado
+      if (order.stockDeducted) {
+        for (const oi of order.orderItems || []) {
+          for (const p of oi.items || []) {
+            const productId = p.productId;
+            const qty = Number(p.quantity || 0);
+            if (!productId || qty <= 0) continue;
+            try {
+              await tx.product.update({
+                where: { id: productId },
+                data: { stock: { increment: qty } },
+              });
+            } catch (e) {
+              console.warn("No se pudo restaurar stock:", productId, e?.message || e);
+            }
+          }
+        }
       }
+
+      // Actualizar orden
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: "cancelled",
+          paymentStatus: hasPayment ? "refunded" : order.paymentStatus,
+          refundStatus: hasPayment ? "pending" : "none",
+          deleted: true,
+          deletedAt: new Date(),
+          deletedBy: authUser.id,
+          deletedReason: reason,
+        },
+      });
+
+      // Registrar historial
+      try {
+        await tx.orderHistory.create({
+          data: {
+            orderId,
+            action: "cancelled",
+            byUserId: authUser.id,
+            note: `Orden cancelada. Motivo: ${reason}${hasPayment ? " (pago registrado, reembolso pendiente)" : ""}`,
+          },
+        });
+      } catch (e) {
+        console.warn("No se pudo registrar orderHistory:", e?.message || e);
+      }
+
+      return updated;
+    });
+
+    // Enviar emails de notificación (no bloquear)
+    const orderNumber = order.orderNumber || order.id;
+    const buyerEmail = order.customerEmail || order.user?.email;
+    const buyerName = order.customerName || order.user?.name || "Cliente";
+
+    const buildItems = (items) => items.map((it) => ({
+      productName: it.product?.title || "Producto",
+      quantity: it.quantity,
+      price: it.price,
+    }));
+
+    const allItems = order.orderItems.flatMap((oi) => oi.items || []);
+
+    // Email al comprador
+    if (buyerEmail) {
+      const buyerTemplate = orderCancelledBuyerTemplate({
+        orderNumber,
+        userName: buyerName,
+        reason,
+        total: order.total,
+        items: buildItems(allItems),
+        hasPayment,
+        refundStatus: hasPayment ? "pending" : "none",
+      });
+
+      sendOrderCancelledTemplate({ to: buyerEmail, html: buyerTemplate }).catch((e) =>
+        console.error("Error email cancel -> buyer:", e?.message || e)
+      );
     }
 
-    // ❌ Cancelar TODAS las sub-órdenes (OrderItem)
-    await prisma.orderItem.updateMany({
-      where: { orderId },
-      data: {
-        paymentStatus: "cancelled",
-      },
-    })
+    // Emails a vendedores
+    for (const oi of order.orderItems) {
+      const sellerEmail = oi.store?.user?.email;
+      if (!sellerEmail) continue;
 
-    // 🧾 Cancelar orden principal
-    await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status: "cancelled",
-        paymentStatus: "refunded",
-      },
-    })
+      const sellerTemplate = orderCancelledSellerTemplate({
+        orderNumber,
+        sellerName: oi.store?.name || oi.store?.user?.name || "Vendedor",
+        reason,
+        total: order.total,
+        items: buildItems(oi.items || []),
+        buyerName,
+        hasPayment,
+      });
 
-    return NextResponse.json({ success: true })
+      sendOrderCancelledTemplate({ to: sellerEmail, html: sellerTemplate }).catch((e) =>
+        console.error(`Error email cancel -> seller (${sellerEmail}):`, e?.message || e)
+      );
+    }
 
-  } catch (error) {
-    console.error("Error cancelando orden:", error)
-    return NextResponse.json({ error: "Error interno" }, { status: 500 })
+    return NextResponse.json({
+      success: true,
+      order: result,
+      message: hasPayment
+        ? "Orden cancelada. El pago registrado será procesado para reembolso."
+        : "Orden cancelada exitosamente.",
+    });
+  } catch (err) {
+    console.error("ERROR CANCEL ORDER:", err);
+    return NextResponse.json({ error: "Error cancelando orden" }, { status: 500 });
   }
 }

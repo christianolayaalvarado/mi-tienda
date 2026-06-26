@@ -35,6 +35,10 @@ export async function POST(req, context) {
 
     if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
 
+    if (order.status === "cancelled") {
+      return NextResponse.json({ error: "No se puede confirmar pago de una orden cancelada" }, { status: 400 });
+    }
+
     const sessionUserId = authUser.id;
     const isAdmin = user?.role === "admin";
     const sellerStoreIds = (user?.stores || []).map((s) => String(s.id));

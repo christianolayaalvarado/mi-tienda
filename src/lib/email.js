@@ -11,6 +11,8 @@ import {
   passwordResetTemplate,
   passwordResetSuccessTemplate,
   orderStatusTemplate,
+  orderCancelledBuyerTemplate,
+  orderCancelledSellerTemplate,
 } from "./emailTemplates";
 
 const defaultFrom = `"${process.env.FROM_NAME || "Mi Tienda"}" <${process.env.FROM_EMAIL || process.env.EMAIL_USER}>`;
@@ -96,6 +98,9 @@ export const sendPasswordResetEmail = async ({ to, resetUrl }) =>
 export const sendPasswordResetSuccessEmail = async ({ to }) =>
   sendMail({ to, subject: "Contraseña actualizada - Mi Tienda", html: passwordResetSuccessTemplate() });
 
+export const sendOrderCancelledTemplate = async ({ to, html }) =>
+  sendMail({ to, subject: "Orden cancelada - Mi Tienda", html });
+
 export default {
   sendMail,
   sendVerificationCodeEmail,
@@ -108,4 +113,5 @@ export default {
   sendOrderStatusEmail,
   sendPasswordResetEmail,
   sendPasswordResetSuccessEmail,
+  sendOrderCancelledTemplate,
 };

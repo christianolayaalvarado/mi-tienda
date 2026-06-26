@@ -271,6 +271,80 @@ export const passwordResetTemplate = (resetUrl) =>
     <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">Este enlace expira en 1 hora por seguridad.</p>
   `);
 
+/** Orden cancelada - al comprador */
+export const orderCancelledBuyerTemplate = (data) =>
+  baseTemplate(`
+    <h2 style="margin:0 0 12px;color:#111827;font-size:20px;">❌ Orden cancelada</h2>
+    <p style="margin:0 0 4px;color:#6b7280;">Hola <strong>${data.userName || "cliente"}</strong>,</p>
+    <p style="margin:0 0 16px;color:#6b7280;">Tu orden ha sido cancelada por el vendedor.</p>
+
+    <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
+      <strong style="color:#991b1b;font-size:16px;">#${data.orderNumber}</strong>
+      ${statusBadge("Cancelado", "#ef4444")}
+    </div>
+
+    <div style="background:#f9fafb;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0 0 8px;color:#374151;font-weight:600;">Motivo de cancelación:</p>
+      <p style="margin:0;color:#6b7280;">${data.reason}</p>
+    </div>
+
+    ${buildOrderItemsHtml(data.items)}
+
+    <div style="text-align:right;padding:12px 0;border-top:2px solid #e5e7eb;margin-top:8px;">
+      <span style="font-size:13px;color:#6b7280;">Total:</span>
+      <strong style="font-size:20px;color:#111827;margin-left:8px;">${formatCurrency(data.total)}</strong>
+    </div>
+
+    ${data.hasPayment ? `
+      <div style="background:#fefce8;border-radius:8px;padding:16px;margin:16px 0;">
+        <p style="margin:0 0 4px;color:#a16207;font-weight:600;">Pago registrado</p>
+        <p style="margin:0;color:#ca8a04;font-size:13px;">
+          Se ha registrado un pago para esta orden. El proceso de reembolso está pendiente de gestión por parte del equipo de soporte.
+          Te notificaremos cuando se complete el reembolso.
+        </p>
+      </div>
+    ` : ""}
+
+    ${ctaButton("Ver mis órdenes", `${appUrl}/dashboard/purchases`)}
+  `);
+
+/** Orden cancelada - al vendedor */
+export const orderCancelledSellerTemplate = (data) =>
+  baseTemplate(`
+    <h2 style="margin:0 0 12px;color:#111827;font-size:20px;">❌ Orden cancelada</h2>
+    <p style="margin:0 0 4px;color:#6b7280;">Hola <strong>${data.sellerName || "vendedor"}</strong>,</p>
+    <p style="margin:0 0 16px;color:#6b7280;">Una orden que incluye productos de tu tienda ha sido cancelada.</p>
+
+    <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
+      <strong style="color:#991b1b;font-size:16px;">#${data.orderNumber}</strong>
+      ${statusBadge("Cancelado", "#ef4444")}
+    </div>
+
+    <div style="background:#f9fafb;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0 0 8px;color:#374151;font-weight:600;">Motivo de cancelación:</p>
+      <p style="margin:0;color:#6b7280;">${data.reason}</p>
+      <p style="margin:8px 0 0;color:#6b7280;font-size:13px;">Cliente: ${data.buyerName}</p>
+    </div>
+
+    ${buildOrderItemsHtml(data.items)}
+
+    <div style="text-align:right;padding:12px 0;border-top:2px solid #e5e7eb;margin-top:8px;">
+      <span style="font-size:13px;color:#6b7280;">Total:</span>
+      <strong style="font-size:20px;color:#111827;margin-left:8px;">${formatCurrency(data.total)}</strong>
+    </div>
+
+    ${data.hasPayment ? `
+      <div style="background:#fefce8;border-radius:8px;padding:16px;margin:16px 0;">
+        <p style="margin:0 0 4px;color:#a16207;font-weight:600;">Pago registrado</p>
+        <p style="margin:0;color:#ca8a04;font-size:13px;">
+          Esta orden tenía un pago registrado. El proceso de reembolso está pendiente.
+        </p>
+      </div>
+    ` : ""}
+
+    ${ctaButton("Gestionar órdenes", `${appUrl}/dashboard/seller/orders`)}
+  `);
+
 /** Reset password exitoso */
 export const passwordResetSuccessTemplate = () =>
   baseTemplate(`

@@ -27,6 +27,8 @@ export default function SellerOrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const fetchOrder = async () => {
     setLoading(true);
@@ -34,7 +36,6 @@ export default function SellerOrderDetailPage() {
       const res = await fetch(`/api/orders/${orderId}`);
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || data?.message || `Error ${res.status}`);
-      // La API devuelve { order: { ... } }, extraemos el objeto order
       setOrder(data.order || data);
     } catch (err) {
       console.error("fetchOrder:", err);
@@ -85,6 +86,33 @@ export default function SellerOrderDetailPage() {
     }
   };
 
+  const handleCancel = async () => {
+    if (!cancelReason.trim()) {
+      toast.error("Debes ingresar un motivo de cancelación");
+      return;
+    }
+    setProcessing(true);
+    const t = toast.loading("Cancelando orden...");
+    try {
+      const res = await fetch(`/api/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: cancelReason.trim() }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || data?.message || "Error");
+      toast.success(data?.message || "Orden cancelada");
+      setShowCancelModal(false);
+      setCancelReason("");
+      await fetchOrder();
+    } catch (err) {
+      toast.error(err?.message || "Error cancelando");
+    } finally {
+      toast.dismiss(t);
+      setProcessing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center">
@@ -102,6 +130,9 @@ export default function SellerOrderDetailPage() {
 
   const orderNumber = order.orderNumber || order.id;
   const ps = statusColors[order.paymentStatus] || statusColors.unpaid;
+  const isCancelled = order.status === "cancelled";
+  const hasPayment = order.paymentStatus === "paid" || order.paymentStatus === "pending_verification";
+  const canCancel = !isCancelled && (order.paymentStatus !== "paid");
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -114,9 +145,16 @@ export default function SellerOrderDetailPage() {
             {order.customerEmail && ` · ${order.customerEmail}`}
           </p>
         </div>
-        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${ps.bg} ${ps.text} border ${ps.border}`}>
-          {ps.label}
-        </span>
+        <div className="flex items-center gap-3">
+          {isCancelled && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-50 text-red-700 border border-red-200">
+              Cancelada
+            </span>
+          )}
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${ps.bg} ${ps.text} border ${ps.border}`}>
+            {ps.label}
+          </span>
+        </div>
       </div>
 
       {/* Info grid */}
@@ -136,6 +174,19 @@ export default function SellerOrderDetailPage() {
           <p className="text-sm font-medium text-gray-700 mt-1">{ps.label}</p>
         </div>
       </div>
+
+      {/* Cancelación info */}
+      {isCancelled && order.deletedReason && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm font-semibold text-red-800 mb-1">Motivo de cancelación:</p>
+          <p className="text-sm text-red-700">{order.deletedReason}</p>
+          {order.deletedAt && (
+            <p className="text-xs text-red-500 mt-2">
+              Cancelada el {new Date(order.deletedAt).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Productos */}
       {order.orderItems && order.orderItems.length > 0 && (
@@ -209,24 +260,80 @@ export default function SellerOrderDetailPage() {
       </div>
 
       {/* Acciones */}
-      {order.paymentStatus === "pending_verification" && (
-        <div className="flex gap-4">
-          <button
-            onClick={handleApprove}
-            disabled={processing}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-60 transition flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-            Aprobar pago
-          </button>
-          <button
-            onClick={handleReject}
-            disabled={processing}
-            className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-60 transition flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            Rechazar pago
-          </button>
+      {!isCancelled && (
+        <div className="flex flex-wrap gap-3">
+          {order.paymentStatus === "pending_verification" && (
+            <>
+              <button
+                onClick={handleApprove}
+                disabled={processing}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-60 transition flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                Aprobar pago
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={processing}
+                className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-60 transition flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                Rechazar pago
+              </button>
+            </>
+          )}
+
+          {canCancel && (
+            <button
+              onClick={() => setShowCancelModal(true)}
+              disabled={processing}
+              className="bg-yellow-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-yellow-600 disabled:opacity-60 transition flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              Cancelar orden
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Modal de cancelación */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Cancelar orden #{orderNumber}</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {hasPayment
+                ? "Esta orden tiene un pago registrado. Al cancelar, se iniciará el proceso de reembolso."
+                : "Esta acción no se puede deshacer."}
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Motivo de cancelación *</label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+                required
+                placeholder="Ej: Producto fuera de stock, solicitud del cliente..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none"
+              />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => { setShowCancelModal(false); setCancelReason(""); }}
+                disabled={processing}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+              >
+                No cancelar
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={processing || !cancelReason.trim()}
+                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+              >
+                {processing ? "Cancelando..." : "Confirmar cancelación"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

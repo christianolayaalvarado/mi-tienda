@@ -83,6 +83,8 @@ export async function GET(req, context) {
         paymentProofMime: order.paymentProofMime || null,
         status: order.status,
         deletedAt: order.deletedAt || null,
+        deletedReason: order.deletedReason || null,
+        refundStatus: order.refundStatus || "none",
       },
     };
 
@@ -126,6 +128,15 @@ export async function DELETE(req, context) {
 
     if (!isOwner && !isSellerOfOrder && !isAdmin) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    // Bloquear soft delete si tiene comprobante de pago o está pagado
+    const hasPaymentProof = !!order.paymentProof;
+    const hasPayment = order.paymentStatus === "paid" || order.paymentStatus === "pending_verification";
+    if (mode === "soft" && (hasPaymentProof || hasPayment)) {
+      return NextResponse.json({
+        error: "Esta orden tiene un pago registrado. Usa POST /api/orders/[id]/cancel para cancelarla con motivo.",
+      }, { status: 400 });
     }
 
     if (mode === "soft") {
@@ -236,6 +247,10 @@ export async function PATCH(req, context) {
     const user = await prisma.user.findUnique({ where: { email: authUser.email }, include: { stores: true } });
     const order = await prisma.order.findUnique({ where: { id: orderId }, include: { orderItems: { include: { items: true } } } });
     if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
+
+    if (order.status === "cancelled") {
+      return NextResponse.json({ error: "No se puede modificar una orden cancelada" }, { status: 400 });
+    }
 
     const isOwner = String(order.userId) === String(authUser.id);
     const sellerStoreIds = (user?.stores || []).map((s) => String(s.id));
