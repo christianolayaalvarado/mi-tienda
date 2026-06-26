@@ -133,7 +133,7 @@ export default function ProductGallery({ images, title }) {
       </div>
 
       {/* Imagen grande */}
-      <div className="relative w-[80%] sm:w-[85%] md:w-full max-w-[640px] aspect-square mx-auto">
+      <div className="relative w-full sm:w-[85%] md:w-full max-w-[640px] aspect-square mx-auto">
         <div
           onClick={() => setViewerOpen(true)}
           className="relative w-full h-full cursor-zoom-in"

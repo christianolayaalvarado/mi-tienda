@@ -40,10 +40,13 @@ export default async function ProductDetail({ params }) {
   })
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
 
-      <Link href="/" className="text-green-600 hover:underline">
-        ← Volver
+      <Link href="/" className="inline-flex items-center gap-1 text-green-600 hover:underline font-medium mb-4">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        Volver
       </Link>
 
       <div className="grid md:grid-cols-2 gap-10 mt-6">

@@ -259,10 +259,10 @@ export default function ProductInfo({ product }) {
   }
 
   return (
-    <div className="flex flex-col justify-start mt-6 md:mt-10 md:pl-10 text-center md:text-left px-2 md:px-0">
-      <h1 className="text-3xl md:text-4xl font-bold">{product.title}</h1>
+    <div className="flex flex-col justify-start mt-6 md:mt-10 md:pl-10 px-2 md:px-0">
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center md:text-left">{product.title}</h1>
 
-      <p className="text-green-600 text-2xl md:text-3xl mt-4 font-semibold">
+      <p className="text-green-600 text-xl sm:text-2xl md:text-3xl mt-4 font-semibold text-center md:text-left">
         S/ {Number(product.price || 0).toFixed(2)}
       </p>
 
@@ -270,7 +270,7 @@ export default function ProductInfo({ product }) {
       {remainingStock > 1 && remainingStock <= 3 && <p className="text-orange-600 font-semibold mt-2">🔥 Solo quedan {remainingStock} unidades</p>}
       {remainingStock === 0 && <p className="text-red-600 font-semibold mt-2">Producto agotado</p>}
 
-      <div className="mt-6 space-y-1 text-sm text-gray-600">
+      <div className="mt-6 space-y-1 text-sm text-gray-600 text-left">
         <p><span className="font-semibold text-gray-800">ID Producto:</span> {productIdStr}</p>
         <p><span className="font-semibold text-gray-800">Categoría:</span> {product.category?.name || "-"}</p>
         <p><span className="font-semibold text-gray-800">Vendedor:</span> {product.user?.name || "Sin nombre"}</p>
@@ -279,9 +279,9 @@ export default function ProductInfo({ product }) {
         <p><span className="font-semibold text-gray-800">Stock:</span> {remainingStock} disponibles</p>
       </div>
 
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold mb-2">Descripción</h2>
-        <p className="text-gray-700 leading-relaxed text-justify">{product.description}</p>
+      <div className="mt-6 text-left">
+        <h2 className="text-lg font-semibold mb-2 text-center md:text-left">Descripción</h2>
+        <p className="text-gray-700 leading-relaxed">{product.description}</p>
       </div>
 
       <div className="flex items-center gap-4 mt-6 justify-center md:justify-start">
@@ -294,11 +294,11 @@ export default function ProductInfo({ product }) {
 
       {quantity > 1 && <p className="text-gray-700 text-sm mt-2 font-medium">Total: <span className="text-green-600">S/ {selectionTotal.toFixed(2)}</span></p>}
 
-      <button onClick={handleAdd} disabled={remainingStock === 0 || maxInCart || adding} className={`mt-8 px-6 py-3 rounded-lg ${remainingStock === 0 || maxInCart || adding ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"}`} data-test-id="add-to-cart-button">
+      <button onClick={handleAdd} disabled={remainingStock === 0 || maxInCart || adding} className={`mt-8 w-full sm:w-auto px-6 py-3 rounded-lg font-semibold text-center ${remainingStock === 0 || maxInCart || adding ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"}`} data-test-id="add-to-cart-button">
         {adding ? "Agregando..." : remainingStock === 0 ? "Producto agotado" : maxInCart ? "Ya tienes el máximo en carrito" : quantity > 1 ? `Agregar ${quantity}` : "Agregar al carrito"}
       </button>
 
-      <button onClick={handleChatWithSeller} className="mt-3 px-6 py-3 rounded-lg border border-green-600 text-green-600 hover:bg-green-50 transition flex items-center justify-center gap-2">
+      <button onClick={handleChatWithSeller} className="mt-3 w-full sm:w-auto px-6 py-3 rounded-lg border border-green-600 text-green-600 hover:bg-green-50 transition flex items-center justify-center gap-2 font-semibold">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
