@@ -163,13 +163,13 @@ export default function NavbarContent() {
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
         {/* Single flex row with wrap: search goes to line 2 on mobile */}
-        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-6 sm:justify-start">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-6">
           <Link href="/" className="flex items-center shrink-0 order-1">
             <img src="/images/logo.png" alt="Logo MiTienda" className="h-8 sm:h-10 w-auto navbar-logo" />
           </Link>
 
-          {/* Actions: order-2 on mobile (next to logo), order-3 on desktop (after search) */}
-          <div className="flex items-center gap-1 sm:gap-3 order-2 sm:order-3">
+          {/* Actions: ml-auto on mobile pushes to right edge, sm:order-3 on desktop */}
+          <div className="flex items-center gap-1 sm:gap-3 ml-auto sm:ml-0 order-2 sm:order-3">
             <button
               type="button"
               aria-label={`Abrir carrito, ${count} items`}

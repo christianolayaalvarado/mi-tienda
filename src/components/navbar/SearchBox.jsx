@@ -25,7 +25,7 @@ export default function SearchBox({ initial = "", onSearch }) {
           onChange={(e) => setValue(e.target.value)}
           placeholder="Buscar productos..."
           aria-label="Buscar productos"
-          className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+          className="w-full border border-gray-300 rounded-lg pl-10 pr-3 sm:pr-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 transition"
         />
       </div>
     </div>
