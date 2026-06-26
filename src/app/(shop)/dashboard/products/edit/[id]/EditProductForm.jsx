@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import useCategories from "@/hooks/useCategories";
 
@@ -9,9 +8,9 @@ const CLOUDINARY_CLOUD_NAME = "dqx8wx5fj";
 const UPLOAD_PRESET = "mi_tienda_unsigned";
 
 export default function EditProductForm({ productId }) {
-  const { data: session } = useSession();
   const { categories = [], loading: loadingCategories } = useCategories();
 
+  const [currentUser, setCurrentUser] = useState(null);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -27,13 +26,30 @@ export default function EditProductForm({ productId }) {
   const [newImages, setNewImages] = useState([]);
   const [previewImages, setPreviewImages] = useState([]);
 
+  // Fetch current user from custom JWT auth
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include", headers: { Accept: "application/json" } });
+        if (res.ok) {
+          const data = await res.json().catch(() => null);
+          setCurrentUser(data?.user || null);
+        } else {
+          setCurrentUser(null);
+        }
+      } catch {
+        setCurrentUser(null);
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     if (!productId) return;
 
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch(`/api/products/${productId}`, { cache: "no-store" });
+        const res = await fetch(`/api/products/${productId}`, { cache: "no-store", credentials: "include" });
         if (res.status === 401) {
           toast.error("No autorizado. Inicia sesión.");
           return;
@@ -58,32 +74,24 @@ export default function EditProductForm({ productId }) {
           description: data.description ?? "",
         });
 
-        // --- Reemplazar la detección de owner por este bloque ---
-const ownerIdRaw = data.userId ?? data.user?.id ?? null;
-// Normalizar a string para evitar problemas de tipo
-const ownerId = ownerIdRaw !== null && ownerIdRaw !== undefined ? String(ownerIdRaw) : null;
-const currentUserId = session?.user?.id ? String(session.user.id) : null;
-const admin = session?.user?.role === "admin";
+        // Ownership check using custom JWT user
+        const ownerId = data.userId ? String(data.userId) : null;
+        const storeUserId = data.store?.user?.id ? String(data.store.user.id) : null;
+        const currentUserId = currentUser?.id ? String(currentUser.id) : null;
+        const admin = currentUser?.role === "admin" || currentUser?.role === "ADMIN";
 
-// Verificar ownership por userId O por store (si el usuario es dueño de la tienda del producto)
-const storeOwnerId = data.store?.user?.id ? String(data.store.user.id) : null;
-const isOwnerOfStore = currentUserId && storeOwnerId && currentUserId === storeOwnerId;
+        const isOwnerOfProduct = currentUserId && ownerId && currentUserId === ownerId;
+        const isOwnerOfStore = currentUserId && storeUserId && currentUserId === storeUserId;
 
-// isOwner será true si el usuario logueado coincide con el seller, la tienda, o si es admin
-setIsOwner(admin || (currentUserId && ownerId && currentUserId === ownerId) || isOwnerOfStore);
-
+        setIsOwner(admin || isOwnerOfProduct || isOwnerOfStore);
       } catch (err) {
         console.error("Error fetching product:", err);
         toast.error("Error cargando producto");
       }
     })();
 
-    return () => {
-      mounted = false;
-    };
-    // intentionally include session.user.id and role so ownership recalculates when session changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, session?.user?.id, session?.user?.role]);
+    return () => { mounted = false; };
+  }, [productId, currentUser?.id, currentUser?.role]);
 
   useEffect(() => {
     return () => {

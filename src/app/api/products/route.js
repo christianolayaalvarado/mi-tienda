@@ -1,8 +1,7 @@
 // app/api/products/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { authOptions } from "@/lib/authOptions";
-import { getServerSession } from "next-auth/next";
+import { getServerAuthUser } from "@/lib/serverAuth";
 import cloudinary from "@/lib/cloudinary";
 
 /* Helpers */
@@ -73,7 +72,7 @@ export async function GET(req) {
 /* POST: crear producto (seller) */
 export async function POST(req) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerAuthUser(req);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const body = await req.json().catch(() => null);
@@ -84,7 +83,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email }, include: { stores: true } });
+    const user = await prisma.user.findUnique({ where: { email: session.email }, include: { stores: true } });
     if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     if (!user.stores || user.stores.length === 0) {
       return NextResponse.json({ error: "No tienes tienda creada" }, { status: 400 });
@@ -133,7 +132,7 @@ export async function POST(req) {
 /* PUT: editar producto (owner o admin) */
 export async function PUT(req) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerAuthUser(req);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     // Leer body con manejo de errores
@@ -159,13 +158,16 @@ export async function PUT(req) {
     }
 
     // Verificar propietario
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const user = await prisma.user.findUnique({ where: { email: session.email } });
     if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
 
     const isOwner = String(existing.userId) === String(user.id);
-    const role = session.user?.role || "";
+    const role = session.role || "";
     const isAdmin = role === "admin" || role === "ADMIN";
-    if (!isOwner && !isAdmin) return NextResponse.json({ error: "No autorizado para editar este producto" }, { status: 403 });
+    // También verificar ownership por tienda
+    const storeUserId = existing.storeId ? await prisma.store.findUnique({ where: { id: existing.storeId } }).then(s => s?.userId) : null;
+    const isStoreOwner = storeUserId && String(storeUserId) === String(user.id);
+    if (!isOwner && !isAdmin && !isStoreOwner) return NextResponse.json({ error: "No autorizado para editar este producto" }, { status: 403 });
 
     // Preparar imágenes (subidas) — igual que antes
     const uploadedImages = [];
@@ -222,7 +224,7 @@ export async function PUT(req) {
 /* DELETE: eliminar múltiples productos (solo del owner) */
 export async function DELETE(req) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerAuthUser(req);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const body = await req.json().catch(() => null);
@@ -230,8 +232,22 @@ export async function DELETE(req) {
       return NextResponse.json({ error: "IDs requeridos" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const user = await prisma.user.findUnique({ where: { email: session.email } });
     if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+
+    // Verificar que los productos pertenecen al usuario o a sus tiendas
+    const productIds = body.ids;
+    const userProducts = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: { store: true },
+    });
+
+    const authorized = userProducts.every(
+      (p) => String(p.userId) === String(user.id) || (p.store && String(p.store.userId) === String(user.id))
+    );
+    if (!authorized) {
+      return NextResponse.json({ error: "No autorizado para eliminar algunos productos" }, { status: 403 });
+    }
 
     const deleted = await prisma.product.deleteMany({
       where: { id: { in: body.ids }, userId: user.id },

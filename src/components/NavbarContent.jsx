@@ -161,16 +161,16 @@ export default function NavbarContent() {
 
   return (
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-6">
-        <Link href="/" className="flex items-center">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center gap-2 sm:gap-6">
+        <Link href="/" className="flex items-center shrink-0">
           <img
             src="/images/logo.png"
             alt="Logo MiTienda"
-            className="h-10 w-auto navbar-logo"
+            className="h-8 sm:h-10 w-auto navbar-logo"
           />
         </Link>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <SearchBox initial={currentSearch} onSearch={(val) => setSearch(val)} />
         </div>
 
@@ -178,13 +178,14 @@ export default function NavbarContent() {
           type="button"
           aria-label={`Abrir carrito, ${count} items`}
           onClick={() => setCartOpen((s) => !s)}
-          className="text-sm font-medium cursor-pointer relative select-none"
+          className="text-sm font-medium cursor-pointer relative select-none shrink-0"
           aria-haspopup="true"
           aria-expanded={cartOpen}
           ref={cartRef}
         >
           <span data-cart-icon className="relative inline-block">
-            🛒 Carrito
+            <span className="hidden sm:inline">🛒 Carrito</span>
+            <span className="sm:hidden text-lg">🛒</span>
             {mounted && count > 0 && (
               <span className="absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full">
                 {count}

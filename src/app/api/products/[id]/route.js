@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getServerAuthUser } from "@/lib/serverAuth";
 import cloudinary from "@/lib/cloudinary";
 
 // helper validar ObjectId
@@ -40,14 +39,13 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const session = await getServerSession(authOptions);
+    const session = await getServerAuthUser(req);
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     const body = await req.json().catch(() => ({}));
 
-    // Validaciones básicas de entrada
     const title = typeof body.title === "string" ? body.title.trim() : null;
     const description = typeof body.description === "string" ? body.description.trim() : "";
     const price = Number(body.price);
@@ -57,7 +55,6 @@ export async function PUT(req, { params }) {
     if (!title) return NextResponse.json({ error: "Título requerido" }, { status: 400 });
     if (!Number.isFinite(price) || price < 0) return NextResponse.json({ error: "Precio inválido" }, { status: 400 });
 
-    // Validar stock: entero y no negativo
     const parsedStock = Number(stockRaw);
     if (!Number.isFinite(parsedStock) || !Number.isInteger(parsedStock) || parsedStock < 0) {
       return NextResponse.json({ error: "Stock inválido (debe ser entero >= 0)" }, { status: 400 });
@@ -69,10 +66,10 @@ export async function PUT(req, { params }) {
     });
     if (!existing) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
 
-    // Permiso: propietario del producto, dueño de la tienda, o admin
-    const isProductOwner = String(existing.userId) === String(session.user.id);
-    const isStoreOwner = existing.store?.user?.id ? String(existing.store.user.id) === String(session.user.id) : false;
-    const isAdmin = session.user?.role === "admin";
+    const userId = session.id || null;
+    const isProductOwner = userId && String(existing.userId) === String(userId);
+    const isStoreOwner = existing.store?.user?.id ? String(existing.store.user.id) === String(userId) : false;
+    const isAdmin = session.role === "admin" || session.role === "ADMIN";
 
     if (!isProductOwner && !isStoreOwner && !isAdmin) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });

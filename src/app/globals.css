@@ -5,9 +5,15 @@
 /* Variables personalizadas */
 
 .navbar-logo {
-  height: 45px;
+  height: 32px;
   width: auto;
   transition: filter 0.3s ease;
+}
+
+@media (min-width: 640px) {
+  .navbar-logo {
+    height: 45px;
+  }
 }
 
 :root {

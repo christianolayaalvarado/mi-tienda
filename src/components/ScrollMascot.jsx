@@ -117,6 +117,8 @@ export default function ScrollMascot() {
   const [celebrating, setCelebrating] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
+  const [walkX, setWalkX] = useState(0);
+  const [gridRight, setGridRight] = useState(0);
   const lastMessageZone = useRef("");
   const encourageTimer = useRef(null);
   const hasGreeted = useRef(false);
@@ -281,6 +283,37 @@ export default function ScrollMascot() {
     }
   }, [progress, celebrating]);
 
+  // Measure product grid right edge for walk limit
+  useEffect(() => {
+    const measure = () => {
+      const grid = document.querySelector(".grid.gap-4");
+      if (grid) {
+        const rect = grid.getBoundingClientRect();
+        setGridRight(Math.round(rect.right));
+      }
+    };
+    measure();
+    const t = setInterval(measure, 2000);
+    window.addEventListener("resize", measure, { passive: true });
+    return () => { clearInterval(t); window.removeEventListener("resize", measure); };
+  }, []);
+
+  // Calculate horizontal walk: oscillate between grid right edge and before the percentage text
+  useEffect(() => {
+    if (!gridRight) return;
+    // Right limit: leave space for the progress bar (12px) + percentage text (~24px)
+    const rightLimit = window.innerWidth - 40;
+    const walkableSpace = rightLimit - gridRight;
+    if (walkableSpace <= 0) { setWalkX(0); return; }
+    // Amplitude: use full walkable space but cap at 30px
+    const maxOffset = Math.min(walkableSpace, 30);
+    const t = Date.now() / 6000;
+    setWalkX(Math.sin(t * Math.PI * 2) * maxOffset);
+  });
+
+  // Speech bubble on the right when mascot is far left (walkX < -5)
+  const bubbleOnRight = walkX < -5;
+
   const atBottom = progress > 0.95;
 
   // Arms
@@ -344,14 +377,18 @@ export default function ScrollMascot() {
       {/* Mascot */}
       <div
         className="absolute right-0 sm:right-1 pointer-events-auto cursor-pointer group"
-        style={{ top: `${mascotTop}px`, transition: "top 0.1s linear" }}
+        style={{ top: `${mascotTop}px`, transition: "top 0.1s linear", transform: `translateX(${walkX}px)` }}
       >
-        {/* Speech bubble */}
+        {/* Speech bubble — flips based on mascot position */}
         {message && (
-          <div key={msgKey} className="absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
+          <div key={msgKey} className={`absolute top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out] ${bubbleOnRight ? "left-full ml-3" : "right-full mr-3"}`}>
             <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
               {message}
-              <div className="absolute left-full top-1/2 -translate-y-1/2 -ml-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[5px] border-l-white" />
+              {bubbleOnRight ? (
+                <div className="absolute right-full top-1/2 -translate-y-1/2 -mr-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-white" />
+              ) : (
+                <div className="absolute left-full top-1/2 -translate-y-1/2 -ml-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[5px] border-l-white" />
+              )}
             </div>
           </div>
         )}
