@@ -65,8 +65,12 @@ const ownerId = ownerIdRaw !== null && ownerIdRaw !== undefined ? String(ownerId
 const currentUserId = session?.user?.id ? String(session.user.id) : null;
 const admin = session?.user?.role === "admin";
 
-// isOwner será true si el usuario logueado coincide con el seller o si es admin
-setIsOwner(admin || (currentUserId && ownerId && currentUserId === ownerId));
+// Verificar ownership por userId O por store (si el usuario es dueño de la tienda del producto)
+const storeOwnerId = data.store?.user?.id ? String(data.store.user.id) : null;
+const isOwnerOfStore = currentUserId && storeOwnerId && currentUserId === storeOwnerId;
+
+// isOwner será true si el usuario logueado coincide con el seller, la tienda, o si es admin
+setIsOwner(admin || (currentUserId && ownerId && currentUserId === ownerId) || isOwnerOfStore);
 
       } catch (err) {
         console.error("Error fetching product:", err);

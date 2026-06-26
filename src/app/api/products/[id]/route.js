@@ -18,7 +18,7 @@ export async function GET(req, { params }) {
 
     const product = await prisma.product.findUnique({
       where: { id },
-      include: { category: true, store: true },
+      include: { category: true, store: { include: { user: { select: { id: true, name: true, email: true } } } }, user: { select: { id: true, name: true, email: true } } },
     });
 
     if (!product) {
@@ -63,11 +63,18 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: "Stock inválido (debe ser entero >= 0)" }, { status: 400 });
     }
 
-    const existing = await prisma.product.findUnique({ where: { id } });
+    const existing = await prisma.product.findUnique({
+      where: { id },
+      include: { store: { include: { user: { select: { id: true } } } } },
+    });
     if (!existing) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
 
-    // Permiso: solo propietario del producto puede editar
-    if (String(existing.userId) !== String(session.user.id)) {
+    // Permiso: propietario del producto, dueño de la tienda, o admin
+    const isProductOwner = String(existing.userId) === String(session.user.id);
+    const isStoreOwner = existing.store?.user?.id ? String(existing.store.user.id) === String(session.user.id) : false;
+    const isAdmin = session.user?.role === "admin";
+
+    if (!isProductOwner && !isStoreOwner && !isAdmin) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
@@ -106,7 +113,7 @@ export async function PUT(req, { params }) {
         categoryId,
         images: allImages,
       },
-      include: { category: true, store: true },
+      include: { category: true, store: { include: { user: { select: { id: true, name: true, email: true } } } }, user: { select: { id: true, name: true, email: true } } },
     });
 
     return NextResponse.json(updated);

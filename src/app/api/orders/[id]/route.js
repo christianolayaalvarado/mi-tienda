@@ -141,6 +141,26 @@ export async function DELETE(req, context) {
 
     if (mode === "soft") {
       const now = new Date();
+
+      // Restaurar stock si fue descontado
+      if (order.stockDeducted) {
+        for (const oi of order.orderItems || []) {
+          for (const p of oi.items || []) {
+            const productId = p.productId;
+            const qty = Number(p.quantity || 0);
+            if (!productId || qty <= 0) continue;
+            try {
+              await prisma.product.update({
+                where: { id: productId },
+                data: { stock: { increment: qty } },
+              });
+            } catch (e) {
+              console.warn("No se pudo restaurar stock (soft delete):", productId, e?.message || e);
+            }
+          }
+        }
+      }
+
       const updated = await prisma.order.update({
         where: { id: orderId },
         data: {
