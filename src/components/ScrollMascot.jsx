@@ -37,6 +37,7 @@ function pickRandom(arr) {
 export default function ScrollMascot() {
   const { user } = useAuthContext() || {};
   const [progress, setProgress] = useState(0);
+  const [viewH, setViewH] = useState(800);
   const [isWaving, setIsWaving] = useState(true);
   const [message, setMessage] = useState("");
   const [msgKey, setMsgKey] = useState(0);
@@ -48,6 +49,14 @@ export default function ScrollMascot() {
   const encourageTimer = useRef(null);
   const hasGreeted = useRef(false);
   const idleTimer = useRef(null);
+
+  // Track window height
+  useEffect(() => {
+    const updateHeight = () => setViewH(window.innerHeight);
+    updateHeight();
+    window.addEventListener("resize", updateHeight, { passive: true });
+    return () => window.removeEventListener("resize", updateHeight);
+  }, []);
 
   // Calcular progreso real
   const updateProgress = useCallback(() => {
@@ -84,12 +93,10 @@ export default function ScrollMascot() {
     };
   }, [updateProgress]);
 
-  // Animación idle: brazos y piernas se mueven cada 0.6s
+  // Animación idle: brazos y piernas cada 0.6s
   useEffect(() => {
     if (!isIdle) return;
-    const t = setInterval(() => {
-      setIdleFrame((f) => f + 1);
-    }, 600);
+    const t = setInterval(() => setIdleFrame((f) => f + 1), 600);
     return () => clearInterval(t);
   }, [isIdle]);
 
@@ -104,19 +111,17 @@ export default function ScrollMascot() {
     setMessage(greet);
     setMsgKey((k) => k + 1);
 
-    // Después de 6s, mostrar segundo mensaje
     const t1 = setTimeout(() => {
       setMessage("Sigue bajando, ¡hay más productos para ti! 👇");
       setMsgKey((k) => k + 1);
     }, 6000);
 
-    // Dejar de saludar con brazos
     const t2 = setTimeout(() => { setIsWaving(false); }, 3000);
 
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [user]);
 
-  // Mensajes por zona (solo después del segundo mensaje, ~8s)
+  // Mensajes por zona
   useEffect(() => {
     if (progress < 0.03) return;
 
@@ -172,27 +177,33 @@ export default function ScrollMascot() {
 
   const atBottom = progress > 0.95;
 
-  // Brazos: idle alterna, waving rápido
+  // Brazos
   const armL = isIdle ? (idleFrame % 2 === 0 ? -12 : 5) : isWaving ? (idleFrame % 2 === 0 ? -20 : 10) : 0;
   const armR = isIdle ? (idleFrame % 2 === 0 ? 5 : -12) : isWaving ? (idleFrame % 2 === 0 ? 10 : -20) : 0;
 
-  // Piernas: idle mueve pies alternadamente
+  // Piernas
   const legL = isIdle ? (idleFrame % 2 === 0 ? 0 : 3) : 0;
   const legR = isIdle ? (idleFrame % 2 === 0 ? 3 : 0) : 0;
 
-  // Posición mascot: de arriba (120px) hasta fondo viewport
-  const viewH = typeof window !== "undefined" ? window.innerHeight : 800;
+  // Posición mascot: de arriba (120px) hasta fondo del viewport
   const startY = 120;
   const endY = viewH - 70;
   const mascotTop = startY + progress * (endY - startY);
+
+  // Porcentaje real del scroll
+  const displayPct = Math.round(progress * 100);
 
   return (
     <div className="fixed right-2 sm:right-4 top-0 bottom-0 z-50 pointer-events-none">
       {/* Barra de progreso */}
       <div className="absolute right-1.5 sm:right-2 top-24 bottom-8 w-1 bg-gray-200/50 rounded-full">
         <div
-          className="absolute bottom-0 left-0 w-full rounded-full transition-all duration-150 ease-out"
-          style={{ height: `${progress * 100}%`, background: "linear-gradient(to top, #F59E0B, #3B82F6)" }}
+          className="absolute bottom-0 left-0 w-full rounded-full"
+          style={{
+            height: `${progress * 100}%`,
+            background: "linear-gradient(to top, #F59E0B, #3B82F6)",
+            transition: "height 0.1s linear",
+          }}
         />
         {[0.25, 0.5, 0.75].map((m) => (
           <div key={m} className="absolute left-1/2 -translate-x-1/2 w-2 h-2 rounded-full border-2 border-white bg-gray-300 z-10" style={{ bottom: `${m * 100}%` }} />
@@ -218,7 +229,7 @@ export default function ScrollMascot() {
         {/* SVG Shopito */}
         <div className={`transition-transform duration-200 ${isJumping ? "animate-[wiggle_0.4s_ease-in-out_3]" : "group-hover:scale-110"}`}>
           <svg width="44" height="56" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg">
-            {/* Piernas - se mueven en idle */}
+            {/* Piernas */}
             <rect x="18" y="62" width="6" height="12" rx="3" fill="#D97706"
               style={{ transform: `translateY(${isJumping ? -4 : legL}px)`, transition: "transform 0.3s ease" }} />
             <rect x="40" y="62" width="6" height="12" rx="3" fill="#D97706"
@@ -228,7 +239,7 @@ export default function ScrollMascot() {
             <ellipse cx="43" cy="74" rx="5" ry="2.5" fill="#92400E"
               style={{ transform: `translateY(${isJumping ? -4 : legR}px)`, transition: "transform 0.3s ease" }} />
 
-            {/* Brazos - siempre se mueven */}
+            {/* Brazos */}
             <rect x="4" y="30" width="6" height="18" rx="3" fill="#D97706"
               style={{ transformOrigin: "7px 30px", transform: `rotate(${armL}deg)`, transition: "transform 0.3s ease" }} />
             <rect x="54" y="30" width="6" height="18" rx="3" fill="#D97706"
@@ -284,7 +295,7 @@ export default function ScrollMascot() {
 
       {/* Porcentaje */}
       <div className="absolute bottom-2 right-0 text-[10px] font-bold text-gray-400 tabular-nums select-none">
-        {Math.round(progress * 100)}%
+        {displayPct}%
       </div>
     </div>
   );
