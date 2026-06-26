@@ -245,29 +245,35 @@ export default function ScrollMascot() {
   const legL = isIdle ? (idleFrame % 2 === 0 ? 0 : 3) : 0;
   const legR = isIdle ? (idleFrame % 2 === 0 ? 3 : 0) : 0;
 
-  // Posición mascot
-  const startY = 120;
+  // Posición mascot: de arriba (80px) hasta fondo del viewport
+  const startY = 80;
   const endY = viewH - 70;
-  const mascotTop = startY + progress * (endY - startY);
+  // Cuando llega al final, subir 40px para no tapar el porcentaje
+  const mascotTop = atBottom
+    ? endY - 40
+    : startY + progress * (endY - startY);
 
   const displayPct = Math.round(progress * 100);
+  const barComplete = progress >= 0.99;
 
   return (
     <div className="fixed right-2 sm:right-4 top-0 bottom-0 z-50 pointer-events-none">
-      {/* Barra de progreso */}
-      <div className="absolute right-1.5 sm:right-2 top-24 bottom-8 w-1 bg-gray-200/50 rounded-full">
+      {/* Barra de progreso - empieza debajo de la navbar */}
+      <div className="absolute right-1.5 sm:right-2 top-20 bottom-8 w-1 bg-gray-200/50 rounded-full">
         <div
           className="absolute bottom-0 left-0 w-full rounded-full"
           style={{
             height: `${progress * 100}%`,
-            background: "linear-gradient(to top, #F59E0B, #3B82F6)",
-            transition: "height 0.1s linear",
+            background: barComplete
+              ? "#16A34A"
+              : "linear-gradient(to top, #F59E0B, #3B82F6)",
+            transition: "height 0.1s linear, background 0.3s ease",
           }}
         />
         {[0.25, 0.5, 0.75].map((m) => (
           <div key={m} className="absolute left-1/2 -translate-x-1/2 w-2 h-2 rounded-full border-2 border-white bg-gray-300 z-10" style={{ bottom: `${m * 100}%` }} />
         ))}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 rounded-full border-2 border-white bg-blue-500 z-10" />
+        <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 rounded-full border-2 border-white z-10 ${barComplete ? "bg-green-500" : "bg-blue-500"}`} />
       </div>
 
       {/* Mascota */}
