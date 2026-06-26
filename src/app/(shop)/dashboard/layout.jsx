@@ -34,6 +34,7 @@ export default async function DashboardLayout({ children }) {
             <Link href="/dashboard/orders" className="px-3 py-2 rounded hover:bg-gray-700 transition">🧾 Mis Órdenes</Link>
             <Link href="/dashboard/seller/orders" className="px-3 py-2 rounded hover:bg-gray-700 transition">💰 Ventas</Link>
             <Link href="/dashboard/seller/reviews" className="px-3 py-2 rounded hover:bg-gray-700 transition">⭐ Reseñas</Link>
+            <Link href="/dashboard/seller/shipping" className="px-3 py-2 rounded hover:bg-gray-700 transition">🚚 Envíos</Link>
             <Link href="/dashboard/payment-methods" className="px-3 py-2 rounded hover:bg-gray-700 transition">
               📍 Formas de pago
             </Link>

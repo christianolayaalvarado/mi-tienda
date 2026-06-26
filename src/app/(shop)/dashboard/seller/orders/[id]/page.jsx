@@ -29,6 +29,9 @@ export default function SellerOrderDetailPage() {
   const [imgError, setImgError] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [shippingCarrier, setShippingCarrier] = useState("");
+  const [updatingShipping, setUpdatingShipping] = useState(false);
 
   const fetchOrder = async () => {
     setLoading(true);
@@ -110,6 +113,29 @@ export default function SellerOrderDetailPage() {
     } finally {
       toast.dismiss(t);
       setProcessing(false);
+    }
+  };
+
+  const handleUpdateShipping = async (status) => {
+    setUpdatingShipping(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shippingStatus: status,
+          trackingNumber: trackingNumber || undefined,
+          shippingCarrier: shippingCarrier || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Error");
+      toast.success("Estado de envío actualizado");
+      await fetchOrder();
+    } catch (err) {
+      toast.error(err?.message || "Error actualizando envío");
+    } finally {
+      setUpdatingShipping(false);
     }
   };
 
@@ -258,6 +284,73 @@ export default function SellerOrderDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Dirección de envío */}
+      {(order.shippingAddress || order.shippingCity || order.shippingDepartment) && (
+        <div className="bg-white border rounded-lg p-4">
+          <h2 className="font-semibold text-gray-700 mb-3">Dirección de envío</h2>
+          <div className="text-sm text-gray-600 space-y-1">
+            {order.shippingAddress && <p>{order.shippingAddress}</p>}
+            <p>{[order.shippingCity, order.shippingDepartment].filter(Boolean).join(", ")}{order.shippingPostalCode ? ` - ${order.shippingPostalCode}` : ""}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Gestión de envío */}
+      {isPaid && !isCancelled && (
+        <div className="bg-white border rounded-lg p-4">
+          <h2 className="font-semibold text-gray-700 mb-3">Gestión de envío</h2>
+
+          {/* Tracking */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Número de tracking</label>
+              <input
+                type="text"
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                placeholder="Ej: TK123456789"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Transportista</label>
+              <input
+                type="text"
+                value={shippingCarrier}
+                onChange={(e) => setShippingCarrier(e.target.value)}
+                placeholder="Ej: Olva, Shakir, etc."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Botones de estado */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => handleUpdateShipping("shipped")}
+              disabled={updatingShipping}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+            >
+              Marcar como enviado
+            </button>
+            <button
+              onClick={() => handleUpdateShipping("in_transit")}
+              disabled={updatingShipping}
+              className="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 disabled:opacity-50 transition"
+            >
+              En tránsito
+            </button>
+            <button
+              onClick={() => handleUpdateShipping("delivered")}
+              disabled={updatingShipping}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition"
+            >
+              Marcar como entregado
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Acciones */}
       {!isCancelled && (

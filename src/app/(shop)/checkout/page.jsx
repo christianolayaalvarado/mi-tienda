@@ -156,6 +156,15 @@ export default function CheckoutPage({ params }) {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Shipping state
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [shippingCity, setShippingCity] = useState("");
+  const [shippingDepartment, setShippingDepartment] = useState("");
+  const [shippingPostalCode, setShippingPostalCode] = useState("");
+  const [shippingCost, setShippingCost] = useState(0);
+  const [shippingEstimate, setShippingEstimate] = useState(null);
+  const [calculatingShipping, setCalculatingShipping] = useState(false);
+
   useEffect(() => {
     const loadSession = async () => {
       try {
@@ -294,8 +303,43 @@ export default function CheckoutPage({ params }) {
     [orderItems]
   );
 
+  const grandTotal = total + shippingCost;
+
   const formatCurrency = (v) =>
     new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(v);
+
+  // Calculate shipping cost
+  const calculateShipping = async (department, city) => {
+    if (!department || !sellerId) {
+      setShippingCost(0);
+      setShippingEstimate(null);
+      return;
+    }
+
+    // Get storeId from first item
+    const storeId = orderItems[0]?.storeId;
+    if (!storeId) return;
+
+    setCalculatingShipping(true);
+    try {
+      const res = await fetch("/api/shipping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storeId, department, province: city }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data) {
+        setShippingCost(data.shippingCost || 0);
+        setShippingEstimate(data.estimatedDays ? `${data.estimatedDays} días hábiles` : null);
+      }
+    } catch (err) {
+      console.error("Error calculating shipping:", err);
+      setShippingCost(0);
+      setShippingEstimate(null);
+    } finally {
+      setCalculatingShipping(false);
+    }
+  };
 
   /* -------------------------
      Envío de la orden (único handleSubmit)
@@ -337,13 +381,20 @@ export default function CheckoutPage({ params }) {
           price: it.price,
           storeId: it.storeId,
         })),
-        total,
+        total: grandTotal,
         customer: {
           name: sessionUser?.name || "",
           email: sessionUser?.email || "",
         },
         paymentMethodId: paymentMethodId || null,
         sellerId: sellerId || null,
+        shipping: {
+          address: shippingAddress,
+          city: shippingCity,
+          department: shippingDepartment,
+          postalCode: shippingPostalCode,
+          cost: shippingCost,
+        },
       };
 
       const res = await fetch("/api/orders", {
@@ -435,10 +486,114 @@ export default function CheckoutPage({ params }) {
         />
       </div>
 
+      {/* Dirección de envío */}
+      <div className="mb-6 bg-gray-50 border rounded-lg p-4">
+        <h2 className="font-medium mb-3">Dirección de envío</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="md:col-span-2">
+            <label className="block text-sm text-gray-600 mb-1">Dirección completa *</label>
+            <input
+              type="text"
+              value={shippingAddress}
+              onChange={(e) => setShippingAddress(e.target.value)}
+              required
+              placeholder="Av. Ejemplo 123, urb. Los Olivos"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Departamento *</label>
+            <select
+              value={shippingDepartment}
+              onChange={(e) => {
+                setShippingDepartment(e.target.value);
+                calculateShipping(e.target.value, shippingCity);
+              }}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+            >
+              <option value="">Seleccionar</option>
+              <option value="Lima">Lima</option>
+              <option value="Arequipa">Arequipa</option>
+              <option value="Cusco">Cusco</option>
+              <option value="Piura">Piura</option>
+              <option value="La Libertad">La Libertad</option>
+              <option value="Junín">Junín</option>
+              <option value="Lambayeque">Lambayeque</option>
+              <option value="Ancash">Ancash</option>
+              <option value="Ica">Ica</option>
+              <option value="Loreto">Loreto</option>
+              <option value="San Martín">San Martín</option>
+              <option value="Ucayali">Ucayali</option>
+              <option value="Cajamarca">Cajamarca</option>
+              <option value="Huanuco">Huánuco</option>
+              <option value="Puno">Puno</option>
+              <option value="Tacna">Tacna</option>
+              <option value="Amazonas">Amazonas</option>
+              <option value="Apurimac">Apurímac</option>
+              <option value="Ayacucho">Ayacucho</option>
+              <option value="Huancavelica">Huancavelica</option>
+              <option value="Moquegua">Moquegua</option>
+              <option value="Pasco">Pasco</option>
+              <option value="Tumbes">Tumbes</option>
+              <option value="Madre de Dios">Madre de Dios</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Ciudad / Provincia</label>
+            <input
+              type="text"
+              value={shippingCity}
+              onChange={(e) => {
+                setShippingCity(e.target.value);
+                if (shippingDepartment) calculateShipping(shippingDepartment, e.target.value);
+              }}
+              placeholder="Ej: Lima, Cusco"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Código postal</label>
+            <input
+              type="text"
+              value={shippingPostalCode}
+              onChange={(e) => setShippingPostalCode(e.target.value)}
+              placeholder="Opcional"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Costo de envío */}
+        {shippingDepartment && (
+          <div className="mt-3 flex items-center justify-between text-sm">
+            <span className="text-gray-600">
+              {calculatingShipping ? "Calculando envío..." : "Costo de envío:"}
+            </span>
+            <span className={`font-semibold ${shippingCost > 0 ? "text-green-600" : "text-gray-700"}`}>
+              {calculatingShipping ? "..." : shippingCost > 0 ? formatCurrency(shippingCost) : "Gratis"}
+              {shippingEstimate && !calculatingShipping && (
+                <span className="text-xs text-gray-400 ml-2">({shippingEstimate})</span>
+              )}
+            </span>
+          </div>
+        )}
+      </div>
+
       <div className="mb-6">
         <div className="flex justify-between items-center">
-          <div className="text-lg font-medium">Total</div>
+          <div className="text-lg font-medium">Subtotal</div>
           <div className="text-xl font-semibold">{formatCurrency(total)}</div>
+        </div>
+        {shippingCost > 0 && (
+          <div className="flex justify-between items-center text-sm mt-1">
+            <div className="text-gray-600">Envío</div>
+            <div className="font-medium">{formatCurrency(shippingCost)}</div>
+          </div>
+        )}
+        <div className="flex justify-between items-center border-t mt-2 pt-2">
+          <div className="text-lg font-bold">Total</div>
+          <div className="text-xl font-bold text-green-600">{formatCurrency(grandTotal)}</div>
         </div>
       </div>
 

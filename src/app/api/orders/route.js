@@ -56,7 +56,7 @@ export async function POST(req) {
     if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const body = await req.json();
-    const { items, customer = {}, total: clientTotal = 0, paymentMethodId, clientOrderId } = body;
+    const { items, customer = {}, total: clientTotal = 0, paymentMethodId, clientOrderId, shipping = {} } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "No hay items en la orden" }, { status: 400 });
@@ -195,6 +195,11 @@ export async function POST(req) {
         customerPhone: customer.phone || "",
         customerAddress: customer.address || "",
         clientOrderId: clientOrderId || null,
+        shippingCost: Number(shipping.cost) || 0,
+        shippingAddress: shipping.address || null,
+        shippingCity: shipping.city || null,
+        shippingDepartment: shipping.department || null,
+        shippingPostalCode: shipping.postalCode || null,
         orderItems: {
           create: groups.map((g) => ({
             storeId: g.storeId,

@@ -365,6 +365,40 @@ export default function OrderDetailPage() {
         </div>
       )}
 
+      {/* Estado de envío */}
+      {isPaid && order.shippingStatus && order.shippingStatus !== "none" && (
+        <div className="border p-4 rounded bg-blue-50">
+          <p className="font-semibold mb-2">Estado del envío:</p>
+          <div className="flex items-center gap-3">
+            <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+              order.shippingStatus === "delivered" ? "bg-green-100 text-green-700" :
+              order.shippingStatus === "in_transit" ? "bg-yellow-100 text-yellow-700" :
+              order.shippingStatus === "shipped" ? "bg-blue-100 text-blue-700" :
+              "bg-gray-100 text-gray-700"
+            }`}>
+              {order.shippingStatus === "shipped" ? "Enviado" :
+               order.shippingStatus === "in_transit" ? "En tránsito" :
+               order.shippingStatus === "delivered" ? "Entregado" : "Pendiente"}
+            </span>
+            {order.trackingNumber && (
+              <span className="text-sm text-gray-600">
+                Tracking: <strong>{order.trackingNumber}</strong>
+                {order.shippingCarrier && ` (${order.shippingCarrier})`}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Dirección de envío */}
+      {order.shippingAddress && (
+        <div className="border p-4 rounded bg-gray-50">
+          <p className="font-semibold mb-1">Dirección de envío:</p>
+          <p className="text-sm text-gray-600">{order.shippingAddress}</p>
+          <p className="text-sm text-gray-600">{[order.shippingCity, order.shippingDepartment].filter(Boolean).join(", ")}</p>
+        </div>
+      )}
+
       {/* SUBIR COMPROBANTE */}
       {!isPaid && (
         <div className="border p-4 rounded bg-gray-50">

@@ -34,14 +34,15 @@ model User {
 }
 
 model Store {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  code      String   @unique
-  userId    String?  @db.ObjectId
-  user      User?    @relation(fields: [userId], references: [id])
-  products  Product[]
-  orderItems OrderItem[]
-  createdAt DateTime @default(now())
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  code           String   @unique
+  userId         String?  @db.ObjectId
+  user           User?    @relation(fields: [userId], references: [id])
+  products       Product[]
+  orderItems     OrderItem[]
+  shippingZones  ShippingZone[]
+  createdAt      DateTime @default(now())
 }
 
 
@@ -134,6 +135,19 @@ model Order {
   deletedBy         String?
   deletedReason     String?
   refundStatus      String    @default("none")  // none | pending | processed
+
+  // Envío
+  shippingCost      Float     @default(0)
+  shippingAddress   String?
+  shippingCity      String?
+  shippingDepartment String?
+  shippingPostalCode String?
+  trackingNumber    String?
+  shippingStatus    String    @default("none")  // none | pending | shipped | in_transit | delivered
+  shippingCarrier   String?
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+
   orderHistories OrderHistory[]
 
   @@index([userId])
@@ -267,4 +281,19 @@ model Review {
   @@index([userId])
   @@index([orderId])
   @@unique([productId, userId, orderId])
+}
+
+model ShippingZone {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  storeId      String   @db.ObjectId
+  store        Store    @relation(fields: [storeId], references: [id])
+  name         String
+  department   String
+  province     String?
+  cost         Float
+  estimatedDays Int     @default(3)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([storeId])
 }

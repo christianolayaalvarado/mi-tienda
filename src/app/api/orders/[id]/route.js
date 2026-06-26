@@ -85,6 +85,16 @@ export async function GET(req, context) {
         deletedAt: order.deletedAt || null,
         deletedReason: order.deletedReason || null,
         refundStatus: order.refundStatus || "none",
+        shippingCost: order.shippingCost || 0,
+        shippingAddress: order.shippingAddress || null,
+        shippingCity: order.shippingCity || null,
+        shippingDepartment: order.shippingDepartment || null,
+        shippingPostalCode: order.shippingPostalCode || null,
+        trackingNumber: order.trackingNumber || null,
+        shippingStatus: order.shippingStatus || "none",
+        shippingCarrier: order.shippingCarrier || null,
+        shippedAt: order.shippedAt || null,
+        deliveredAt: order.deliveredAt || null,
       },
     };
 
@@ -460,7 +470,67 @@ export async function PATCH(req, context) {
   }
 }
 
-// POST (upload-proof) - fallback si alguien llama a esta ruta directamente
+// PUT - Actualizar datos de envío (tracking, estado)
+export async function PUT(req, context) {
+  try {
+    const params = await context.params;
+    const orderId = params?.id;
+    if (!orderId || !isValidObjectId(orderId)) {
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    }
+
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+    const body = await req.json().catch(() => ({}));
+    const { trackingNumber, shippingStatus, shippingCarrier } = body;
+
+    const user = await prisma.user.findUnique({ where: { email: authUser.email }, include: { stores: true } });
+    const order = await prisma.order.findUnique({ where: { id: orderId }, include: { orderItems: true } });
+    if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
+
+    const sellerStoreIds = (user?.stores || []).map((s) => String(s.id));
+    const isSellerOfOrder = order.orderItems.some((oi) => sellerStoreIds.includes(String(oi.storeId)));
+    const isAdmin = user?.role === "admin";
+
+    if (!isSellerOfOrder && !isAdmin) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    const updateData = {};
+    if (trackingNumber !== undefined) updateData.trackingNumber = trackingNumber;
+    if (shippingStatus !== undefined) updateData.shippingStatus = shippingStatus;
+    if (shippingCarrier !== undefined) updateData.shippingCarrier = shippingCarrier;
+    if (shippingStatus === "shipped") updateData.shippedAt = new Date();
+    if (shippingStatus === "delivered") updateData.deliveredAt = new Date();
+
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: updateData,
+    });
+
+    // Registrar historial
+    try {
+      await prisma.orderHistory.create({
+        data: {
+          orderId,
+          action: "shipping_update",
+          byUserId: authUser.id,
+          note: `Envío actualizado: ${shippingStatus || "—"}`, tracking: trackingNumber || null,
+        },
+      });
+    } catch (e) {
+      console.warn("No se pudo registrar historial:", e?.message || e);
+    }
+
+    return NextResponse.json({ success: true, order: updated });
+  } catch (err) {
+    console.error("ERROR PUT shipping:", err);
+    return NextResponse.json({ error: "Error actualizando envío" }, { status: 500 });
+  }
+}
+
+// DELETE - fallback si alguien llama a esta ruta directamente
 export async function POST(req, context) {
   try {
     const params = await context.params;
