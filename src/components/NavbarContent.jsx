@@ -163,7 +163,7 @@ export default function NavbarContent() {
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
         {/* Row 1: Logo + actions (always one line) */}
-        <div className="flex items-center gap-2 sm:gap-6">
+        <div className="flex items-center gap-1 sm:gap-6">
           <Link href="/" className="flex items-center shrink-0">
             <img
               src="/images/logo.png"
@@ -172,14 +172,11 @@ export default function NavbarContent() {
             />
           </Link>
 
-          {/* Spacer pushes actions to the right */}
-          <div className="flex-1" />
-
           <button
             type="button"
             aria-label={`Abrir carrito, ${count} items`}
             onClick={() => setCartOpen((s) => !s)}
-            className="text-sm font-medium cursor-pointer relative select-none shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="text-sm font-medium cursor-pointer relative select-none shrink-0 min-h-[44px] flex items-center justify-center px-1 sm:px-3"
             aria-haspopup="true"
             aria-expanded={cartOpen}
             ref={cartRef}

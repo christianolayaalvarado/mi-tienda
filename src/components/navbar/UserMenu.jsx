@@ -43,12 +43,13 @@ export default function UserMenu() {
   if (!isLoggedIn) {
     return (
       <div className="flex items-center gap-1 sm:gap-3 text-sm shrink-0">
-        <div role="button" tabIndex={0} onClick={() => router.push("/login")} onKeyDown={(e) => { if (e.key === "Enter") router.push("/login"); }} className="cursor-pointer flex items-center gap-1 hover:text-green-600 min-w-[44px] min-h-[44px] justify-center">
+        <div role="button" tabIndex={0} onClick={() => router.push("/login")} onKeyDown={(e) => { if (e.key === "Enter") router.push("/login"); }} className="cursor-pointer flex items-center gap-1 hover:text-green-600 min-h-[44px] justify-center px-1">
           <User size={18} />
           <span className="hidden sm:inline">Login</span>
         </div>
-        <div role="button" tabIndex={0} onClick={() => router.push("/register")} onKeyDown={(e) => { if (e.key === "Enter") router.push("/register"); }} className="cursor-pointer bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 hidden sm:block">
-          Registrarse
+        <div role="button" tabIndex={0} onClick={() => router.push("/register")} onKeyDown={(e) => { if (e.key === "Enter") router.push("/register"); }} className="cursor-pointer bg-green-600 text-white px-2 sm:px-3 py-2 rounded hover:bg-green-700 min-h-[44px] flex items-center whitespace-nowrap">
+          <span className="sm:hidden text-xs">Registrate</span>
+          <span className="hidden sm:inline">Registrarse</span>
         </div>
       </div>
     );
