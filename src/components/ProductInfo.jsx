@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import AuthRequiredModal from "@/components/AuthRequiredModal";
 import { fetchSession } from "@/lib/useSessionCheck";
@@ -11,6 +12,7 @@ const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
 
 export default function ProductInfo({ product }) {
   const { addToCart, cartItems } = useCart();
+  const router = useRouter();
 
   const productIdStr = String(product.id ?? product._id ?? "");
   const storeIdCandidate = product.storeId ?? product.store?.id ?? "";
@@ -33,6 +35,38 @@ export default function ProductInfo({ product }) {
   const [adding, setAdding] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
+
+  const handleChatWithSeller = async () => {
+    const user = await fetchSession();
+    if (!user) {
+      setModalOpen(true);
+      return;
+    }
+
+    const sellerId = product.user?.id || product.userId;
+    if (!sellerId) {
+      toast.error("No se pudo identificar al vendedor");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/chat/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sellerId,
+          productId: product.id,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Error");
+
+      router.push(`/dashboard/chat`);
+    } catch (err) {
+      toast.error(err?.message || "Error iniciando chat");
+    }
+  };
 
   const selectionTotal = Number(product.price || 0) * Number(quantity || 0);
 
@@ -262,6 +296,13 @@ export default function ProductInfo({ product }) {
 
       <button onClick={handleAdd} disabled={remainingStock === 0 || maxInCart || adding} className={`mt-8 px-6 py-3 rounded-lg ${remainingStock === 0 || maxInCart || adding ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"}`} data-test-id="add-to-cart-button">
         {adding ? "Agregando..." : remainingStock === 0 ? "Producto agotado" : maxInCart ? "Ya tienes el máximo en carrito" : quantity > 1 ? `Agregar ${quantity}` : "Agregar al carrito"}
+      </button>
+
+      <button onClick={handleChatWithSeller} className="mt-3 px-6 py-3 rounded-lg border border-green-600 text-green-600 hover:bg-green-50 transition flex items-center justify-center gap-2">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+        Chat con el vendedor
       </button>
 
       {added && showToast && (
