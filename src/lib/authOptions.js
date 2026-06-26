@@ -4,6 +4,10 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "./prisma";
 import bcrypt from "bcrypt";
 
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
+const COOKIE_SAMESITE = (process.env.COOKIE_SAMESITE || "lax").toLowerCase();
+const IS_PROD = process.env.NODE_ENV === "production";
+
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
 
@@ -16,62 +20,34 @@ export const authOptions = {
       },
 
       async authorize(credentials) {
-        // Validaciones básicas de entrada
-        if (!credentials?.email || !credentials?.password) {
-          // Credenciales incompletas -> fallo de autenticación
-          return null;
-        }
+        if (!credentials?.email || !credentials?.password) return null;
 
         const email = String(credentials.email).toLowerCase().trim();
 
         try {
-          // Buscar usuario por email
           const user = await prisma.user.findUnique({
             where: { email },
             include: { stores: true },
           });
 
-          if (!user) {
-            // Usuario no existe
-            return null;
-          }
+          if (!user || !user.password) return null;
+          if (!user.emailVerified) throw new Error("Cuenta no verificada");
 
-          if (!user.password) {
-            // Usuario creado por OAuth u otro método sin contraseña local
-            return null;
-          }
-
-          // Bloquear login si la cuenta no está verificada
-          if (!user.emailVerified) {
-            // Caso esperado: devolver error claro para el cliente
-            // Lanzamos la excepción para que NextAuth la propague como res.error
-            throw new Error("Cuenta no verificada");
-          }
-
-          // Comparar contraseña (bcrypt nativo, con fallback a bcryptjs si falla)
           let isValid = false;
           try {
             isValid = await bcrypt.compare(credentials.password, user.password);
           } catch (bcryptErr) {
-            // Fallback a bcryptjs en entornos donde bcrypt binario falla
             try {
-              // require dinámico para evitar bundling en entornos donde no se necesita
-              // eslint-disable-next-line @typescript-eslint/no-var-requires
               const bcryptjs = require("bcryptjs");
               isValid = bcryptjs.compareSync(credentials.password, user.password);
             } catch (fallbackErr) {
-              // Si ambos fallan, tratar como error interno
               console.error("[auth][authorize] password compare error:", fallbackErr);
               throw new Error("Error interno de autenticación");
             }
           }
 
-          if (!isValid) {
-            // Contraseña inválida
-            return null;
-          }
+          if (!isValid) return null;
 
-          // Devolver el objeto de usuario que NextAuth almacenará en token/session
           return {
             id: user.id,
             email: user.email,
@@ -81,15 +57,8 @@ export const authOptions = {
             emailVerified: user.emailVerified ?? false,
           };
         } catch (err) {
-          // Si es un error esperado (por ejemplo "Cuenta no verificada"), relanzarlo
-          if (err?.message === "Cuenta no verificada") {
-            // No lo marcamos como "unexpected" en logs; es un flujo válido
-            throw err;
-          }
-
-          // Para errores inesperados, loguear y devolver null o lanzar un error genérico
+          if (err?.message === "Cuenta no verificada") throw err;
           console.error("[auth][authorize] unexpected error:", err);
-          // Lanzar un error genérico para que NextAuth devuelva un mensaje controlado
           throw new Error("Error interno de autenticación");
         }
       },
@@ -98,7 +67,7 @@ export const authOptions = {
 
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 24, // 1 día
+    maxAge: 60 * 60 * 24,
   },
 
   pages: {
@@ -130,6 +99,9 @@ export const authOptions = {
           emailVerified: token.emailVerified ?? false,
         };
       }
+      try {
+        console.log("[NEXTAUTH][session] session callback for user:", session?.user?.email || "<no-email>", "time:", new Date().toISOString());
+      } catch (e) { }
       return session;
     },
   },
@@ -139,14 +111,15 @@ export const authOptions = {
       name: "next-auth.session-token",
       options: {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: COOKIE_SAMESITE,
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: IS_PROD,
+        domain: COOKIE_DOMAIN,
       },
     },
   },
 
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
 };
 
 export default authOptions;

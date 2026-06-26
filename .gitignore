@@ -41,3 +41,12 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# debug scripts & backups
+scripts/
+cookiejar.txt
+package.zip
+dump/
+tmp_backup_auth/
+backup-*.json
+.agent.md

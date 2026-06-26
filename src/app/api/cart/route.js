@@ -1,20 +1,33 @@
 // src/app/api/cart/route.js
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
+import { getServerAuthUser } from "@/lib/serverAuth";
+
+async function resolveUserIdFromAuth(req) {
+  const authUser = await getServerAuthUser(req);
+  if (!authUser) return null;
+
+  if (authUser.id) {
+    return String(authUser.id);
+  }
+
+  if (authUser.email) {
+    const user = await prisma.user.findUnique({ where: { email: authUser.email } });
+    return user?.id ? String(user.id) : null;
+  }
+
+  return null;
+}
 
 /**
  * GET /api/cart
  */
 export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = await resolveUserIdFromAuth(req);
+    if (!userId) {
       return NextResponse.json({ error: "auth_required" }, { status: 401 });
     }
-
-    const userId = String(session.user.id);
 
     const cart = await prisma.cart.findFirst({
       where: { userId },
@@ -65,15 +78,14 @@ export async function GET(req) {
  */
 export async function POST(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = await resolveUserIdFromAuth(req);
+    if (!userId) {
       return NextResponse.json({ error: "auth_required" }, { status: 401 });
     }
-    const userId = String(session.user.id);
     const body = await req.json().catch(() => ({}));
     const items = Array.isArray(body.items) ? body.items : [];
 
-    const normalized = items
+    const payloadItems = items
       .map((it) => ({
         productId: it.productId ?? it.id ?? null,
         quantity: Number(it.quantity || 0),
@@ -93,6 +105,25 @@ export async function POST(req) {
           it.quantity > 0
       );
 
+    const normalized = [];
+    payloadItems.forEach((it) => {
+      const key = `${String(it.productId)}::${String(it.storeId ?? "")}`;
+      const existingIndex = normalized.findIndex((entry) => `${String(entry.productId)}::${String(entry.storeId ?? "")}` === key);
+      if (existingIndex >= 0) {
+        normalized[existingIndex] = {
+          ...normalized[existingIndex],
+          quantity: Number(normalized[existingIndex].quantity || 0) + Number(it.quantity || 0),
+          price: typeof normalized[existingIndex].price !== "undefined" && normalized[existingIndex].price !== null
+            ? Number(normalized[existingIndex].price)
+            : undefined,
+          title: normalized[existingIndex].title || it.title || undefined,
+          image: normalized[existingIndex].image || it.image || undefined,
+        };
+      } else {
+        normalized.push(it);
+      }
+    });
+
     let cart = await prisma.cart.findFirst({ where: { userId } });
     if (!cart) {
       cart = await prisma.cart.create({ data: { userId } });
@@ -109,6 +140,17 @@ export async function POST(req) {
         : [];
     const prodMap = Object.fromEntries(products.map((p) => [String(p.id), p]));
 
+    for (const item of normalized) {
+      const product = prodMap[String(item.productId)];
+      const stock = typeof product?.stock === "number" ? product.stock : Number(product?.stock ?? 0);
+      if (!Number.isFinite(stock) || stock <= 0 || Number(item.quantity || 0) > stock) {
+        return NextResponse.json(
+          { error: "stock_insufficient", available: stock, productId: item.productId },
+          { status: 409 }
+        );
+      }
+    }
+
     const createManyData = normalized.map((it) => {
       const prod = prodMap[String(it.productId)];
       const priceToSave =
@@ -124,9 +166,6 @@ export async function POST(req) {
         image: prod?.image ?? it.image ?? "",
       };
     });
-
-    // Debug: log createManyData shape (remove after debugging)
-    console.log("[API CART POST] createManyData:", JSON.stringify(createManyData, null, 2));
 
     if (createManyData.length > 0) {
       // NOTE: skipDuplicates removed because Mongo connector doesn't support it
@@ -174,11 +213,10 @@ export async function POST(req) {
  */
 export async function DELETE(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = await resolveUserIdFromAuth();
+    if (!userId) {
       return NextResponse.json({ error: "auth_required" }, { status: 401 });
     }
-    const userId = String(session.user.id);
 
     const cart = await prisma.cart.findFirst({ where: { userId } });
     if (!cart) {

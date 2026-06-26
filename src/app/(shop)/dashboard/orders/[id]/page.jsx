@@ -1,4 +1,4 @@
-// app/(shop)/dashboard/orders/[id]/page.jsx
+// src/app/(shop)/dashboard/orders/[id]/page.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,7 +31,7 @@ export default function OrderDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [proofFile, setProofFile] = useState(null);
 
-  // Cargar orden
+  // Fetch order from API and normalize response
   const fetchOrder = async () => {
     if (!orderId) {
       setOrder(null);
@@ -41,7 +41,7 @@ export default function OrderDetailPage() {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/orders/${orderId}`);
+      const res = await fetch(`/api/orders/${orderId}`, { credentials: "include" });
       if (!res.ok) {
         const text = await res.text().catch(() => null);
         console.error("GET order error:", res.status, text);
@@ -52,33 +52,33 @@ export default function OrderDetailPage() {
       }
 
       const data = await res.json();
-
+      const src = data.order || data;
       const normalized = {
-        id: data.id || data._id || data.order?.id || data.order?._id,
-        orderNumber: data.orderNumber || data.order?.orderNumber || null,
-        createdAt: data.createdAt || data.order?.createdAt,
-        total: data.total || data.order?.total || 0,
-        status: data.status || data.order?.status || "pending",
-        paymentStatus: data.paymentStatus || data.order?.paymentStatus || "unpaid",
-        customerName: data.customerName || data.order?.customerName || "",
-        customerEmail: data.customerEmail || data.order?.customerEmail || "",
-        documentNumber: data.documentNumber || data.order?.documentNumber || null,
-        paymentProof: data.paymentProof || data.order?.paymentProof || null,
-        paymentProofMime: data.paymentProofMime || data.order?.paymentProofMime || null,
-        orderItems: data.orderItems || data.order?.orderItems || [],
-        deletedAt: data.deletedAt || data.order?.deletedAt || null,
+        id: src.id || src._id || null,
+        orderNumber: src.orderNumber || null,
+        createdAt: src.createdAt || null,
+        total: src.total || 0,
+        status: src.status || "pending",
+        paymentStatus: src.paymentStatus || "unpaid",
+        customerName: src.customerName || "",
+        customerEmail: src.customerEmail || "",
+        documentNumber: src.documentNumber || null,
+        paymentProof: src.paymentProof || null,
+        paymentProofMime: src.paymentProofMime || null,
+        orderItems: src.orderItems || [],
+        deletedAt: src.deletedAt || null,
+        currency: src.currency || "USD",
       };
 
       const stores = (normalized.orderItems || []).map((oi) => ({
-        id: oi.storeId || oi.store?.id || oi.id,
+        id: oi.storeId || oi.store?.id || null,
         name: oi.store?.name || oi.storeName || `Tienda ${oi.storeId || ""}`,
         items: oi.items || [],
       }));
 
-      const finalOrder = { ...normalized, stores };
-      setOrder(finalOrder);
+      setOrder({ ...normalized, stores });
     } catch (err) {
-      console.error(err);
+      console.error("fetchOrder error:", err);
       toast.error("Error cargando orden");
       setOrder(null);
     } finally {
@@ -95,9 +95,9 @@ export default function OrderDetailPage() {
     setProofFile(e.target.files?.[0] || null);
   };
 
-  // subir comprobante (global por orden)
+  // Upload proof for the order
   const handleUploadProof = async (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
     if (!proofFile) {
       toast.error("Selecciona un archivo");
       return;
@@ -123,11 +123,12 @@ export default function OrderDetailPage() {
 
       const res = await fetch(`/api/orders/${orderId}/upload-proof`, {
         method: "POST",
+        credentials: "include",
         body: formData,
       });
 
       const text = await res.text().catch(() => null);
-      let json;
+      let json = null;
       try {
         json = text ? JSON.parse(text) : null;
       } catch {
@@ -153,7 +154,7 @@ export default function OrderDetailPage() {
         await fetchOrder();
       }
     } catch (err) {
-      console.error(err);
+      console.error("handleUploadProof error:", err);
       toast.dismiss(loadingToast);
       toast.error(err?.message || "Error al subir comprobante");
     } finally {
@@ -161,37 +162,61 @@ export default function OrderDetailPage() {
     }
   };
 
-  // eliminar orden
-  const handleDeleteOrder = async () => {
-    if (!confirm("¿Eliminar esta orden? Se restaurará el stock.")) return;
+  // Delete order (soft or hard depending on API body)
+  const handleDeleteOrder = async (mode = "soft", confirmFlag = false) => {
+    const confirmMsg =
+      mode === "hard"
+        ? "¿Eliminar físicamente esta orden? Esto restaurará stock y no se podrá recuperar."
+        : "¿Eliminar esta orden? Se restaurará el stock y la orden quedará marcada como eliminada.";
+    if (!confirm(confirmMsg)) return;
 
     setDeleting(true);
     const loadingToast = toast.loading("Eliminando orden...");
 
     try {
+      const body = { mode, confirm: confirmFlag };
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(body),
       });
 
+      const text = await res.text().catch(() => null);
+      let json = null;
+      try {
+        json = text ? JSON.parse(text) : null;
+      } catch {
+        json = null;
+      }
+
       if (!res.ok) {
-        const text = await res.text().catch(() => null);
-        throw new Error(text || "Error eliminando orden");
+        const message = (json && (json.error || json.message)) || text || "Error eliminando orden";
+        throw new Error(message);
       }
 
       toast.dismiss(loadingToast);
       toast.success("Orden eliminada");
       router.push("/dashboard/orders");
     } catch (err) {
-      console.error(err);
+      console.error("handleDeleteOrder error:", err);
       toast.dismiss(loadingToast);
-      toast.error("Error eliminando");
+      toast.error(err?.message || "Error eliminando orden");
     } finally {
       setDeleting(false);
     }
   };
 
-  if (loading) return <p className="p-4 text-gray-600">Cargando orden...</p>;
-  if (!order) return <p className="p-4 text-red-500">Orden no encontrada</p>;
+  if (loading) return <div className="p-4 text-gray-600">Cargando orden...</div>;
+
+  if (!order) {
+    return (
+      <div className="p-6">
+        <h2 className="text-xl font-semibold">Orden no encontrada</h2>
+        <p className="text-sm text-gray-600">No se pudo cargar la orden o no tienes permisos para verla.</p>
+      </div>
+    );
+  }
 
   const isDeleted = order?.status === "deleted" || Boolean(order?.deletedAt);
   const isPaid = order?.paymentStatus === "paid" || order?.paymentStatus === "completed";
@@ -241,14 +266,14 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* ACCIONES PRINCIPALES: quitar Confirmar pago aquí; confirmación debe hacerse desde Ventas */}
+      {/* ACCIONES PRINCIPALES */}
       <div className="flex gap-2 items-center">
         <p className="text-sm text-gray-600">
           La confirmación de pago debe realizarse desde la sección <strong>Ventas</strong>. Aquí solo puedes subir el comprobante o eliminar la orden.
         </p>
 
         <button
-          onClick={handleDeleteOrder}
+          onClick={() => handleDeleteOrder("soft", true)}
           disabled={deleting || disableActions}
           className="ml-auto bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
         >
@@ -266,7 +291,7 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* SUBIR COMPROBANTE (global por orden) */}
+      {/* SUBIR COMPROBANTE */}
       <div className="border p-4 rounded bg-gray-50">
         <h2 className="font-semibold mb-2">Enviar comprobante de pago</h2>
         <form onSubmit={handleUploadProof} className="mb-4">
@@ -290,7 +315,7 @@ export default function OrderDetailPage() {
         {!order.paymentProof && <p className="text-sm text-gray-500">No se ha subido comprobante aún.</p>}
       </div>
 
-      {/* Mostrar tiendas sin estado de pago */}
+      {/* Items por tienda */}
       {order.stores && order.stores.length > 0 && (
         <div className="space-y-4">
           {order.stores.map((store) => (
@@ -315,7 +340,7 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* PRODUCTOS por orderItem (tienda) - sin repetir estado de pago */}
+      {/* Productos por orderItem */}
       <div className="space-y-4">
         {Array.isArray(order.orderItems) && order.orderItems.length > 0 ? (
           order.orderItems.map((oi) => (

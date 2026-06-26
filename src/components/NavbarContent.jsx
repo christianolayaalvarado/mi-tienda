@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
-import { useSession } from "next-auth/react";
 import SearchBox from "./navbar/SearchBox";
 import CartPreview from "./navbar/CartPreview";
 import UserMenu from "./navbar/UserMenu";
@@ -19,8 +18,6 @@ import {
 export default function NavbarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
-
   // Cart context (assume hook returns stable API)
   const cartCtx = useCart();
   const cartItems = useMemo(() => cartCtx?.cartItems ?? [], [cartCtx?.cartItems]);
@@ -124,11 +121,34 @@ export default function NavbarContent() {
     };
   }, []);
 
-  // Update URL when search changes (deferred until mounted)
+  // Update URL only when user actively changes search/category/sort (not on mount)
+  const prevSearchRef = useRef(currentSearch);
+  const prevCategoryRef = useRef(currentCategory);
+  const prevSortRef = useRef(currentSort);
+  const initialMountDone = useRef(false);
+
   useEffect(() => {
     if (!mounted) return;
-    const url = buildURL({ searchVal: search, categoryVal: currentCategory, sortVal: currentSort, pageVal: "1" });
-    router.push(url);
+    if (!initialMountDone.current) {
+      initialMountDone.current = true;
+      prevSearchRef.current = currentSearch;
+      prevCategoryRef.current = currentCategory;
+      prevSortRef.current = currentSort;
+      return;
+    }
+
+    const searchChanged = search !== prevSearchRef.current;
+    const categoryChanged = currentCategory !== prevCategoryRef.current;
+    const sortChanged = currentSort !== prevSortRef.current;
+
+    prevSearchRef.current = search;
+    prevCategoryRef.current = currentCategory;
+    prevSortRef.current = currentSort;
+
+    if (searchChanged || categoryChanged || sortChanged) {
+      const url = buildURL({ searchVal: search, categoryVal: currentCategory, sortVal: currentSort, pageVal: "1" });
+      router.push(url);
+    }
   }, [search, currentCategory, currentSort, mounted, router]);
 
   // Count items (prefer cart context, fallback to local storage)
@@ -173,7 +193,7 @@ export default function NavbarContent() {
           </span>
         </button>
 
-        <UserMenu session={session} />
+        <UserMenu />
 
         <CartPreview
           open={cartOpen}

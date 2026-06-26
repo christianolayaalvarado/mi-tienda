@@ -1,8 +1,7 @@
 // app/api/orders/[id]/proof/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getServerAuthUser } from "@/lib/serverAuth";
 
 export async function GET(req, context) {
   try {
@@ -10,27 +9,43 @@ export async function GET(req, context) {
     const orderId = params?.id;
     if (!orderId) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { orderItems: { select: { storeId: true } } },
+    });
     if (!order || !order.paymentProof) return NextResponse.json({ error: "Comprobante no encontrado" }, { status: 404 });
 
-    const isOwner = String(session.user.id) === String(order.userId);
-    const isSeller = session.user.role === "seller";
-    const isAdmin = session.user.role === "admin";
-    if (!isOwner && !isSeller && !isAdmin) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    const isOwner = String(authUser.id) === String(order.userId);
 
-    // Registrar acceso si el modelo existe; no romper si no existe
-    try {
-      await prisma.orderHistory.create({
-        data: { orderId, action: "view_proof", byUserId: session.user.id },
-      });
-    } catch (e) {
-      console.warn("No se pudo registrar orderHistory view_proof (posible modelo ausente):", e?.message || e);
+    const user = await prisma.user.findUnique({
+      where: { email: authUser.email },
+      include: { stores: true },
+    });
+    const sellerStoreIds = (user?.stores || []).map((s) => String(s.id));
+    const orderStoreIds = (order.orderItems || []).map((oi) => String(oi.storeId));
+    const isSellerOfOrder = orderStoreIds.some((sid) => sellerStoreIds.includes(sid));
+    const isAdmin = user?.role === "admin";
+
+    if (!isOwner && !isSellerOfOrder && !isAdmin) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    return NextResponse.redirect(order.paymentProof);
+    try {
+      await prisma.orderHistory.create({
+        data: { orderId, action: "view_proof", byUserId: authUser.id },
+      });
+    } catch (e) {
+      console.warn("No se pudo registrar orderHistory view_proof:", e?.message || e);
+    }
+
+    const proofUrl = order.paymentProof;
+    if (proofUrl.startsWith("http://") || proofUrl.startsWith("https://")) {
+      return NextResponse.redirect(new URL(proofUrl));
+    }
+    return NextResponse.json({ url: proofUrl });
   } catch (err) {
     console.error("ERROR proof redirect:", err);
     return NextResponse.json({ error: "Error redirigiendo al comprobante" }, { status: 500 });

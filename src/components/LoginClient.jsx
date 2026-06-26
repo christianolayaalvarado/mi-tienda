@@ -1,23 +1,23 @@
+// src/components/LoginClient.jsx
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { signIn } from "next-auth/react";
 import toast from "react-hot-toast";
 
 export default function LoginClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const redirect = searchParams?.get("redirect") || "/";
+  const redirect = searchParams?.get("redirect") || searchParams?.get("callbackUrl") || "/";
+  const preEmail = searchParams?.get("email") || "";
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(preEmail);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const pre = searchParams?.get("email");
-    if (pre) setEmail(pre);
-  }, [searchParams]);
+    if (preEmail) setEmail(preEmail);
+  }, [preEmail]);
 
   const validate = () => {
     if (!email || !email.includes("@")) {
@@ -37,23 +37,42 @@ export default function LoginClient() {
 
     setLoading(true);
     try {
-      const res = await signIn("credentials", {
-        redirect: false,
-        email,
-        password,
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-      // signIn returns an object like { error, status, ok, url }
-      if (res?.error) {
-        toast.error(res.error || "Credenciales inválidas");
-      } else if (res?.ok) {
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.ok) {
+        // Notificar y forzar refresh global del estado de auth
         toast.success("Sesión iniciada");
-        // usar router.push para navegación cliente (mejor para SPA)
-        router.push(redirect);
-      } else {
-        // fallback genérico
-        toast.error("No se pudo iniciar sesión. Intenta de nuevo.");
+        // Emitir evento para que hooks/useAuth se refresque en otros componentes
+        try {
+          window.dispatchEvent(new Event("auth:refresh"));
+        } catch (err) {
+          // ignore si no está disponible (SSR edge cases)
+        }
+        // Pequeña espera para asegurar que la cookie esté establecida en el navegador
+        setTimeout(() => {
+          router.push(redirect);
+        }, 150);
+        return;
       }
+
+      // Manejo de casos específicos
+      if (res.status === 403) {
+        // Cuenta no verificada
+        toast.error(data.message || "Cuenta no verificada. Revisa tu correo.");
+        // Redirigir a confirmación con email
+        const confirmUrl = `/auth/confirm-code?email=${encodeURIComponent(email)}`;
+        setTimeout(() => router.push(confirmUrl), 200);
+        return;
+      }
+
+      // Credenciales inválidas u otros errores
+      toast.error(data.message || "Credenciales inválidas");
     } catch (err) {
       console.error("login error:", err);
       toast.error("Error en el login. Intenta de nuevo.");

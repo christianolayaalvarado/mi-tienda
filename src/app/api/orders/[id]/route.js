@@ -1,10 +1,8 @@
-// app/api/orders/[id]/route.js
+// src/app/api/orders/[id]/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getServerAuthUser } from "@/lib/serverAuth";
 
-// Helper: validar ObjectId (Mongo)
 const isValidObjectId = (id) => typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
 
 // GET
@@ -16,8 +14,8 @@ export async function GET(req, context) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -29,60 +27,63 @@ export async function GET(req, context) {
           },
         },
         user: true,
-        paymentMethod: true, // incluir relación con método de pago
+        paymentMethod: true,
       },
     });
 
     if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
 
-    // autorización: comprador, vendedor de alguna tienda o admin
-    const isOwner = String(order.userId) === String(session.user.id);
+    const isOwner = String(order.userId) === String(authUser.id);
+
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: authUser.email },
       include: { stores: true },
     });
     const sellerStoreIds = (user?.stores || []).map((s) => String(s.id));
-    const isSellerOfOrder = order.orderItems.some((oi) =>
-      sellerStoreIds.includes(String(oi.storeId))
-    );
+    const isSellerOfOrder = order.orderItems.some((oi) => sellerStoreIds.includes(String(oi.storeId)));
     const isAdmin = user?.role === "admin";
 
     if (!isOwner && !isSellerOfOrder && !isAdmin) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    // Normalizar respuesta incluyendo método de pago
     const normalized = {
-      id: order.id,
-      orderNumber: order.orderNumber,
-      createdAt: order.createdAt,
-      total: order.total,
-      paymentStatus: order.paymentStatus,
-      paymentMethod: order.paymentMethod
-        ? {
-          id: order.paymentMethod.id,
-          type: order.paymentMethod.type,
-          phone: order.paymentMethod.phone,
-          account: order.paymentMethod.account,
-          qrImageUrl: order.paymentMethod.qrImageUrl,
-          details: order.paymentMethod.details,
-        }
-        : null,
-      customerName: order.customerName,
-      customerEmail: order.customerEmail,
-      orderItems: order.orderItems.map((oi) => ({
-        id: oi.id,
-        storeId: oi.storeId,
-        store: oi.store ? { id: oi.store.id, name: oi.store.name } : null,
-        paymentStatus: oi.paymentStatus,
-        items: oi.items.map((it) => ({
-          id: it.id,
-          productId: it.productId,
-          product: it.product ? { id: it.product.id, title: it.product.title } : null,
-          quantity: it.quantity,
-          price: it.price,
+      order: {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        createdAt: order.createdAt,
+        total: order.total,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod
+          ? {
+            id: order.paymentMethod.id,
+            type: order.paymentMethod.type,
+            phone: order.paymentMethod.phone,
+            account: order.paymentMethod.account,
+            qrImageUrl: order.paymentMethod.qrImageUrl,
+            details: order.paymentMethod.details,
+          }
+          : null,
+        customerName: order.customerName,
+        customerEmail: order.customerEmail,
+        orderItems: order.orderItems.map((oi) => ({
+          id: oi.id,
+          storeId: oi.storeId,
+          store: oi.store ? { id: oi.store.id, name: oi.store.name } : null,
+          paymentStatus: oi.paymentStatus,
+          items: oi.items.map((it) => ({
+            id: it.id,
+            productId: it.productId,
+            product: it.product ? { id: it.product.id, title: it.product.title } : null,
+            quantity: it.quantity,
+            price: it.price,
+          })),
         })),
-      })),
+        paymentProof: order.paymentProof || null,
+        paymentProofMime: order.paymentProofMime || null,
+        status: order.status,
+        deletedAt: order.deletedAt || null,
+      },
     };
 
     return NextResponse.json(normalized);
@@ -101,15 +102,15 @@ export async function DELETE(req, context) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
     const reason = typeof body.reason === "string" ? body.reason.trim() : "";
     const mode = body.mode === "hard" ? "hard" : "soft";
     const confirm = body.confirm === true;
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email }, include: { stores: true } });
+    const user = await prisma.user.findUnique({ where: { email: authUser.email }, include: { stores: true } });
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -118,25 +119,15 @@ export async function DELETE(req, context) {
 
     if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
 
-    const isOwner = String(order.userId) === String(session.user.id);
+    const isOwner = String(order.userId) === String(authUser.id);
     const sellerStoreIds = (user?.stores || []).map((s) => String(s.id));
     const isSellerOfOrder = order.orderItems.some((oi) => sellerStoreIds.includes(String(oi.storeId)));
     const isAdmin = user?.role === "admin";
 
-    // permisos: soft-delete permitido para owner, sellerOfOrder o admin
     if (!isOwner && !isSellerOfOrder && !isAdmin) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    // Si piden hard delete, solo admin y requiere confirm:true
-    if (mode === "hard" && !isAdmin) {
-      return NextResponse.json({ error: "Solo admin puede borrar físicamente" }, { status: 403 });
-    }
-    if (mode === "hard" && isAdmin && !confirm) {
-      return NextResponse.json({ error: "Confirmación requerida para hard delete (confirm: true)" }, { status: 400 });
-    }
-
-    // SOFT DELETE (recomendado): marcar la orden como eliminada y registrar razón
     if (mode === "soft") {
       const now = new Date();
       const updated = await prisma.order.update({
@@ -144,18 +135,17 @@ export async function DELETE(req, context) {
         data: {
           deleted: true,
           deletedAt: now,
-          deletedBy: session.user.id,
+          deletedBy: authUser.id,
           deletedReason: reason || null,
         },
       });
 
-      // Registrar auditoría
       try {
         await prisma.orderHistory.create({
           data: {
             orderId,
             action: "soft_delete",
-            byUserId: session.user.id,
+            byUserId: authUser.id,
             note: reason || "Eliminación (soft) por usuario/admin",
           },
         });
@@ -166,10 +156,16 @@ export async function DELETE(req, context) {
       return NextResponse.json({ success: true, mode: "soft", order: updated });
     }
 
-    // HARD DELETE (solo admin) - transacción segura: restaurar stock, borrar relaciones y la orden
-    if (mode === "hard" && isAdmin) {
+    // HARD DELETE
+    if (mode === "hard") {
+      if (!isAdmin) {
+        return NextResponse.json({ error: "Solo admin puede borrar físicamente" }, { status: 403 });
+      }
+      if (!confirm) {
+        return NextResponse.json({ error: "Confirmación requerida para hard delete (confirm: true)" }, { status: 400 });
+      }
+
       const orderItemIds = order.orderItems.flatMap((oi) => (oi?.id ? [oi.id] : []));
-      // Recolectar ajustes de stock por producto
       const productAdjustments = [];
       for (const oi of order.orderItems || []) {
         for (const p of oi.items || []) {
@@ -184,7 +180,6 @@ export async function DELETE(req, context) {
       }
 
       const result = await prisma.$transaction(async (tx) => {
-        // 1) Restaurar stock (agrupar por productId)
         const grouped = productAdjustments.reduce((acc, cur) => {
           acc[cur.productId] = (acc[cur.productId] || 0) + cur.qty;
           return acc;
@@ -201,22 +196,14 @@ export async function DELETE(req, context) {
           }
         }
 
-        // 2) eliminar orderHistory relacionados
         await tx.orderHistory.deleteMany({ where: { orderId } });
 
-        // 3) eliminar orderItemProducts (OrderItemProduct) usando orderItemIds
         if (orderItemIds.length > 0) {
           await tx.orderItemProduct.deleteMany({ where: { orderItemId: { in: orderItemIds } } });
-        }
-
-        // 4) eliminar orderItems
-        if (orderItemIds.length > 0) {
           await tx.orderItem.deleteMany({ where: { id: { in: orderItemIds } } });
         }
 
-        // 5) eliminar la orden
         const del = await tx.order.delete({ where: { id: orderId } });
-
         return del;
       });
 
@@ -239,28 +226,26 @@ export async function PATCH(req, context) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
     const action = body?.action || body?.type;
     if (!action) return NextResponse.json({ error: "Acción no especificada" }, { status: 400 });
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email }, include: { stores: true } });
+    const user = await prisma.user.findUnique({ where: { email: authUser.email }, include: { stores: true } });
     const order = await prisma.order.findUnique({ where: { id: orderId }, include: { orderItems: { include: { items: true } } } });
     if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
 
-    const isOwner = String(order.userId) === String(session.user.id);
+    const isOwner = String(order.userId) === String(authUser.id);
     const sellerStoreIds = (user?.stores || []).map((s) => String(s.id));
     const isSellerOfOrder = order.orderItems.some((oi) => sellerStoreIds.includes(String(oi.storeId)));
     const isAdmin = user?.role === "admin";
 
-    // Acción: marcar orden completa como pagada
+    // Acción: marcar pago de orden (para Sellers solo sus tiendas; para Admins completo)
     if (action === "markPaid" || action === "confirmPayment") {
-      // Permitir a admin o al vendedor responsable de la(s) tienda(s) involucradas marcar como pagada
       if (!isSellerOfOrder && !isAdmin) return NextResponse.json({ error: "No autorizado para marcar pago" }, { status: 403 });
 
-      // Ejecutar en transacción: decrementar stock (si no se ha hecho), actualizar order y orderItems, registrar history
       const result = await prisma.$transaction(async (tx) => {
         const freshOrder = await tx.order.findUnique({
           where: { id: orderId },
@@ -272,16 +257,30 @@ export async function PATCH(req, context) {
           return { alreadyPaid: true, order: freshOrder };
         }
 
-        // Descontar stock si no se ha hecho antes
+        // Filtrar qué orderItems se marcarán como pagados en este paso
+        const orderItemsToPay = freshOrder.orderItems.filter((oi) => {
+          if (isAdmin) return true;
+          return sellerStoreIds.includes(String(oi.storeId));
+        });
+
+        if (orderItemsToPay.length === 0) {
+          throw new Error("No tienes ítems en esta orden asignados a tus tiendas");
+        }
+
+        // Marcar los items seleccionados como pagados
+        const orderItemIdsToPay = orderItemsToPay.map((oi) => oi.id);
+        await tx.orderItem.updateMany({
+          where: { id: { in: orderItemIdsToPay } },
+          data: { paymentStatus: "paid" },
+        });
+
+        // Descontar stock si la orden no tenía stockDeducted
         if (!freshOrder.stockDeducted) {
-          for (const oi of freshOrder.orderItems || []) {
+          for (const oi of orderItemsToPay) {
             for (const p of oi.items || []) {
               const productId = p.productId;
               const qty = Number(p.quantity || 0);
-              if (!productId || !Number.isFinite(qty) || qty <= 0) {
-                console.warn("Omitiendo decrement stock por datos incompletos:", { productId, qty, orderItemId: oi.id });
-                continue;
-              }
+              if (!productId || qty <= 0) continue;
               try {
                 await tx.product.update({
                   where: { id: productId },
@@ -294,41 +293,46 @@ export async function PATCH(req, context) {
           }
         }
 
-        const updated = await tx.order.update({
-          where: { id: orderId },
-          data: {
-            paymentStatus: "paid",
-            status: "processing",
-            paidAt: new Date(),
-            paymentVerifiedBy: session.user.id,
-            paymentVerifiedAt: new Date(),
-            stockDeducted: true,
-          },
+        // Verificar si ahora todos los orderItems de la orden están pagados
+        const refreshedOrderItems = await tx.orderItem.findMany({
+          where: { orderId },
         });
+        const allPaid = refreshedOrderItems.every((oi) => oi.paymentStatus === "paid");
 
-        try {
-          await tx.orderItem.updateMany({
-            where: { orderId },
-            data: { paymentStatus: "paid" },
+        let updatedOrder = freshOrder;
+        if (allPaid) {
+          updatedOrder = await tx.order.update({
+            where: { id: orderId },
+            data: {
+              paymentStatus: "paid",
+              status: "processing",
+              paidAt: new Date(),
+              paymentVerifiedBy: authUser.id,
+              paymentVerifiedAt: new Date(),
+              stockDeducted: true,
+            },
           });
-        } catch (e) {
-          console.warn("No se pudo actualizar orderItems.paymentStatus:", e?.message || e);
         }
 
+        // Registrar historial de auditoría
         try {
+          const storeNames = orderItemsToPay.map((oi) => oi.storeId).join(", ");
           await tx.orderHistory.create({
             data: {
               orderId,
-              action: "mark_paid",
-              byUserId: session.user.id,
-              note: "Pago verificado por vendedor/admin",
+              action: isAdmin ? "mark_paid" : "mark_store_paid_auto",
+              byUserId: authUser.id,
+              note: isAdmin
+                ? "Orden completa marcada como pagada por administrador"
+                : `Vendedor confirmó pago de ítems para tienda(s): ${storeNames}. ` +
+                  (allPaid ? "Todos los pagos completados, orden marcada como pagada." : "Pendiente confirmación de otras tiendas."),
             },
           });
         } catch (e) {
-          console.warn("No se pudo crear orderHistory mark_paid:", e?.message || e);
+          console.warn("No se pudo registrar orderHistory:", e?.message || e);
         }
 
-        return { alreadyPaid: false, order: updated };
+        return { alreadyPaid: false, order: updatedOrder, allPaid };
       });
 
       return NextResponse.json({ success: true, result });
@@ -336,9 +340,14 @@ export async function PATCH(req, context) {
 
     // Acción: marcar pago solo para la tienda del vendedor
     if (action === "markStorePaid") {
-      if (!isSellerOfOrder && !isAdmin) return NextResponse.json({ error: "No autorizado para marcar pago de tienda" }, { status: 403 });
       const { storeId } = body;
       if (!storeId) return NextResponse.json({ error: "storeId requerido" }, { status: 400 });
+
+      // Ciberseguridad: Validar que el Seller realmente sea dueño de la tienda que intenta confirmar
+      const ownsStore = sellerStoreIds.includes(String(storeId));
+      if (!ownsStore && !isAdmin) {
+        return NextResponse.json({ error: "No autorizado para confirmar pago de esta tienda" }, { status: 403 });
+      }
 
       const result = await prisma.$transaction(async (tx) => {
         // Actualizar orderItems de esa tienda
@@ -347,13 +356,12 @@ export async function PATCH(req, context) {
           data: { paymentStatus: "paid" },
         });
 
-        // Registrar auditoría
         await tx.orderHistory.create({
           data: {
             orderId,
             action: "mark_store_paid",
-            byUserId: session.user.id,
-            note: `Pago marcado como pagado para storeId ${storeId}`,
+            byUserId: authUser.id,
+            note: `Pago verificado para tienda: ${storeId}`,
           },
         });
 
@@ -362,16 +370,12 @@ export async function PATCH(req, context) {
         const allPaid = (refreshed.orderItems || []).every((oi) => oi.paymentStatus === "paid");
 
         if (allPaid && refreshed.paymentStatus !== "paid") {
-          // Descontar stock si no se ha hecho antes
           if (!refreshed.stockDeducted) {
             for (const oi of refreshed.orderItems || []) {
               for (const p of oi.items || []) {
                 const productId = p.productId;
                 const qty = Number(p.quantity || 0);
-                if (!productId || !Number.isFinite(qty) || qty <= 0) {
-                  console.warn("Omitiendo decrement stock por datos incompletos:", { productId, qty, orderItemId: oi.id });
-                  continue;
-                }
+                if (!productId || qty <= 0) continue;
                 try {
                   await tx.product.update({
                     where: { id: productId },
@@ -390,7 +394,7 @@ export async function PATCH(req, context) {
               paymentStatus: "paid",
               status: "processing",
               paidAt: new Date(),
-              paymentVerifiedBy: session.user.id,
+              paymentVerifiedBy: authUser.id,
               paymentVerifiedAt: new Date(),
               stockDeducted: true,
             },
@@ -400,7 +404,7 @@ export async function PATCH(req, context) {
             data: {
               orderId,
               action: "mark_paid_after_all_stores",
-              byUserId: session.user.id,
+              byUserId: authUser.id,
               note: "Orden marcada como pagada porque todas las tiendas confirmaron pago",
             },
           });
@@ -421,7 +425,7 @@ export async function PATCH(req, context) {
   }
 }
 
-// POST (upload-proof)
+// POST (upload-proof) - fallback si alguien llama a esta ruta directamente
 export async function POST(req, context) {
   try {
     const params = await context.params;
@@ -430,8 +434,8 @@ export async function POST(req, context) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     let formData;
     try { formData = await req.formData(); } catch (e) { formData = null; }
@@ -447,19 +451,64 @@ export async function POST(req, context) {
     const file = formData.get("file");
     if (!file) return NextResponse.json({ error: "No se encontró el archivo en formData" }, { status: 400 });
 
-    const filename = file.name || `proof-${Date.now()}`;
-    const mime = file.type || "application/octet-stream";
-
-    // Nota: aquí solo guardamos el nombre/mime en DB. Si usas Cloudinary u otro storage,
-    // sube el archivo y guarda la URL en paymentProof.
-    const updated = await prisma.order.update({
-      where: { id: orderId },
-      data: { paymentProof: filename, paymentProofMime: mime, paymentStatus: "pending_verification" },
+    // Subir a Cloudinary (igual que upload-proof/route.js)
+    const { v2: cloudinary } = await import("cloudinary");
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
     });
 
-    return NextResponse.json({ success: true, order: updated });
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const maxBytes = 8 * 1024 * 1024;
+    if (buffer.length > maxBytes) {
+      return NextResponse.json({ error: "Archivo demasiado grande (máx 8MB)" }, { status: 400 });
+    }
+
+    function detectMime(buf) {
+      if (buf.length < 4) return null;
+      if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return "image/png";
+      if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return "image/jpeg";
+      if (buf.length >= 12 && buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+          buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return "image/webp";
+      return null;
+    }
+
+    const realMime = detectMime(buffer);
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!realMime || !allowed.includes(realMime)) {
+      return NextResponse.json({ error: "Tipo no permitido. Solo JPG, PNG o WEBP." }, { status: 400 });
+    }
+
+    const base64 = buffer.toString("base64");
+    const dataUri = `data:${realMime};base64,${base64}`;
+
+    const uploadResult = await cloudinary.uploader.upload(dataUri, {
+      folder: `comprobantes/${orderId}`,
+      resource_type: "image",
+      overwrite: true,
+      use_filename: true,
+      unique_filename: false,
+    });
+
+    if (!uploadResult || !uploadResult.secure_url) {
+      return NextResponse.json({ error: "Error subiendo a Cloudinary" }, { status: 500 });
+    }
+
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        paymentProof: uploadResult.secure_url,
+        paymentProofMime: uploadResult.format ? `image/${uploadResult.format}` : realMime,
+        paymentStatus: "pending_verification",
+      },
+    });
+
+    return NextResponse.json({ success: true, order: updated, url: uploadResult.secure_url });
   } catch (err) {
-    console.error("🔥 ERROR UPLOAD PROOF:", err);
+    console.error("ERROR UPLOAD PROOF:", err);
     return NextResponse.json({ error: "Error subiendo comprobante" }, { status: 500 });
   }
 }

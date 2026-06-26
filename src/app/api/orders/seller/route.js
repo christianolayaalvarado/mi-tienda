@@ -122,7 +122,6 @@ export async function POST(req) {
       )
     }
 
-    // 🔥 Obtener usuario
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     })
@@ -134,95 +133,73 @@ export async function POST(req) {
       )
     }
 
-    // ==============================
-    // 🔹 AGRUPAR POR TIENDA
-    // ==============================
     const groupedByStore = items.reduce((acc, item) => {
       const storeId = item.storeId
-
       if (!storeId) return acc
-
-      if (!acc[storeId]) {
-        acc[storeId] = []
-      }
-
+      if (!acc[storeId]) acc[storeId] = []
       acc[storeId].push(item)
       return acc
     }, {})
 
-    // ==============================
-    // 🔹 TOTAL
-    // ==============================
     const total = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     )
 
-    // ==============================
-    // 🔹 CREAR ORDEN PRINCIPAL
-    // ==============================
-    const order = await prisma.order.create({
-      data: {
-        userId: user.id,
-        total,
-      },
-    })
-
-    // ==============================
-    // 🔥 CREAR SUB-ÓRDENES POR TIENDA
-    // ==============================
-    for (const storeId in groupedByStore) {
-      const storeItems = groupedByStore[storeId]
-
-      const orderItem = await prisma.orderItem.create({
+    // Transacción atómica: orden + items + stock + carrito
+    const result = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.create({
         data: {
-          orderId: order.id,
-          storeId: storeId,
+          userId: user.id,
+          total,
+          status: "pending",
+          paymentStatus: "unpaid",
+          customerName: user.name || null,
+          customerEmail: user.email || null,
         },
       })
 
-      // 🔥 Productos dentro de la sub-orden
-      for (const item of storeItems) {
-        await prisma.orderItemProduct.create({
+      for (const storeId in groupedByStore) {
+        const storeItems = groupedByStore[storeId]
+
+        const orderItem = await tx.orderItem.create({
           data: {
-            orderItemId: orderItem.id,
-            productId: item.productId,
-            quantity: Number(item.quantity),
-            price: Number(item.price),
+            orderId: order.id,
+            storeId,
           },
         })
 
-        // 🔻 (Opcional pero recomendado) actualizar stock
-        await prisma.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: Number(item.quantity),
+        for (const item of storeItems) {
+          await tx.orderItemProduct.create({
+            data: {
+              orderItemId: orderItem.id,
+              productId: item.productId,
+              quantity: Number(item.quantity),
+              price: Number(item.price),
             },
-          },
-        })
-      }
-    }
+          })
 
-    // ==============================
-    // 🧹 LIMPIAR CARRITO
-    // ==============================
-    await prisma.cartItem.deleteMany({
-      where: {
-        cart: {
-          userId: user.id,
-        },
-      },
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: Number(item.quantity) } },
+          })
+        }
+      }
+
+      await tx.cartItem.deleteMany({
+        where: { cart: { userId: user.id } },
+      })
+
+      return { orderId: order.id }
     })
 
     return NextResponse.json(
-      { message: "Compra realizada con éxito", orderId: order.id },
+      { message: "Compra realizada con éxito", orderId: result.orderId },
       { status: 201 }
     )
 
   } catch (error) {
-    console.error("Error POST /api/orders:", error)
-
+    console.error("Error POST /api/orders/seller:", error)
     return NextResponse.json(
       { error: "Error procesando la orden" },
       { status: 500 }

@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/authOptions"
+import { getServerAuthUser } from "@/lib/serverAuth"
 
 export async function POST(req) {
   try {
-    const session = await getServerSession(authOptions)
+    const authUser = await getServerAuthUser(req)
 
-    if (!session) {
+    if (!authUser?.id) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const { name } = await req.json()
+    const { name } = await req.json().catch(() => ({}))
 
     if (!name) {
       return NextResponse.json({ error: "Nombre requerido" }, { status: 400 })
@@ -24,7 +23,7 @@ export async function POST(req) {
       data: {
         name,
         code,
-        userId: session.user.id,
+        userId: authUser.id,
       },
     })
 

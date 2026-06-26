@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { useSession } from "next-auth/react";
 import useCategories from "@/hooks/useCategories";
 
 function useDebounce(value, delay) {
@@ -16,9 +15,10 @@ function useDebounce(value, delay) {
 }
 
 export default function ProductsPage() {
-  const { data: session } = useSession();
+  const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [deleting, setDeleting] = useState(false);
@@ -32,6 +32,28 @@ export default function ProductsPage() {
   const debouncedSearch = useDebounce(search, 500);
 
   const { categories, loading: loadingCategories } = useCategories();
+
+  useEffect(() => {
+    const loadUser = async () => {
+      setAuthLoading(true);
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include", headers: { Accept: "application/json" } });
+        if (res.ok) {
+          const data = await res.json().catch(() => null);
+          setUser(data?.user || null);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Error cargando usuario:", err);
+        setUser(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    loadUser();
+  }, []);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -126,8 +148,8 @@ export default function ProductsPage() {
   const handlePrev = () => { if (page > 1) setPage((p) => p - 1); };
   const handleNext = () => { if (page < totalPages) setPage((p) => p + 1); };
 
-  if (loading) return <p>Cargando productos...</p>;
-  if (!session) return <p>Debes iniciar sesión para ver tus productos.</p>;
+  if (authLoading || loading) return <p>Cargando productos...</p>;
+  if (!user) return <p>Debes iniciar sesión para ver tus productos.</p>;
 
   const normalize = (v) => (v == null ? null : String(v));
 
@@ -173,11 +195,11 @@ export default function ProductsPage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {products.map((product) => {
-            const sessionUserId = normalize(session?.user?.id);
+            const sessionUserId = normalize(user?.id);
             const productUserId = normalize(product.userId);
             const productStoreId = normalize(product.storeId);
-            const sessionStoreCode = normalize(session?.user?.storeCode);
-            const sessionRole = session?.user?.role ?? null;
+            const sessionStoreCode = normalize(user?.storeCode);
+            const sessionRole = user?.role ?? null;
 
             const isOwner = sessionUserId && productUserId && sessionUserId === productUserId;
             const isStoreOwner = sessionStoreCode && productStoreId && sessionStoreCode === productStoreId;

@@ -1,13 +1,27 @@
 // app/api/products/mine/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/authOptions";
+import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
+
+const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "change_this_secret";
+
+async function getAuthUserFromCookie() {
+  try {
+    const cookieStore = await cookies();
+    const tokenValue = cookieStore.get("token")?.value;
+    if (!tokenValue) return null;
+    const payload = jwt.verify(decodeURIComponent(tokenValue), JWT_SECRET);
+    return payload?.email ? payload : null;
+  } catch (error) {
+    return null;
+  }
+}
 
 export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const authUser = await getAuthUserFromCookie();
+    if (!authUser?.email) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
@@ -21,7 +35,7 @@ export async function GET(req) {
     const skip = (page - 1) * take;
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: authUser.email },
     });
     if (!user) {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });

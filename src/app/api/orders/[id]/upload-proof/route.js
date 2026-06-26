@@ -1,9 +1,8 @@
-// app/api/orders/[id]/upload-proof/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getServerAuthUser } from "@/lib/serverAuth";
 import { v2 as cloudinary } from "cloudinary";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { sendProofReceivedEmail } from "@/lib/email";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -30,17 +29,17 @@ export async function POST(req, context) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     }
 
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     // Buscar orden y validar propietario (evita que cualquiera suba comprobantes)
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
 
     // Permitir al propietario de la orden o a un admin subir comprobante
-    const sessionUserId = session.user?.id || session.user?.sub || null;
+    const sessionUserId = authUser.id || authUser.sub || null;
     const isOwner = sessionUserId && String(sessionUserId) === String(order.userId);
-    const isAdmin = session.user?.role === "admin";
+    const isAdmin = authUser.role === "admin";
     if (!isOwner && !isAdmin) {
       return NextResponse.json({ error: "No autorizado para subir comprobante en esta orden" }, { status: 403 });
     }
@@ -71,6 +70,24 @@ export async function POST(req, context) {
         },
       });
 
+      // Notificar a los vendedores (no bloquear)
+      try {
+        const fullOrder = await prisma.order.findUnique({
+          where: { id: orderId },
+          include: {
+            orderItems: { include: { store: { include: { user: { select: { email: true } } } } } },
+          },
+        });
+        if (fullOrder) {
+          const orderNumber = fullOrder.orderNumber || fullOrder.id;
+          for (const oi of fullOrder.orderItems) {
+            if (oi.store?.user?.email) {
+              sendProofReceivedEmail({ to: oi.store.user.email, orderNumber }).catch(() => {});
+            }
+          }
+        }
+      } catch (e) { console.warn("Error notificando sellers (JSON path):", e?.message || e); }
+
       return NextResponse.json({ success: true, order: updated, url: proofUrl });
     }
 
@@ -80,23 +97,44 @@ export async function POST(req, context) {
       return NextResponse.json({ error: "No se encontró el archivo en formData" }, { status: 400 });
     }
 
-    // Validaciones básicas
-    const mime = file.type || file.type || "application/octet-stream";
-    const allowed = ["image/jpeg", "image/png", "image/webp"];
-    const maxBytes = 8 * 1024 * 1024; // 8 MB
-    // file.size puede no estar disponible en algunos entornos; intentar leer tamaño si existe
-    if (file.size && file.size > maxBytes) {
-      return NextResponse.json({ error: "Archivo demasiado grande (máx 8MB)" }, { status: 400 });
-    }
-    if (!allowed.includes(mime)) {
-      return NextResponse.json({ error: "Tipo de archivo no permitido" }, { status: 400 });
-    }
-
     // Leer contenido del File/Blob y convertir a base64 para subir a Cloudinary
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // Validaciones básicas de tamaño y tipo real (magic bytes)
+    const maxBytes = 8 * 1024 * 1024; // 8 MB
+    if (buffer.length > maxBytes) {
+      return NextResponse.json({ error: "Archivo demasiado grande (máx 8MB)" }, { status: 400 });
+    }
+
+    // Validación de Magic Bytes
+    function detectRealMimeType(buf) {
+      if (buf.length < 4) return null;
+      // PNG: 89 50 4E 47
+      if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
+        return "image/png";
+      }
+      // JPEG: FF D8 FF
+      if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) {
+        return "image/jpeg";
+      }
+      // WEBP: RIFF....WEBP (52 49 46 46 at 0, 57 45 42 50 at 8)
+      if (buf.length >= 12 &&
+          buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+          buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) {
+        return "image/webp";
+      }
+      return null;
+    }
+
+    const realMime = detectRealMimeType(buffer);
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!realMime || !allowed.includes(realMime)) {
+      return NextResponse.json({ error: "Tipo de archivo no permitido o dañado. Solo JPG, PNG o WEBP." }, { status: 400 });
+    }
+
     const base64 = buffer.toString("base64");
-    const dataUri = `data:${mime};base64,${base64}`;
+    const dataUri = `data:${realMime};base64,${base64}`;
 
     // Subir a Cloudinary en carpeta por orden
     const folder = `comprobantes/${orderId}`;
@@ -118,10 +156,34 @@ export async function POST(req, context) {
       where: { id: orderId },
       data: {
         paymentProof: uploadResult.secure_url,
-        paymentProofMime: uploadResult.format ? `image/${uploadResult.format}` : mime,
+        paymentProofMime: uploadResult.format ? `image/${uploadResult.format}` : realMime,
         paymentStatus: "pending_verification",
       },
     });
+
+    // Notificar a los vendedores que se subió un comprobante (no bloquear)
+    try {
+      const fullOrder = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          orderItems: { include: { store: { include: { user: { select: { email: true, name: true } } } } } },
+        },
+      });
+
+      if (fullOrder) {
+        const orderNumber = fullOrder.orderNumber || fullOrder.id;
+        for (const oi of fullOrder.orderItems) {
+          const sellerEmail = oi.store?.user?.email;
+          if (sellerEmail) {
+            sendProofReceivedEmail({ to: sellerEmail, orderNumber }).catch((e) =>
+              console.error(`Error enviando email comprobante recibido a ${sellerEmail}:`, e?.message || e)
+            );
+          }
+        }
+      }
+    } catch (emailErr) {
+      console.error("Error notificando sellers sobre comprobante:", emailErr?.message || emailErr);
+    }
 
     return NextResponse.json({ success: true, order: updated, url: uploadResult.secure_url });
   } catch (err) {

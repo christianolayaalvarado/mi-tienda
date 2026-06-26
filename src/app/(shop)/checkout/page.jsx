@@ -1,22 +1,10 @@
 // src/app/(shop)/checkout/page.jsx
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import PaymentMethodSelector from "../../../components/PaymentMethodSelector";
 import toast from "react-hot-toast";
-
-/**
- * CheckoutPage
- * - Lee carrito desde localStorage ("cart") o fallback /api/cart
- * - Normaliza items y calcula total
- * - Envía orden a POST /api/orders
- * - Limpia carrito y redirige a /orders/[id] o /orders tras crear la orden
- *
- * Corrección añadida:
- * - Limpieza automática del carrito local eliminando productos ya pagados
- *   (consulta /api/orders/paid-product-ids y remueve productIds del localStorage).
- */
+import { fetchSession } from "@/lib/useSessionCheck";
 
 /* -------------------------
    Utilidades para el carrito
@@ -42,7 +30,6 @@ function writeCartRaw(value) {
     } else {
       localStorage.setItem("cart", JSON.stringify(value));
     }
-    // Disparar evento storage para sincronizar otras pestañas
     try {
       window.dispatchEvent(new Event("storage"));
     } catch {
@@ -53,10 +40,6 @@ function writeCartRaw(value) {
   }
 }
 
-/**
- * Elimina del carrito local todos los items cuyo productId esté en productIdsToRemove (array de strings).
- * Soporta formatos de carrito: array, { items: [...] }, { cart: { items: [...] } }.
- */
 function removeProductsFromCart(productIdsToRemove = []) {
   if (!Array.isArray(productIdsToRemove) || productIdsToRemove.length === 0) return;
 
@@ -67,7 +50,6 @@ function removeProductsFromCart(productIdsToRemove = []) {
     return it?.productId ?? it?.id ?? `unknown-${idx}`;
   };
 
-  // Si es array raíz
   if (Array.isArray(raw)) {
     const filtered = raw.filter((it, idx) => {
       const pid = normalizeItemPid(it, idx);
@@ -77,7 +59,6 @@ function removeProductsFromCart(productIdsToRemove = []) {
     return;
   }
 
-  // Si es { items: [...] }
   if (raw && typeof raw === "object" && Array.isArray(raw.items)) {
     const filteredItems = raw.items.filter((it, idx) => {
       const pid = normalizeItemPid(it, idx);
@@ -91,7 +72,6 @@ function removeProductsFromCart(productIdsToRemove = []) {
     return;
   }
 
-  // Si es { cart: { items: [...] } }
   if (raw && typeof raw === "object" && raw.cart && Array.isArray(raw.cart.items)) {
     const filteredItems = raw.cart.items.filter((it, idx) => {
       const pid = normalizeItemPid(it, idx);
@@ -105,19 +85,70 @@ function removeProductsFromCart(productIdsToRemove = []) {
     return;
   }
 
-  // Si no reconocemos el formato, no hacemos nada
   console.warn("Formato de carrito no reconocido, no se eliminó nada.");
 }
+
+/* -------------------------
+   Normalización y utilidades
+   ------------------------- */
+const parsePrice = (p) => {
+  if (p == null) return 0;
+  if (typeof p === "number") return p;
+  if (typeof p === "string") {
+    const cleaned = p.replace(/[^\d.,-]/g, "").replace(",", ".");
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  }
+  if (typeof p === "object") {
+    if (p.amount != null) return parsePrice(p.amount);
+    if (p.value != null) return parsePrice(p.value);
+    if (p.price != null) return parsePrice(p.price);
+  }
+  return 0;
+};
+
+const normalizeItem = (it, idx) => {
+  const price = parsePrice(it.price ?? it.unitPrice ?? it.priceAmount ?? it.amount ?? it.rawPrice);
+  const quantity = Number(it.quantity ?? it.qty ?? 1) || 1;
+  return {
+    productId: it.productId ?? it.id ?? `unknown-${idx}`,
+    title: it.title ?? it.name ?? it.productName ?? "",
+    price,
+    quantity,
+    storeId: it.storeId ?? it.store ?? null,
+    raw: it,
+  };
+};
+
+const normalizeCart = (raw) => {
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (parsed && typeof parsed === "object" && parsed.cart && Array.isArray(parsed.cart.items)) {
+      return parsed.cart.items.map((it, idx) => normalizeItem(it, idx));
+    }
+    if (parsed && typeof parsed === "object" && Array.isArray(parsed.items)) {
+      return parsed.items.map((it, idx) => normalizeItem(it, idx));
+    }
+    if (Array.isArray(parsed)) {
+      return parsed.map((it, idx) => normalizeItem(it, idx));
+    }
+    return [];
+  } catch (err) {
+    console.error("normalizeCart parse error:", err, raw);
+    return [];
+  }
+};
 
 /* -------------------------
    Componente CheckoutPage
    ------------------------- */
 export default function CheckoutPage({ params }) {
   const router = useRouter();
-  const { data: session, status } = useSession();
   const paramSellerId = params?.sellerId || null;
-  const sellerId = paramSellerId || session?.user?.id || null;
 
+  const [sellerId, setSellerId] = useState(paramSellerId || null);
+  const [sessionUser, setSessionUser] = useState(null);
+  const [sessionStatus, setSessionStatus] = useState("loading");
   const [paymentMethodId, setPaymentMethodId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [orderItems, setOrderItems] = useState([]);
@@ -125,53 +156,31 @@ export default function CheckoutPage({ params }) {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const parsePrice = (p) => {
-    if (p == null) return 0;
-    if (typeof p === "number") return p;
-    if (typeof p === "string") {
-      const cleaned = p.replace(/[^\d.,-]/g, "").replace(",", ".");
-      const n = Number(cleaned);
-      return Number.isFinite(n) ? n : 0;
-    }
-    if (typeof p === "object") {
-      if (p.amount != null) return parsePrice(p.amount);
-      if (p.value != null) return parsePrice(p.value);
-      if (p.price != null) return parsePrice(p.price);
-    }
-    return 0;
-  };
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        setSessionStatus("loading");
+        const user = await fetchSession();
+        setSessionUser(user);
+        if (!user) {
+          setSellerId(paramSellerId || null);
+          setSessionStatus("unauthenticated");
+          return;
+        }
 
-  const normalizeItem = (it, idx) => {
-    const price = parsePrice(it.price ?? it.unitPrice ?? it.priceAmount ?? it.amount ?? it.rawPrice);
-    const quantity = Number(it.quantity ?? it.qty ?? 1) || 1;
-    return {
-      productId: it.productId ?? it.id ?? `unknown-${idx}`,
-      title: it.title ?? it.name ?? it.productName ?? "",
-      price,
-      quantity,
-      storeId: it.storeId ?? it.store ?? null,
-      raw: it,
+        const resolvedSellerId = paramSellerId || user.id || user._id || user.userId || null;
+        setSellerId(resolvedSellerId);
+        setSessionStatus("authenticated");
+      } catch (err) {
+        console.warn("No se pudo cargar la sesión para checkout:", err);
+        setSessionUser(null);
+        setSellerId(paramSellerId || null);
+        setSessionStatus("unauthenticated");
+      }
     };
-  };
 
-  const normalizeCart = (raw) => {
-    try {
-      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-      if (parsed && typeof parsed === "object" && parsed.cart && Array.isArray(parsed.cart.items)) {
-        return parsed.cart.items.map((it, idx) => normalizeItem(it, idx));
-      }
-      if (parsed && typeof parsed === "object" && Array.isArray(parsed.items)) {
-        return parsed.items.map((it, idx) => normalizeItem(it, idx));
-      }
-      if (Array.isArray(parsed)) {
-        return parsed.map((it, idx) => normalizeItem(it, idx));
-      }
-      return [];
-    } catch (err) {
-      console.error("normalizeCart parse error:", err, raw);
-      return [];
-    }
-  };
+    loadSession();
+  }, [paramSellerId]);
 
   useEffect(() => {
     const loadCart = async () => {
@@ -181,6 +190,23 @@ export default function CheckoutPage({ params }) {
           setRawCart(null);
           setLoading(false);
           return;
+        }
+
+        if (sessionStatus === "authenticated") {
+          try {
+            const res = await fetch("/api/cart", { credentials: "include", headers: { Accept: "application/json" } });
+            if (res.ok) {
+              const data = await res.json();
+              const cartItems = data?.cart?.items || [];
+              const normalized = cartItems.map((it, idx) => normalizeItem(it, idx));
+              setRawCart(data);
+              setOrderItems(normalized);
+              setLoading(false);
+              return;
+            }
+          } catch (err) {
+            console.warn("No se pudo cargar carrito desde /api/cart", err);
+          }
         }
 
         const raw = localStorage.getItem("cart");
@@ -197,21 +223,6 @@ export default function CheckoutPage({ params }) {
           return;
         }
 
-        // Fallback opcional a /api/cart
-        try {
-          const res = await fetch("/api/cart");
-          if (res.ok) {
-            const data = await res.json();
-            setRawCart(data);
-            const normalized = normalizeCart(data);
-            setOrderItems(normalized);
-            setLoading(false);
-            return;
-          }
-        } catch (err) {
-          // ignore fallback error
-        }
-
         setOrderItems([]);
         setLoading(false);
       } catch (err) {
@@ -223,23 +234,20 @@ export default function CheckoutPage({ params }) {
       }
     };
 
-    if (status === "loading") return;
+    if (sessionStatus === "loading") return;
     loadCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, [sessionStatus]);
 
-  // Limpieza automática: eliminar del carrito productos ya pagados por el usuario
   useEffect(() => {
     const cleanupPaidItems = async () => {
       try {
-        // Llamada al endpoint que devuelve productIds de órdenes pagadas del usuario
-        const res = await fetch("/api/orders/paid-product-ids", { method: "GET" });
+        const res = await fetch("/api/orders/paid-product-ids", { method: "GET", credentials: "include" });
         if (!res.ok) return;
         const data = await res.json();
         const productIds = Array.isArray(data?.productIds) ? data.productIds : [];
         if (productIds.length > 0) {
           removeProductsFromCart(productIds);
-          // recargar estado local del carrito
           const raw = readCartRaw();
           const normalized = normalizeCart(raw || "[]");
           setRawCart(raw);
@@ -250,12 +258,11 @@ export default function CheckoutPage({ params }) {
       }
     };
 
-    // Ejecutar solo si hay sesión y no estamos en loading
-    if (status !== "loading") {
+    if (sessionStatus !== "loading") {
       cleanupPaidItems();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, [sessionStatus]);
 
   useEffect(() => {
     setPaymentMethodId(null);
@@ -290,7 +297,13 @@ export default function CheckoutPage({ params }) {
   const formatCurrency = (v) =>
     new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(v);
 
-  const handleSubmit = async () => {
+  /* -------------------------
+     Envío de la orden (único handleSubmit)
+     ------------------------- */
+  const handleSubmit = async (e) => {
+    if (e && typeof e.preventDefault === "function") e.preventDefault();
+    if (submitting) return;
+
     if (!sellerId) {
       toast.error("No se pudo determinar el vendedor (sellerId).");
       return;
@@ -299,102 +312,147 @@ export default function CheckoutPage({ params }) {
       toast.error("Selecciona una forma de pago");
       return;
     }
-    if (orderItems.length === 0) {
+    if (!orderItems || orderItems.length === 0) {
       toast.error("El carrito está vacío");
       return;
     }
 
     setSubmitting(true);
+    const loadingToast = toast.loading("Creando orden...");
+
+    // generar clientOrderId para idempotencia
+    let clientOrderId = null;
+    try {
+      clientOrderId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `co_${Date.now()}`;
+    } catch {
+      clientOrderId = `co_${Date.now()}`;
+    }
 
     try {
+      const payload = {
+        clientOrderId,
+        items: orderItems.map((it) => ({
+          productId: it.productId,
+          quantity: it.quantity,
+          price: it.price,
+          storeId: it.storeId,
+        })),
+        total,
+        customer: {
+          name: sessionUser?.name || "",
+          email: sessionUser?.email || "",
+        },
+        paymentMethodId: paymentMethodId || null,
+        sellerId: sellerId || null,
+      };
+
       const res = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: orderItems,
-          customer: { name: session?.user?.name || "Cliente", email: session?.user?.email || "" },
-          paymentMethodId,
-          total,
-        }),
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
       });
 
-      const text = await res.text();
-      let data = null;
+      const text = await res.text().catch(() => null);
+      let json = null;
       try {
-        data = text ? JSON.parse(text) : null;
+        json = text ? JSON.parse(text) : null;
       } catch {
-        data = null;
+        json = null;
       }
 
       if (!res.ok) {
-        const message = (data && data.error) || `Error creando orden (status ${res.status})`;
+        const message = (json && (json.error || json.message)) || text || `Error creando orden (status ${res.status})`;
         throw new Error(message);
       }
 
-      // Éxito: limpiar carrito y redirigir
-      try {
-        localStorage.removeItem("cart");
-        // también actualizar estado local inmediatamente
-        setRawCart(null);
-        setOrderItems([]);
-        try {
-          window.dispatchEvent(new Event("storage"));
-        } catch {}
-      } catch (e) {
-        console.warn("No se pudo limpiar localStorage:", e);
-      }
-
+      const createdOrder = (json && (json.order || json)) || null;
+      toast.dismiss(loadingToast);
       toast.success("Orden creada correctamente");
 
-      // Intentar obtener id o orderNumber del body
-      const orderId = data?.id || data?.order?.id || data?.orderNumber || null;
-      if (orderId) {
-        router.push(`/orders/${orderId}`);
-        return;
+      // limpiar carrito local
+      try {
+        writeCartRaw(null);
+      } catch (err) {
+        console.warn("No se pudo limpiar carrito local:", err);
       }
-      router.push("/orders");
+
+      // redirigir a detalle si tenemos id
+      const orderId = createdOrder?.id || createdOrder?._id || null;
+      if (orderId) {
+        router.push(`/dashboard/orders/${orderId}`);
+      } else {
+        router.push("/dashboard/orders");
+      }
     } catch (err) {
       console.error("Error creando orden:", err);
+      toast.dismiss(loadingToast);
       toast.error(err?.message || "Error creando orden");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <p className="p-6">Cargando checkout…</p>;
+  /* -------------------------
+     Render
+     ------------------------- */
+  if (loading) return <div className="p-4 text-gray-600">Cargando carrito...</div>;
 
   return (
-    <div className="container mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-4">Checkout</h2>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-semibold mb-4">Checkout</h1>
 
-      {!sellerId ? (
-        <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400">
-          <p className="text-sm text-yellow-800">No se pudo determinar el vendedor. Inicia sesión o revisa la ruta.</p>
+      {error && <div className="mb-4 text-red-600">{error}</div>}
+
+      <div className="mb-6">
+        <h2 className="font-medium">Items</h2>
+        {orderItems.length === 0 ? (
+          <p className="text-sm text-gray-500">No hay items en el carrito.</p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {orderItems.map((it) => (
+              <li key={it.productId} className="flex justify-between items-center border p-3 rounded">
+                <div>
+                  <div className="font-medium">{it.title}</div>
+                  <div className="text-xs text-gray-500">Cantidad: {it.quantity}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm">{formatCurrency(it.price)}</div>
+                  <div className="font-semibold">{formatCurrency(it.price * it.quantity)}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="mb-6">
+        <h2 className="font-medium">Método de pago</h2>
+        <PaymentMethodSelector
+          sellerId={sellerId}
+          value={paymentMethodId}
+          onChange={(v) => setPaymentMethodId(v)}
+        />
+      </div>
+
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
+          <div className="text-lg font-medium">Total</div>
+          <div className="text-xl font-semibold">{formatCurrency(total)}</div>
         </div>
-      ) : (
-        <>
-          <section className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Formas de pago disponibles</h3>
-            <PaymentMethodSelector sellerId={sellerId} onSelect={setPaymentMethodId} />
-            {!paymentMethodId && <p className="text-sm text-gray-500 mt-2">Selecciona una forma de pago para continuar.</p>}
-          </section>
+      </div>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold">Resumen</h3>
-            {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
-            <p className="text-sm text-gray-600">Items: {orderItems.length}</p>
-            <p className="text-sm text-gray-600">Total: {formatCurrency(total)}</p>
-          </div>
-
+      <form onSubmit={handleSubmit}>
+        <div className="flex gap-2">
           <button
-            onClick={handleSubmit}
-            disabled={!paymentMethodId || orderItems.length === 0 || submitting}
-            className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+            type="submit"
+            disabled={submitting || orderItems.length === 0 || !paymentMethodId}
+            className="ml-auto bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50"
           >
-            {submitting ? "Procesando..." : "Confirmar pedido"}
+            {submitting ? "Procesando..." : "Pagar y crear orden"}
           </button>
-        </>
-      )}
+        </div>
+      </form>
     </div>
   );
 }

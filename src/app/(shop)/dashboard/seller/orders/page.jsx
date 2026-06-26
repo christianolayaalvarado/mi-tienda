@@ -18,11 +18,67 @@ function formatDate(iso) {
   }
 }
 
+function OrderItemProducts({ orderItem, orderId, fetchOrderDetail }) {
+  const [items, setItems] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (Array.isArray(orderItem.items) && orderItem.items.length > 0) {
+      setItems(orderItem.items);
+      return;
+    }
+    let cancel = false;
+    setLoading(true);
+    fetchOrderDetail(orderId).then((detail) => {
+      if (cancel) return;
+      if (detail?.orderItems) {
+        const matched = detail.orderItems.find((oi) => oi.id === orderItem.id || oi.storeId === orderItem.storeId);
+        setItems(matched?.items || []);
+      } else {
+        setItems([]);
+      }
+      setLoading(false);
+    }).catch(() => {
+      setItems([]);
+      setLoading(false);
+    });
+    return () => { cancel = true; };
+  }, [orderItem.id, orderItem.storeId, orderId]);
+
+  if (loading) return <div className="text-xs text-gray-400">Cargando productos...</div>;
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="mt-2 grid gap-2">
+      {items.map((prod) => (
+        <div
+          key={prod.id || `${orderItem.id}-${prod.productId || Math.random()}`}
+          className="flex justify-between text-sm"
+        >
+          <div>
+            <div className="font-medium">{prod.product?.title || prod.product?.name || prod.productName || "Producto"}</div>
+            <div className="text-gray-500 text-xs">
+              Precio unitario: S/ {Number(prod.price || 0).toFixed(2)}
+            </div>
+          </div>
+          <div className="text-right">
+            <div>{Number(prod.quantity || 0)} x</div>
+            <div className="font-semibold">
+              S/ {(Number(prod.price || 0) * Number(prod.quantity || 1)).toFixed(2)}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function SellerOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [session, setSession] = useState(null);
+  const [detailCache, setDetailCache] = useState({});
 
   // Estado para el modal de eliminación
   const [deleteTarget, setDeleteTarget] = useState(null); // { orderId }
@@ -49,10 +105,10 @@ export default function SellerOrdersPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const res = await fetch("/api/auth/session");
+        const res = await fetch("/api/auth/me", { credentials: "include" });
         if (res.ok) {
-          const s = await res.json();
-          setSession(s);
+          const data = await res.json();
+          setSession(data?.user ? { user: data.user } : null);
         } else {
           setSession(null);
         }
@@ -139,6 +195,20 @@ export default function SellerOrdersPage() {
     } catch (err) {
       console.error("Error marcando pago de tienda:", err);
       alert(err?.message || "No se pudo marcar pago de tienda. Revisa la consola.");
+    }
+  };
+
+  const fetchOrderDetail = async (orderId) => {
+    if (detailCache[orderId]) return detailCache[orderId];
+    try {
+      const res = await fetch(`/api/orders/${orderId}`);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return null;
+      const detail = data.order || data;
+      setDetailCache((prev) => ({ ...prev, [orderId]: detail }));
+      return detail;
+    } catch {
+      return null;
     }
   };
 
@@ -255,29 +325,11 @@ export default function SellerOrdersPage() {
                   </div>
 
                   <div className="mt-2 grid gap-2">
-                    {Array.isArray(item.items) && item.items.length > 0 ? (
-                      item.items.map((prod) => (
-                        <div
-                          key={prod.id || `${item.id}-${prod.productId || prod.product?.id || Math.random()}`}
-                          className="flex justify-between text-sm"
-                        >
-                          <div>
-                            <div className="font-medium">{prod.product?.title || prod.productTitle || "Producto"}</div>
-                            <div className="text-gray-500 text-xs">
-                              Precio unitario: S/ {Number(prod.price || 0).toFixed(2)}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div>{Number(prod.quantity || 0)} x</div>
-                            <div className="font-semibold">
-                              S/ {(Number(prod.price || 0) * Number(prod.quantity || 1)).toFixed(2)}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-gray-500">No hay productos listados</div>
-                    )}
+                    <OrderItemProducts
+                      orderItem={item}
+                      orderId={order.id}
+                      fetchOrderDetail={fetchOrderDetail}
+                    />
                   </div>
                 </div>
               ))}

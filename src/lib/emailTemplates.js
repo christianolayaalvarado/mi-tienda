@@ -1,41 +1,324 @@
-export const baseTemplate = (content) => {
+// src/lib/emailTemplates.js
+
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+function formatCurrency(value) {
+  try {
+    return new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(Number(value || 0));
+  } catch {
+    return `S/ ${Number(value || 0).toFixed(2)}`;
+  }
+}
+
+/** Base wrapper con header + footer profesional */
+const baseTemplate = (content) => `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:24px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+        <!-- HEADER -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#16a34a 0%,#059669 100%);padding:28px 32px;text-align:center;">
+            <img src="${appUrl}/images/logo.png" alt="Mi Tienda" style="height:48px;width:auto;display:block;margin:0 auto 8px;" />
+            <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Tu plataforma de compras y ventas</p>
+          </td>
+        </tr>
+
+        <!-- CONTENT -->
+        <tr>
+          <td style="padding:32px;color:#333333;font-size:15px;line-height:1.7;">
+            ${content}
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="background:#f8faf9;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:12px;color:#9ca3af;">
+              &copy; ${new Date().getFullYear()} Mi Tienda &mdash; Todos los derechos reservados
+            </p>
+            <p style="margin:6px 0 0;font-size:11px;color:#d1d5db;">
+              Este es un correo automático, por favor no respondas directamente.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+`;
+
+/** Botón CTA reutilizable */
+function ctaButton(text, url) {
   return `
-  <div style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
-    <div style="max-width:600px;margin:auto;background:white;border-radius:10px;overflow:hidden;">
-      
-      <!-- HEADER -->
-      <div style="background:#16a34a;color:white;padding:20px;text-align:center;">
-        <h1>Tu Tienda</h1>
-      </div>
-
-      <!-- CONTENT -->
-      <div style="padding:20px;color:#333;">
-        ${content}
-      </div>
-
-      <!-- FOOTER -->
-      <div style="background:#fafafa;padding:15px;text-align:center;font-size:12px;color:#777;">
-        © ${new Date().getFullYear()} Tu Tienda
-      </div>
-
-    </div>
-  </div>
+    <table cellpadding="0" cellspacing="0" style="margin:20px 0;">
+      <tr>
+        <td style="background:linear-gradient(135deg,#16a34a 0%,#059669 100%);border-radius:8px;">
+          <a href="${url}" target="_blank"
+             style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;">
+            ${text}
+          </a>
+        </td>
+      </tr>
+    </table>
   `;
+}
+
+/** Tabla de items de orden */
+function buildOrderItemsHtml(items = []) {
+  if (!items || items.length === 0) return "<p style='color:#9ca3af;'>No hay productos.</p>";
+  let rows = items.map(
+    (it) => `
+      <tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;color:#374151;">${it.productName}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:center;color:#6b7280;">${it.quantity}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:right;color:#111827;font-weight:600;">${formatCurrency(it.price)}</td>
+      </tr>`
+  ).join("");
+
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin:16px 0;">
+      <thead>
+        <tr style="background:#f9fafb;">
+          <th style="text-align:left;padding:10px 12px;font-size:13px;color:#6b7280;font-weight:600;">Producto</th>
+          <th style="text-align:center;padding:10px 12px;font-size:13px;color:#6b7280;font-weight:600;">Cant.</th>
+          <th style="text-align:right;padding:10px 12px;font-size:13px;color:#6b7280;font-weight:600;">Precio</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+/** Badge de estado */
+function statusBadge(text, color) {
+  return `<span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;color:#fff;background:${color};">${text}</span>`;
+}
+
+// ============================================================
+// TEMPLATES EXPORTADOS
+// ============================================================
+
+/** Verificación de código */
+export const verificationCodeTemplate = (code) => {
+  const ttlMinutes = Math.floor(Number(process.env.VERIFICATION_TTL_SECONDS || 900) / 60);
+  return baseTemplate(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:20px;">Verifica tu correo electrónico</h2>
+    <p style="margin:0 0 16px;color:#6b7280;">Hola, gracias por registrarte en <strong>Mi Tienda</strong>.</p>
+    <p style="margin:0 0 8px;color:#374151;">Tu código de verificación es:</p>
+
+    <div style="background:#f0fdf4;border:2px dashed #16a34a;border-radius:12px;padding:20px;text-align:center;margin:16px 0;">
+      <span style="font-size:32px;font-weight:800;color:#16a34a;letter-spacing:6px;">${code}</span>
+    </div>
+
+    <p style="margin:0 0 8px;color:#6b7280;font-size:13px;">Este código expira en <strong>${ttlMinutes} minutos</strong>.</p>
+    <p style="margin:0;color:#9ca3af;font-size:12px;">Si no solicitaste este código, puedes ignorar este correo.</p>
+  `);
 };
 
-// 📩 comprobante recibido
-export const proofTemplate = (orderId) =>
+/** Comprobante recibido */
+export const proofTemplate = (orderNumber) =>
   baseTemplate(`
-    <h2>Comprobante recibido 📄</h2>
-    <p>Hemos recibido tu comprobante para la orden:</p>
-    <p><strong>#${orderId}</strong></p>
-    <p>Estamos verificando el pago.</p>
+    <h2 style="margin:0 0 12px;color:#111827;font-size:20px;">📄 Comprobante recibido</h2>
+    <p style="margin:0 0 8px;color:#6b7280;">Hemos recibido tu comprobante de pago para la orden:</p>
+
+    <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
+      <strong style="color:#92400e;font-size:16px;">#${orderNumber}</strong>
+    </div>
+
+    <p style="margin:0 0 8px;color:#374151;">Nuestro equipo está verificando el pago. Te notificaremos cuando sea confirmado.</p>
+    <p style="margin:0;color:#9ca3af;font-size:13px;">Puedes revisar el estado de tu orden en tu panel de compras.</p>
   `);
 
-// ✅ pago confirmado
-export const paymentTemplate = (orderId) =>
+/** Pago confirmado */
+export const paymentTemplate = (orderNumber) =>
   baseTemplate(`
-    <h2>Pago confirmado ✅</h2>
-    <p>Tu orden <strong>#${orderId}</strong> ha sido confirmada.</p>
-    <p>Gracias por tu compra.</p>
+    <h2 style="margin:0 0 12px;color:#111827;font-size:20px;">✅ Pago confirmado</h2>
+    <p style="margin:0 0 8px;color:#6b7280;">¡Buenas noticias! El pago de tu orden ha sido verificado.</p>
+
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
+      <strong style="color:#166534;font-size:16px;">#${orderNumber}</strong>
+      ${statusBadge("Pago confirmado", "#16a34a")}
+    </div>
+
+    <p style="margin:0 0 8px;color:#374151;">El vendedor preparará tu pedido para el envío.</p>
+    ${ctaButton("Ver mi orden", `${appUrl}/dashboard/purchases`)}
   `);
+
+/** Orden creada - al comprador */
+export const orderCreatedBuyerTemplate = (order) =>
+  baseTemplate(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:20px;">🎉 Pedido recibido</h2>
+    <p style="margin:0 0 4px;color:#6b7280;">Hola <strong>${order.userName || "cliente"}</strong>,</p>
+    <p style="margin:0 0 16px;color:#6b7280;">Hemos recibido tu pedido correctamente.</p>
+
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
+      <strong style="color:#166534;">Orden: ${order.orderNumber}</strong>
+    </div>
+
+    ${buildOrderItemsHtml(order.items)}
+
+    <div style="text-align:right;padding:12px 0;border-top:2px solid #e5e7eb;margin-top:8px;">
+      <span style="font-size:13px;color:#6b7280;">Total:</span>
+      <strong style="font-size:20px;color:#111827;margin-left:8px;">${formatCurrency(order.total)}</strong>
+    </div>
+
+    <div style="background:#eff6ff;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0 0 8px;color:#1e40af;font-weight:600;">Siguiente paso: realizar el pago</p>
+      <p style="margin:0;color:#3b82f6;font-size:13px;">Sube tu comprobante de pago desde tu panel de compras para que el vendedor pueda verificar y preparar tu envío.</p>
+    </div>
+
+    ${ctaButton("Subir comprobante de pago", `${appUrl}/dashboard/purchases`)}
+  `);
+
+/** Orden creada - al vendedor */
+export const orderCreatedSellerTemplate = (order) =>
+  baseTemplate(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:20px;">📦 Nueva orden recibida</h2>
+    <p style="margin:0 0 4px;color:#6b7280;">Hola <strong>${order.sellerName || "vendedor"}</strong>,</p>
+    <p style="margin:0 0 16px;color:#6b7280;">Se ha creado una nueva orden que incluye productos de tu tienda.</p>
+
+    <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
+      <strong style="color:#1e40af;">Orden: ${order.orderNumber}</strong>
+      ${statusBadge("Pendiente de pago", "#f59e0b")}
+    </div>
+
+    ${buildOrderItemsHtml(order.items)}
+
+    <div style="text-align:right;padding:12px 0;border-top:2px solid #e5e7eb;margin-top:8px;">
+      <span style="font-size:13px;color:#6b7280;">Total de tu tienda:</span>
+      <strong style="font-size:20px;color:#111827;margin-left:8px;">${formatCurrency(order.total)}</strong>
+    </div>
+
+    <div style="background:#fefce8;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0 0 4px;color:#a16207;font-weight:600;">Esperando pago del comprador</p>
+      <p style="margin:0;color:#ca8a04;font-size:13px;">Una vez que el comprador suba su comprobante, podrás verificar y confirmar el pago.</p>
+    </div>
+
+    ${ctaButton("Ver orden en tu panel", `${appUrl}/dashboard/seller/orders`)}
+  `);
+
+/** Pago confirmado - al comprador */
+export const paymentConfirmedBuyerTemplate = (order) =>
+  baseTemplate(`
+    <h2 style="margin:0 0 12px;color:#111827;font-size:20px;">✅ Pago confirmado</h2>
+    <p style="margin:0 0 4px;color:#6b7280;">Hola <strong>${order.userName || "cliente"}</strong>,</p>
+    <p style="margin:0 0 16px;color:#6b7280;">Tu pago ha sido verificado y confirmado por el vendedor.</p>
+
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
+      <strong style="color:#166534;font-size:16px;">Orden: ${order.orderNumber}</strong>
+      ${statusBadge("Pago confirmado", "#16a34a")}
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;">
+      <tr>
+        <td style="padding:12px;background:#f9fafb;border-radius:8px;">
+          <p style="margin:0;color:#6b7280;font-size:13px;">Monto pagado</p>
+          <p style="margin:4px 0 0;color:#111827;font-size:22px;font-weight:700;">${formatCurrency(order.total)}</p>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 16px;color:#374151;">El vendedor preparará tu pedido para el envío. Recibirás una notificación cuando sea enviado.</p>
+
+    ${ctaButton("Ver mi orden", `${appUrl}/dashboard/purchases`)}
+  `);
+
+/** Pago confirmado - al vendedor */
+export const paymentConfirmedSellerTemplate = (order) =>
+  baseTemplate(`
+    <h2 style="margin:0 0 12px;color:#111827;font-size:20px;">💰 Pago confirmado</h2>
+    <p style="margin:0 0 4px;color:#6b7280;">Hola <strong>${order.sellerName || "vendedor"}</strong>,</p>
+    <p style="margin:0 0 16px;color:#6b7280;">Has confirmado el pago exitosamente.</p>
+
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
+      <strong style="color:#166534;font-size:16px;">Orden: ${order.orderNumber}</strong>
+      ${statusBadge("Pago verificado", "#16a34a")}
+    </div>
+
+    ${buildOrderItemsHtml(order.items)}
+
+    <div style="text-align:right;padding:12px 0;border-top:2px solid #e5e7eb;margin-top:8px;">
+      <span style="font-size:13px;color:#6b7280;">Total confirmado:</span>
+      <strong style="font-size:20px;color:#111827;margin-left:8px;">${formatCurrency(order.total)}</strong>
+    </div>
+
+    <div style="background:#f0fdf4;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0;color:#166534;font-weight:600;">Ahora puedes preparar el envío del pedido.</p>
+    </div>
+
+    ${ctaButton("Gestionar orden", `${appUrl}/dashboard/seller/orders`)}
+  `);
+
+/** Recuperación de contraseña */
+export const passwordResetTemplate = (resetUrl) =>
+  baseTemplate(`
+    <h2 style="margin:0 0 12px;color:#111827;font-size:20px;">🔑 Recuperar contraseña</h2>
+    <p style="margin:0 0 16px;color:#6b7280;">Recibimos una solicitud para restablecer tu contraseña.</p>
+
+    <div style="background:#fef2f2;border-radius:8px;padding:16px;margin:16px 0;">
+      <p style="margin:0;color:#991b1b;font-size:13px;">Si no solicitaste este cambio, ignora este correo. Tu contraseña permanecerá igual.</p>
+    </div>
+
+    ${ctaButton("Restablecer contraseña", resetUrl)}
+
+    <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">Este enlace expira en 1 hora por seguridad.</p>
+  `);
+
+/** Reset password exitoso */
+export const passwordResetSuccessTemplate = () =>
+  baseTemplate(`
+    <h2 style="margin:0 0 12px;color:#111827;font-size:20px;">✅ Contraseña actualizada</h2>
+    <p style="margin:0 0 16px;color:#6b7280;">Tu contraseña ha sido cambiada exitosamente.</p>
+
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
+      <p style="margin:0;color:#166534;">Ahora puedes iniciar sesión con tu nueva contraseña.</p>
+    </div>
+
+    ${ctaButton("Iniciar sesión", `${appUrl}/login`)}
+  `);
+
+/** Estado de orden genérico */
+export const orderStatusTemplate = (orderNumber, status, userName) => {
+  const statusConfig = {
+    pending: { text: "Pendiente de pago", color: "#f59e0b", bg: "#fffbeb", border: "#f59e0b" },
+    paid: { text: "Pago confirmado", color: "#16a34a", bg: "#f0fdf4", border: "#16a34a" },
+    processing: { text: "En preparación", color: "#3b82f6", bg: "#eff6ff", border: "#3b82f6" },
+    shipped: { text: "Enviado", color: "#8b5cf6", bg: "#f5f3ff", border: "#8b5cf6" },
+    delivered: { text: "Entregado", color: "#16a34a", bg: "#f0fdf4", border: "#16a34a" },
+    cancelled: { text: "Cancelado", color: "#ef4444", bg: "#fef2f2", border: "#ef4444" },
+  };
+  const s = statusConfig[status] || { text: status, color: "#6b7280", bg: "#f9fafb", border: "#d1d5db" };
+
+  return baseTemplate(`
+    <h2 style="margin:0 0 12px;color:#111827;font-size:20px;">📦 Actualización de tu pedido</h2>
+    <p style="margin:0 0 4px;color:#6b7280;">Hola <strong>${userName || "cliente"}</strong>,</p>
+    <p style="margin:0 0 16px;color:#6b7280;">El estado de tu pedido ha cambiado:</p>
+
+    <div style="background:${s.bg};border-left:4px solid ${s.border};padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
+      <strong style="color:${s.color};font-size:16px;">#${orderNumber}</strong>
+      ${statusBadge(s.text, s.color)}
+    </div>
+
+    ${ctaButton("Ver mi orden", `${appUrl}/dashboard/purchases`)}
+  `);
+};
+
+export default {
+  verificationCodeTemplate,
+  proofTemplate,
+  paymentTemplate,
+  orderCreatedBuyerTemplate,
+  orderCreatedSellerTemplate,
+  paymentConfirmedBuyerTemplate,
+  paymentConfirmedSellerTemplate,
+  passwordResetTemplate,
+  passwordResetSuccessTemplate,
+  orderStatusTemplate,
+};

@@ -156,7 +156,7 @@ export default function CartPage() {
       stock: it.stock ?? it.product?.stock ?? undefined,
     }));
 
-  // Inicializar displayItems desde localStorage o cartItems (si ya hay)
+  // Inicializar displayItems desde localStorage o cartItems y sincronizar una vez desde el servidor
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -179,8 +179,37 @@ export default function CartPage() {
     } else {
       setDisplayItems([]);
     }
+
+    if (status === "loading") return;
+
+    let active = true;
+    const syncFromServer = async () => {
+      try {
+        setLoadingServer(true);
+        const res = await fetchCart();
+        if (!active) return;
+        if (res?.cart?.items && Array.isArray(res.cart.items)) {
+          setDisplayItems(mapServerItemsToDisplay(res.cart.items));
+          if ((res.cart.items || []).length === 0) {
+            setShowEmptyNotice(true);
+            setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
+          }
+        } else {
+          setDisplayItems([]);
+        }
+      } catch (err) {
+        console.warn("Initial cart sync failed:", err);
+      } finally {
+        if (active) setLoadingServer(false);
+      }
+    };
+
+    syncFromServer();
+    return () => {
+      active = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [status, fetchCart]);
 
   // Sincronizar displayItems cuando cartItems del contexto cambian
   useEffect(() => {
@@ -229,130 +258,62 @@ export default function CartPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayItems]);
 
-  // Revalidar cuando cartVersion cambie o cuando se dispare evento cart:updated
+  // Sincronizar desde el servidor solo al cargar y al recibir eventos externos
   useEffect(() => {
-    let mountedFlag = true;
+    if (typeof window === "undefined") return;
 
-    async function revalidate() {
+    let debounceTimer = null;
+
+    const revalidate = async () => {
       try {
-        if (typeof fetchCart === "function") {
-          setLoadingServer(true);
-          const res = await fetchCart();
-          if (!mountedFlag) return;
-          if (res?.cart?.items && Array.isArray(res.cart.items)) {
-            setDisplayItems(mapServerItemsToDisplay(res.cart.items));
-            if ((res.cart.items || []).length === 0) {
-              setShowEmptyNotice(true);
-              setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
-            }
-          } else {
-            setDisplayItems([]);
-          }
-        } else {
-          setLoadingServer(true);
-          const r = await fetch("/api/cart", { credentials: "same-origin", headers: { Accept: "application/json" } });
-          if (!mountedFlag) return;
-          if (r.ok) {
-            const data = await r.json().catch(() => null);
-            const items = mapServerItemsToDisplay(data?.cart?.items || []);
-            setDisplayItems(items);
-            if (items.length === 0) {
-              setShowEmptyNotice(true);
-              setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
-            }
+        if (typeof fetchCart !== "function") return;
+        if (loadingServer) return;
+        setLoadingServer(true);
+        const res = await fetchCart();
+        if (res?.cart?.items && Array.isArray(res.cart.items)) {
+          setDisplayItems(mapServerItemsToDisplay(res.cart.items));
+          if ((res.cart.items || []).length === 0) {
+            setShowEmptyNotice(true);
+            setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
           }
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn("Error revalidando carrito:", err);
+        console.warn("Error sincronizando carrito:", err);
       } finally {
-        if (mountedFlag) setLoadingServer(false);
+        setLoadingServer(false);
       }
-    }
+    };
 
-    // Si es la primera vez que se monta, ejecutar una única revalidación controlada y evitar continuar con el resto del efecto
-    if (skipInitialRevalidateRef.current) {
-      skipInitialRevalidateRef.current = false;
-      (async () => {
-        try {
-          if (typeof fetchCart === "function") {
-            setLoadingServer(true);
-            const res = await fetchCart();
-            if (!mountedFlag) return;
-            if (res?.cart?.items && Array.isArray(res.cart.items)) {
-              setDisplayItems(mapServerItemsToDisplay(res.cart.items));
-              if ((res.cart.items || []).length === 0) {
-                setShowEmptyNotice(true);
-                setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
-              }
-            } else {
-              setDisplayItems([]);
-            }
-          } else {
-            setLoadingServer(true);
-            const r = await fetch("/api/cart", { credentials: "same-origin", headers: { Accept: "application/json" } });
-            if (!mountedFlag) return;
-            if (r.ok) {
-              const data = await r.json().catch(() => null);
-              const items = mapServerItemsToDisplay(data?.cart?.items || []);
-              setDisplayItems(items);
-              if (items.length === 0) {
-                setShowEmptyNotice(true);
-                setTimeout(() => setShowEmptyNotice(false), EMPTY_NOTICE_TIMEOUT);
-              }
-            }
-          }
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.warn("Initial revalidate failed:", err);
-        } finally {
-          if (mountedFlag) setLoadingServer(false);
-        }
-      })();
-      // Salimos del efecto para evitar la revalidación duplicada inicial
-      return () => {
-        mountedFlag = false;
-      };
-    }
-
-    // Revalidate on cartVersion change
-    revalidate();
-
-    // Listen to window event (dispatched by CartContext) for same-tab updates
-    let debounceTimer = null;
     const onCartUpdated = (ev) => {
       try {
         const origin = ev?.detail?.origin;
         if (origin && origin === window.__MI_TIENDA_TAB_ID__) return;
       } catch (e) {}
-      if (loadingServer) return;
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         revalidate();
       }, 120);
     };
-    window.addEventListener("cart:updated", onCartUpdated);
 
-    // Also listen to storage changes (other tabs)
     const onStorage = (e) => {
       if (e.key === "mi_tienda_cart_last_update") {
-        if (loadingServer) return;
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
           revalidate();
         }, 120);
       }
     };
+
+    window.addEventListener("cart:updated", onCartUpdated);
     window.addEventListener("storage", onStorage);
 
     return () => {
-      mountedFlag = false;
       window.removeEventListener("cart:updated", onCartUpdated);
       window.removeEventListener("storage", onStorage);
       if (debounceTimer) clearTimeout(debounceTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartVersion, fetchCart, loadingServer]);
+  }, [fetchCart, loadingServer]);
 
   // Escuchar BroadcastChannel (opcional) para sincronizar entre pestañas
   useEffect(() => {
@@ -688,7 +649,12 @@ export default function CartPage() {
 
       await clearCart();
       setDisplayItems([]);
-      router.push(`/order-success?orderId=${data.orderId}`);
+      const orderId = data?.order?.id || data?.orderId;
+      if (orderId) {
+        router.push(`/order-success?orderId=${orderId}`);
+      } else {
+        router.push("/order-success");
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Error en checkout:", error);

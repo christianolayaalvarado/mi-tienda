@@ -67,8 +67,6 @@ export async function POST(req) {
       };
     });
 
-    console.log("[API CART SYNC] createData:", JSON.stringify(createData, null, 2));
-
     if (createData.length > 0) {
       // skipDuplicates removed for Mongo
       await prisma.cartItem.createMany({ data: createData });

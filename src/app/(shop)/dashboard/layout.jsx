@@ -1,25 +1,24 @@
 // app/(shop)/dashboard/layout.jsx
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/authOptions";
 import LogoutButton from "@/components/LogoutButton";
 import Link from "next/link";
+import { getServerAuthUser } from "@/lib/serverAuth";
 
 export default async function DashboardLayout({ children }) {
-  const session = await getServerSession(authOptions);
+  const user = await getServerAuthUser();
 
-  if (!session) {
+  if (!user) {
     redirect("/login");
   }
 
-  const userName = session.user?.name ?? null;
-  const userEmail = session.user?.email ?? null;
+  const userName = user?.name ?? null;
+  const userEmail = user?.email ?? null;
 
   return (
-    // Wrapper flex ocupa toda la ventana
-    <div className="flex h-screen overflow-hidden">
+    // Wrapper flex ocupa todo el espacio disponible del padre
+    <div className="flex h-full overflow-hidden">
       {/* Sidebar fijo */}
-      <aside className="w-64 bg-gray-900 text-white p-4 hidden md:flex flex-col justify-between sticky top-0 h-screen">
+      <aside className="w-64 bg-gray-900 text-white p-4 hidden md:flex flex-col justify-between h-full">
         <div>
           <h2 className="text-xl font-bold mb-6">Dashboard</h2>
 

@@ -1,12 +1,16 @@
+// src/app/layout.js
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
-import { NotificationProvider } from "@/context/NotificationContext"; // (lo mantengo por si lo usas después)
+import { NotificationProvider } from "@/context/NotificationContext";
 import Providers from "@/components/Providers";
 import Navbar from "@/components/Navbar";
 import ThemeInitializer from "@/components/ThemeInitializer";
-// 🔥 TOAST
 import { Toaster } from "react-hot-toast";
+
+// Nuevo: AuthProvider y RootLayoutClientInit
+import { AuthProvider } from "@/context/AuthProvider";
+import RootLayoutClientInit from "@/components/RootLayoutClientInit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,27 +51,35 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 flex flex-col h-screen overflow-hidden`}
       >
         <Providers>
-          <CartProvider>
-            <Navbar />
-            <ThemeInitializer />
-            {children}
+          {/* AuthProvider envuelve la app para exponer user/refresh/logout */}
+          <AuthProvider>
+            <CartProvider>
+              {/* Inicializador cliente que intenta refresh controlado */}
+              <RootLayoutClientInit />
 
-            {/* 🔥 TOAST GLOBAL */}
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 3000,
-                style: {
-                  borderRadius: "10px",
-                  background: "#333",
-                  color: "#fff",
-                },
-              }}
-            />
-          </CartProvider>
+              <Navbar />
+              <ThemeInitializer />
+
+              <div className="flex-1 overflow-auto min-h-0">
+                {children}
+              </div>
+
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 3000,
+                  style: {
+                    borderRadius: "10px",
+                    background: "#333",
+                    color: "#fff",
+                  },
+                }}
+              />
+            </CartProvider>
+          </AuthProvider>
         </Providers>
       </body>
     </html>

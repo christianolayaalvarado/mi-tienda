@@ -1,12 +1,11 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/authOptions"; // 🔥 IMPORTANTE
 import Link from "next/link";
+import { getServerAuthUser } from "@/lib/serverAuth";
 
 export default async function DashboardHome() {
-  const session = await getServerSession(authOptions); // 🔥 FIX
+  const user = await getServerAuthUser();
 
-  if (!session) {
+  if (!user) {
     redirect("/login");
   }
 
@@ -16,7 +15,7 @@ export default async function DashboardHome() {
 
       <p>
         Bienvenido al panel de administración de tu tienda,{" "}
-        {session.user.name}.
+        {user.name}.
       </p>
 
       <div className="mt-6 flex gap-4">

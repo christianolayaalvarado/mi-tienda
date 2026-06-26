@@ -1,8 +1,10 @@
-// app/api/orders/route.js
+// src/app/api/orders/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getServerAuthUser } from "@/lib/serverAuth";
+import { sendOrderCreatedEmail, sendOrderNotificationToSeller } from "@/lib/email";
+
+const isValidObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ""));
 
 const groupByStore = (items) => {
   const map = new Map();
@@ -21,11 +23,11 @@ const formatDatePart = (n) => String(n).padStart(2, "0");
 // ==============================
 export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const orders = await prisma.order.findMany({
-      where: { userId: session.user.id },
+      where: { userId: authUser.id },
       include: {
         orderItems: {
           include: {
@@ -50,29 +52,42 @@ export async function GET(req) {
 // ==============================
 export async function POST(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const body = await req.json();
-    const { items, customer = {}, total: clientTotal = 0, paymentMethodId } = body;
+    const { items, customer = {}, total: clientTotal = 0, paymentMethodId, clientOrderId } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "No hay items en la orden" }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: authUser.email },
       include: { stores: true },
     });
     if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 400 });
 
     const userId = user.id;
 
+    // Idempotencia simple: si envían clientOrderId, devolver orden existente
+    if (clientOrderId) {
+      const existing = await prisma.order.findFirst({ where: { clientOrderId } });
+      if (existing) {
+        return NextResponse.json({ order: existing }, { status: 200 });
+      }
+    }
+
     // --- Recuperar precios y stock oficiales desde DB ---
     const productIds = Array.from(new Set(items.map((it) => String(it.productId))));
+    const invalidProductIds = productIds.filter((id) => !isValidObjectId(id));
+    if (invalidProductIds.length > 0) {
+      return NextResponse.json({ error: "Productos inválidos en el carrito", details: invalidProductIds }, { status: 400 });
+    }
+
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, price: true, stock: true },
+      select: { id: true, price: true, stock: true, storeId: true, name: true },
     });
     const productMap = new Map(products.map((p) => [p.id, p]));
 
@@ -82,13 +97,14 @@ export async function POST(req) {
       const product = productMap.get(pid);
       const unitPrice = product ? Number(product.price) : Number(it.price || 0);
       const quantity = Number(it.quantity) || 1;
+      const resolvedStoreId = product?.storeId ?? String(it.storeId || "");
       return {
         productId: pid,
+        productName: product?.name || it.productName || "",
         quantity,
         unitPrice,
         priceInCents: Math.round((Number(unitPrice) || 0) * 100),
-        // conservar storeId si viene del cliente (si no, se puede inferir luego)
-        storeId: it.storeId ?? null,
+        storeId: resolvedStoreId,
       };
     });
 
@@ -96,6 +112,11 @@ export async function POST(req) {
     const missing = itemsNormalized.filter((it) => !productMap.has(it.productId));
     if (missing.length > 0) {
       return NextResponse.json({ error: "Algunos productos no existen" }, { status: 400 });
+    }
+
+    const missingStoreIds = itemsNormalized.filter((it) => !it.storeId);
+    if (missingStoreIds.length > 0) {
+      return NextResponse.json({ error: "No se pudo determinar la tienda de algunos productos" }, { status: 400 });
     }
 
     // Verificar stock suficiente
@@ -140,6 +161,7 @@ export async function POST(req) {
       const d = formatDatePart(now.getDate());
       const prefix = `ORD-${y}${m}${d}`;
 
+      // startOfDay / endOfDay en zona UTC para consistencia
       const startOfDay = new Date(Date.UTC(y, now.getMonth(), now.getDate(), 0, 0, 0));
       const endOfDay = new Date(Date.UTC(y, now.getMonth(), now.getDate(), 23, 59, 59, 999));
 
@@ -161,34 +183,42 @@ export async function POST(req) {
       }
 
       // Crear la orden con total calculado (en unidades monetarias)
-      const order = await tx.order.create({
-        data: {
-          userId,
-          orderNumber,
-          total: serverTotalCents / 100,
-          status: "pending",
-          paymentStatus: "unpaid",
-          paymentMethodId: chosenPaymentMethod ? chosenPaymentMethod.id : null,
-          customerName: customer.name || session.user.name || "",
-          customerEmail: customer.email || session.user.email || "",
-          customerPhone: customer.phone || "",
-          customerAddress: customer.address || "",
-          orderItems: {
-            create: groups.map((g) => ({
-              storeId: g.storeId,
-              paymentStatus: "unpaid",
-              items: {
-                create: g.items.map((it) => ({
-                  productId: it.productId,
-                  quantity: Number(it.quantity) || 1,
-                  price: Number(it.unitPrice) || 0,
-                })),
-              },
-            })),
-          },
+      const orderData = {
+        userId,
+        orderNumber,
+        total: serverTotalCents / 100,
+        status: "pending",
+        paymentStatus: "unpaid",
+        paymentMethodId: chosenPaymentMethod ? chosenPaymentMethod.id : null,
+        customerName: customer.name || authUser.name || "",
+        customerEmail: customer.email || authUser.email || "",
+        customerPhone: customer.phone || "",
+        customerAddress: customer.address || "",
+        clientOrderId: clientOrderId || null,
+        orderItems: {
+          create: groups.map((g) => ({
+            storeId: g.storeId,
+            paymentStatus: "unpaid",
+            items: {
+              create: g.items.map((it) => ({
+                productId: it.productId,
+                quantity: Number(it.quantity) || 1,
+                price: Number(it.unitPrice) || 0,
+              })),
+            },
+          })),
         },
+      };
+
+      const order = await tx.order.create({
+        data: orderData,
         include: {
-          orderItems: { include: { items: true } },
+          orderItems: {
+            include: {
+              items: { include: { product: true } },
+              store: true,
+            },
+          },
           paymentMethod: true,
         },
       });
@@ -204,9 +234,70 @@ export async function POST(req) {
       return order;
     });
 
-    return NextResponse.json(createdOrder, {
+    // Enviar correos (no bloquear la respuesta si fallan)
+    try {
+      // Enviar correo al comprador
+      const buyerEmail = createdOrder.customerEmail || authUser.email;
+      const buyerOrder = {
+        id: createdOrder.id,
+        orderNumber: createdOrder.orderNumber,
+        total: createdOrder.total,
+        currency: createdOrder.currency || "USD",
+        items: createdOrder.orderItems.flatMap((oi) =>
+          (oi.items || []).map((it) => ({
+            productName: it.product?.name || "Producto",
+            quantity: it.quantity,
+            price: it.price,
+          }))
+        ),
+        userName: createdOrder.customerName || authUser.name,
+        userEmail: buyerEmail,
+      };
+
+      // Notificar comprador
+      const buyerPromise = sendOrderCreatedEmail({ to: buyerEmail, order: buyerOrder }).catch((e) =>
+        console.error("Error enviando email al comprador:", e)
+      );
+
+      // Preparar notificaciones a sellers por tienda
+      const storeIds = Array.from(new Set(createdOrder.orderItems.map((oi) => String(oi.storeId))));
+      const stores = await prisma.store.findMany({
+        where: { id: { in: storeIds } },
+        include: { owner: { select: { email: true, name: true } } },
+      });
+      const storeMap = new Map(stores.map((s) => [String(s.id), s]));
+
+      const sellerPromises = createdOrder.orderItems.map((oi) => {
+        const store = storeMap.get(String(oi.storeId));
+        const sellerEmail = store?.email || store?.owner?.email;
+        if (!sellerEmail) return Promise.resolve(null); // no hay email para notificar
+        const sellerOrder = {
+          id: createdOrder.id,
+          orderNumber: createdOrder.orderNumber,
+          total: createdOrder.total,
+          currency: createdOrder.currency || "USD",
+          items: (oi.items || []).map((it) => ({
+            productName: it.product?.name || "Producto",
+            quantity: it.quantity,
+            price: it.price,
+          })),
+          sellerName: store?.name || store?.owner?.name || "Vendedor",
+          sellerEmail,
+        };
+        return sendOrderNotificationToSeller({ to: sellerEmail, order: sellerOrder }).catch((e) =>
+          console.error(`Error notificando seller (${sellerEmail}):`, e)
+        );
+      });
+
+      // Ejecutar envíos en paralelo y no bloquear la respuesta
+      await Promise.allSettled([buyerPromise, ...sellerPromises]);
+    } catch (emailErr) {
+      console.error("Error en proceso de notificaciones de orden:", emailErr);
+    }
+
+    return NextResponse.json({ order: createdOrder }, {
       status: 201,
-      headers: { Location: `/api/orders/${createdOrder.id}` },
+      headers: { Location: `/dashboard/orders/${createdOrder.id}` },
     });
   } catch (err) {
     console.error("POST /api/orders error:", err);

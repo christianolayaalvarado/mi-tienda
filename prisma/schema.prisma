@@ -18,6 +18,8 @@ model User {
   verificationSentAt DateTime?
   sellerCode    String?
   city          String?
+  address       String?
+  phone         String?
   createdAt     DateTime @default(now())
 
   products       Product[]

@@ -1,89 +1,79 @@
 // app/api/sellers/[sellerId]/payment-methods/[pmId]/route.js
 import { NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import prisma from "@/lib/prisma";
+import { getServerAuthUser } from "@/lib/serverAuth";
 
-const isValidObjectId = (id) => {
-  try {
-    return ObjectId.isValid(id);
-  } catch {
-    return false;
+async function authorizeSeller(req, ctx) {
+  const authUser = await getServerAuthUser(req);
+  if (!authUser?.id) {
+    return { ok: false, res: NextResponse.json({ error: "No autenticado" }, { status: 401 }) };
   }
-};
 
-async function authorizeSeller(ctx) {
-  const session = await getServerSession(authOptions);
-  if (!session) return { ok: false, res: NextResponse.json({ error: "No autorizado" }, { status: 401 }) };
-
-  const { sellerId } = await ctx.params;
+  const params = await ctx.params;
+  const { sellerId } = params;
   // Permitir si es el mismo sellerId o si el usuario tiene role "admin"
-  const isOwner = String(session.user?.id) === String(sellerId);
-  const isAdmin = session.user?.role === "admin";
+  const isOwner = String(authUser.id) === String(sellerId);
+  const isAdmin = authUser.role === "admin" || authUser.isAdmin;
 
   if (!isOwner && !isAdmin) {
     return { ok: false, res: NextResponse.json({ error: "No autorizado" }, { status: 403 }) };
   }
 
-  return { ok: true, session };
+  return { ok: true, authUser };
 }
 
 export async function PATCH(req, ctx) {
-  const { sellerId, pmId } = await ctx.params;
-
-  if (!pmId || !isValidObjectId(pmId)) {
-    return NextResponse.json({ error: "pmId inválido" }, { status: 400 });
-  }
-
-  // Autorización
-  const auth = await authorizeSeller(ctx);
-  if (!auth.ok) return auth.res;
-
   try {
-    const body = await req.json();
-    const client = await clientPromise;
-    const db = client.db("MiTiendaDB");
+    const params = await ctx.params;
+    const { sellerId, pmId } = params;
+
+    if (!pmId) {
+      return NextResponse.json({ error: "pmId inválido" }, { status: 400 });
+    }
+
+    // Autorización
+    const auth = await authorizeSeller(req, ctx);
+    if (!auth.ok) return auth.res;
+
+    const body = await req.json().catch(() => ({}));
 
     // Si solicitan marcar como principal, desmarcar los demás primero
-    if (body.isPrimary === true) {
-      await db.collection("payment_methods").updateMany(
-        { $or: [{ userId: sellerId }, { storeId: sellerId }, { sellerId: sellerId }] },
-        { $set: { isPrimary: false } }
-      );
-    }
+    const updated = await prisma.$transaction(async (tx) => {
+      if (body.isPrimary === true) {
+        await tx.paymentMethod.updateMany({
+          where: { userId: sellerId },
+          data: { isPrimary: false },
+        });
+      }
 
-    const updateDoc = {
-      ...body,
-      updatedAt: new Date(),
-    };
+      // Preparar campos para actualizar
+      const updateData = {};
+      if (typeof body.type === "string") updateData.type = body.type;
+      if (typeof body.phone !== "undefined") updateData.phone = body.phone;
+      if (typeof body.account !== "undefined") updateData.account = body.account;
+      if (typeof body.cci !== "undefined") updateData.cci = body.cci;
+      if (typeof body.details !== "undefined") updateData.details = body.details;
+      if (typeof body.qrImageUrl !== "undefined") updateData.qrImageUrl = body.qrImageUrl;
+      if (typeof body.isPrimary !== "undefined") updateData.isPrimary = !!body.isPrimary;
 
-    delete updateDoc._id;
+      return await tx.paymentMethod.update({
+        where: { id: pmId, userId: sellerId },
+        data: updateData,
+      });
+    });
 
-    const result = await db.collection("payment_methods").findOneAndUpdate(
-      { _id: new ObjectId(pmId), $or: [{ userId: sellerId }, { storeId: sellerId }, { sellerId: sellerId }] },
-      { $set: updateDoc },
-      { returnDocument: "after" }
-    );
-
-    if (!result.value) {
-      return NextResponse.json({ error: "Método no encontrado o no autorizado" }, { status: 404 });
-    }
-
-    const m = result.value;
     const normalized = {
-      id: m._id.toString(),
-      userId: m.userId || m.storeId || null,
-      type: m.type || null,
-      phone: m.phone || null,
-      account: m.account || null,
-      cci: m.cci || null,
-      details: m.details || null,
-      qrImageUrl: m.qrImageUrl || null,
-      isPrimary: !!m.isPrimary,
-      active: m.active ?? true,
-      createdAt: m.createdAt ? new Date(m.createdAt).toISOString() : null,
-      updatedAt: m.updatedAt ? new Date(m.updatedAt).toISOString() : null,
+      id: updated.id,
+      userId: updated.userId,
+      type: updated.type,
+      phone: updated.phone,
+      account: updated.account,
+      cci: updated.cci,
+      details: updated.details,
+      qrImageUrl: updated.qrImageUrl,
+      isPrimary: updated.isPrimary,
+      createdAt: updated.createdAt ? updated.createdAt.toISOString() : null,
+      updatedAt: updated.updatedAt ? updated.updatedAt.toISOString() : null,
     };
 
     return NextResponse.json(normalized, { status: 200 });
@@ -94,28 +84,21 @@ export async function PATCH(req, ctx) {
 }
 
 export async function DELETE(req, ctx) {
-  const { sellerId, pmId } = await ctx.params;
-
-  if (!pmId || !isValidObjectId(pmId)) {
-    return NextResponse.json({ error: "pmId inválido" }, { status: 400 });
-  }
-
-  // Autorización
-  const auth = await authorizeSeller(ctx);
-  if (!auth.ok) return auth.res;
-
   try {
-    const client = await clientPromise;
-    const db = client.db("MiTiendaDB");
+    const params = await ctx.params;
+    const { sellerId, pmId } = params;
 
-    const result = await db.collection("payment_methods").findOneAndDelete({
-      _id: new ObjectId(pmId),
-      $or: [{ userId: sellerId }, { storeId: sellerId }, { sellerId: sellerId }],
-    });
-
-    if (!result.value) {
-      return NextResponse.json({ error: "Método no encontrado o no autorizado" }, { status: 404 });
+    if (!pmId) {
+      return NextResponse.json({ error: "pmId inválido" }, { status: 400 });
     }
+
+    // Autorización
+    const auth = await authorizeSeller(req, ctx);
+    if (!auth.ok) return auth.res;
+
+    await prisma.paymentMethod.delete({
+      where: { id: pmId, userId: sellerId },
+    });
 
     return NextResponse.json({ success: true, id: pmId }, { status: 200 });
   } catch (err) {

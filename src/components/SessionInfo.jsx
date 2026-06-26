@@ -1,10 +1,11 @@
+// src/components/SessionInfo.jsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useAuthContext } from "@/context/AuthProvider";
 
 export default function SessionInfo() {
-  const { data: session, status } = useSession();
+  const { user, loading, logout } = useAuthContext();
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -23,11 +24,20 @@ export default function SessionInfo() {
     };
   }, []);
 
-  if (status === "loading") {
+  const handleLogout = async () => {
+    try {
+      await logout({ redirectTo: "/login" });
+    } catch (err) {
+      console.error("logout error:", err);
+      window.location.replace("/login");
+    }
+  };
+
+  if (loading) {
     return <span className="text-sm text-gray-500">Cargando...</span>;
   }
 
-  if (!session?.user) {
+  if (!user) {
     return (
       <a href="/login" className="px-3 py-1 bg-green-600 text-white rounded text-sm">
         Entrar
@@ -35,7 +45,7 @@ export default function SessionInfo() {
     );
   }
 
-  const name = session.user.name ?? session.user.email ?? "Usuario";
+  const name = user.name ?? user.email ?? "Usuario";
 
   return (
     <div className="relative" ref={menuRef}>
@@ -46,7 +56,7 @@ export default function SessionInfo() {
         className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
       >
         <img
-          src={session.user.image ?? "/avatar-placeholder.png"}
+          src={user.image ?? "/avatar-placeholder.png"}
           alt=""
           className="w-8 h-8 rounded-full object-cover"
         />
@@ -66,7 +76,7 @@ export default function SessionInfo() {
           <a href="/dashboard" className="block px-3 py-2 text-sm hover:bg-gray-50">Dashboard</a>
           <a href="/orders" className="block px-3 py-2 text-sm hover:bg-gray-50">Mis pedidos</a>
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={handleLogout}
             className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
           >
             Cerrar sesión

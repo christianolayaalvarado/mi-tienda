@@ -1,19 +1,18 @@
 // app/api/seller/orders/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getServerAuthUser } from "@/lib/serverAuth";
 
 export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const authUser = await getServerAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     // Buscar usuario con sus tiendas
     const user = await prisma.user.findUnique({
-      where: { email: session.user?.email },
+      where: { email: authUser.email },
       include: { stores: true },
     });
 
