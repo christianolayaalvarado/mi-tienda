@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma"
 import Link from "next/link"
 import ProductGallery from "@/components/ProductGallery"
 import ProductInfo from "@/components/ProductInfo"
+import ReviewsSection from "@/components/ReviewsSection"
 import Image from "next/image"
 
 export default async function ProductDetail({ params }) {
@@ -55,6 +56,9 @@ export default async function ProductDetail({ params }) {
 
         <ProductInfo product={product} />
       </div>
+
+      {/* Reseñas */}
+      <ReviewsSection productId={product.id} />
 
       {/* 🔥 MEJORADOS RELACIONADOS */}
       {relatedProducts.length > 0 && (

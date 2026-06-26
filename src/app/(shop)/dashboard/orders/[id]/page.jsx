@@ -20,6 +20,96 @@ function formatDate(iso) {
   }
 }
 
+function StarRating({ rating, onRate, disabled }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          disabled={disabled}
+          onClick={() => onRate(star)}
+          onMouseEnter={() => !disabled && setHover(star)}
+          onMouseLeave={() => setHover(0)}
+          className={`text-2xl transition ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+        >
+          {star <= (hover || rating) ? "★" : "☆"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ReviewForm({ productId, orderId, onReviewCreated }) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (rating === 0) {
+      toast.error("Selecciona una calificación");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, orderId, rating, comment }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Error");
+
+      toast.success("Reseña enviada");
+      setRating(0);
+      setComment("");
+      onReviewCreated?.();
+    } catch (err) {
+      toast.error(err?.message || "Error enviando reseña");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-3">
+      <p className="text-sm font-semibold text-gray-700 mb-2">Dejar reseña</p>
+      <StarRating rating={rating} onRate={setRating} disabled={submitting} />
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Cuéntanos tu experiencia (opcional)"
+        rows={2}
+        disabled={submitting}
+        className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 outline-none resize-none"
+      />
+      <button
+        type="submit"
+        disabled={submitting || rating === 0}
+        className="mt-2 px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 disabled:opacity-50 transition"
+      >
+        {submitting ? "Enviando..." : "Enviar reseña"}
+      </button>
+    </form>
+  );
+}
+
+function ReviewDisplay({ review }) {
+  return (
+    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-yellow-500">{"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}</span>
+        <span className="text-xs text-gray-500">por {review.user?.name || "Anónimo"}</span>
+      </div>
+      {review.comment && <p className="text-sm text-gray-700">{review.comment}</p>}
+    </div>
+  );
+}
+
 export default function OrderDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -30,8 +120,8 @@ export default function OrderDetailPage() {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [proofFile, setProofFile] = useState(null);
+  const [reviews, setReviews] = useState({});
 
-  // Fetch order from API and normalize response
   const fetchOrder = async () => {
     if (!orderId) {
       setOrder(null);
@@ -43,8 +133,6 @@ export default function OrderDetailPage() {
     try {
       const res = await fetch(`/api/orders/${orderId}`, { credentials: "include" });
       if (!res.ok) {
-        const text = await res.text().catch(() => null);
-        console.error("GET order error:", res.status, text);
         setOrder(null);
         toast.error("Orden no encontrada o no autorizada");
         setLoading(false);
@@ -77,6 +165,11 @@ export default function OrderDetailPage() {
       }));
 
       setOrder({ ...normalized, stores });
+
+      // Cargar reseñas existentes
+      if (normalized.paymentStatus === "paid") {
+        fetchReviews(normalized.orderItems);
+      }
     } catch (err) {
       console.error("fetchOrder error:", err);
       toast.error("Error cargando orden");
@@ -86,16 +179,33 @@ export default function OrderDetailPage() {
     }
   };
 
+  const fetchReviews = async (orderItems) => {
+    const productIds = (orderItems || []).flatMap((oi) =>
+      (oi.items || []).map((it) => it.productId).filter(Boolean)
+    );
+
+    const reviewsMap = {};
+    for (const pid of productIds) {
+      try {
+        const res = await fetch(`/api/reviews?productId=${pid}`);
+        const data = await res.json().catch(() => null);
+        if (data?.reviews) {
+          const myReview = data.reviews.find((r) => r.orderId === orderId);
+          if (myReview) reviewsMap[pid] = myReview;
+        }
+      } catch {}
+    }
+    setReviews(reviewsMap);
+  };
+
   useEffect(() => {
     fetchOrder();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   const handleFileChange = (e) => {
     setProofFile(e.target.files?.[0] || null);
   };
 
-  // Upload proof for the order
   const handleUploadProof = async (e) => {
     e?.preventDefault?.();
     if (!proofFile) {
@@ -104,7 +214,7 @@ export default function OrderDetailPage() {
     }
 
     const allowed = ["image/jpeg", "image/png", "image/webp"];
-    const maxBytes = 8 * 1024 * 1024; // 8MB
+    const maxBytes = 8 * 1024 * 1024;
     if (!allowed.includes(proofFile.type)) {
       toast.error("Tipo de archivo no permitido. Usa JPG, PNG o WEBP.");
       return;
@@ -129,32 +239,18 @@ export default function OrderDetailPage() {
 
       const text = await res.text().catch(() => null);
       let json = null;
-      try {
-        json = text ? JSON.parse(text) : null;
-      } catch {
-        json = null;
-      }
+      try { json = text ? JSON.parse(text) : null; } catch { json = null; }
 
       if (!res.ok) {
-        console.error("Upload proof failed:", res.status, text);
         const message = (json && json.error) || text || "Error subiendo comprobante";
         throw new Error(message);
       }
 
-      const returnedUrl = (json && (json.url || (json.order && json.order.paymentProof))) || null;
-
       toast.dismiss(loadingToast);
       toast.success("Comprobante enviado para verificación");
-
       setProofFile(null);
-
-      if (returnedUrl) {
-        setOrder((prev) => ({ ...prev, paymentProof: returnedUrl, paymentStatus: "pending_verification" }));
-      } else {
-        await fetchOrder();
-      }
+      await fetchOrder();
     } catch (err) {
-      console.error("handleUploadProof error:", err);
       toast.dismiss(loadingToast);
       toast.error(err?.message || "Error al subir comprobante");
     } finally {
@@ -162,7 +258,6 @@ export default function OrderDetailPage() {
     }
   };
 
-  // Delete order (soft or hard depending on API body)
   const handleDeleteOrder = async (mode = "soft", confirmFlag = false) => {
     const confirmMsg =
       mode === "hard"
@@ -184,11 +279,7 @@ export default function OrderDetailPage() {
 
       const text = await res.text().catch(() => null);
       let json = null;
-      try {
-        json = text ? JSON.parse(text) : null;
-      } catch {
-        json = null;
-      }
+      try { json = text ? JSON.parse(text) : null; } catch { json = null; }
 
       if (!res.ok) {
         const message = (json && (json.error || json.message)) || text || "Error eliminando orden";
@@ -199,7 +290,6 @@ export default function OrderDetailPage() {
       toast.success("Orden eliminada");
       router.push("/dashboard/orders");
     } catch (err) {
-      console.error("handleDeleteOrder error:", err);
       toast.dismiss(loadingToast);
       toast.error(err?.message || "Error eliminando orden");
     } finally {
@@ -218,9 +308,17 @@ export default function OrderDetailPage() {
     );
   }
 
-  const isDeleted = order?.status === "deleted" || Boolean(order?.deletedAt);
+  const isDeleted = order?.status === "deleted" || order?.status === "cancelled" || Boolean(order?.deletedAt);
   const isPaid = order?.paymentStatus === "paid" || order?.paymentStatus === "completed";
   const disableActions = isDeleted || isPaid;
+
+  // Collect all product IDs for review section
+  const allProducts = (order.orderItems || []).flatMap((oi) =>
+    (oi.items || []).map((it) => ({
+      productId: it.productId,
+      title: it.product?.title || it.title || it.productName || "Producto",
+    })).filter((p) => p.productId)
+  );
 
   return (
     <div className="p-6 space-y-6">
@@ -228,56 +326,32 @@ export default function OrderDetailPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold">Orden #{order.orderNumber || order.id}</h1>
-
-          <p className="text-gray-600 mt-1">
-            Fecha: <strong>{formatDate(order.createdAt)}</strong>
-          </p>
-
-          <p className="text-gray-600 mt-1">
-            Cliente: <strong>{order.customerName || order.customerEmail}</strong>
-          </p>
-
-          <p className="text-gray-600 mt-1">
-            Documento: <strong>{order.documentNumber || "No emitido"}</strong>
-          </p>
-
-          <p className="text-gray-600 mt-1">
-            Total: <strong>S/ {Number(order.total || 0).toFixed(2)}</strong>
-          </p>
-
+          <p className="text-gray-600 mt-1">Fecha: <strong>{formatDate(order.createdAt)}</strong></p>
+          <p className="text-gray-600 mt-1">Cliente: <strong>{order.customerName || order.customerEmail}</strong></p>
+          <p className="text-gray-600 mt-1">Total: <strong>S/ {Number(order.total || 0).toFixed(2)}</strong></p>
           <p className="text-sm mt-1">
             Estado pago:{" "}
-            <span
-              className={
-                order.paymentStatus === "paid"
-                  ? "text-green-600"
-                  : order.paymentStatus === "pending_verification"
-                  ? "text-blue-600"
-                  : "text-yellow-600"
-              }
-            >
+            <span className={isPaid ? "text-green-600" : order.paymentStatus === "pending_verification" ? "text-blue-600" : "text-yellow-600"}>
               {order.paymentStatus || "unpaid"}
             </span>
           </p>
         </div>
-
         <div className="text-right">
-          {isDeleted && <p className="text-sm text-red-600">Orden eliminada</p>}
+          {isDeleted && <p className="text-sm text-red-600">Orden {order.status === "cancelled" ? "cancelada" : "eliminada"}</p>}
         </div>
       </div>
 
-      {/* ACCIONES PRINCIPALES */}
+      {/* ACCIONES */}
       <div className="flex gap-2 items-center">
         <p className="text-sm text-gray-600">
-          La confirmación de pago debe realizarse desde la sección <strong>Ventas</strong>. Aquí solo puedes subir el comprobante o eliminar la orden.
+          La confirmación de pago debe realizarse desde la sección <strong>Ventas</strong>.
         </p>
-
         <button
           onClick={() => handleDeleteOrder("soft", true)}
           disabled={deleting || disableActions}
           className="ml-auto bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
         >
-          {deleting ? "Eliminando..." : "🗑 Eliminar"}
+          {deleting ? "Eliminando..." : "Eliminar"}
         </button>
       </div>
 
@@ -292,78 +366,37 @@ export default function OrderDetailPage() {
       )}
 
       {/* SUBIR COMPROBANTE */}
-      <div className="border p-4 rounded bg-gray-50">
-        <h2 className="font-semibold mb-2">Enviar comprobante de pago</h2>
-        <form onSubmit={handleUploadProof} className="mb-4">
-          <div className="flex items-center gap-3">
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleFileChange}
-              disabled={uploading || disableActions}
-            />
-            <button
-              type="submit"
-              disabled={uploading || disableActions}
-              className="px-4 py-2 bg-purple-600 text-white rounded disabled:opacity-50"
-            >
-              {uploading ? "Subiendo..." : "Enviar comprobante"}
-            </button>
-          </div>
-        </form>
-
-        {!order.paymentProof && <p className="text-sm text-gray-500">No se ha subido comprobante aún.</p>}
-      </div>
-
-      {/* Items por tienda */}
-      {order.stores && order.stores.length > 0 && (
-        <div className="space-y-4">
-          {order.stores.map((store) => (
-            <div key={store.id} className="border p-4 rounded bg-gray-50">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold">{store.name}</h3>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">Items en esta tienda:</p>
-              <ul className="list-disc pl-5 text-sm">
-                {Array.isArray(store.items) && store.items.length > 0 ? (
-                  store.items.map((it, idx) => (
-                    <li key={idx} className="mb-1">
-                      {it.product?.title || it.title || it.productName || "Producto"} — S/ {Number(it.price || 0).toFixed(2)} x {it.quantity || 1}
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-gray-500">No hay items en esta tienda.</li>
-                )}
-              </ul>
+      {!isPaid && (
+        <div className="border p-4 rounded bg-gray-50">
+          <h2 className="font-semibold mb-2">Enviar comprobante de pago</h2>
+          <form onSubmit={handleUploadProof} className="mb-4">
+            <div className="flex items-center gap-3">
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} disabled={uploading || disableActions} />
+              <button type="submit" disabled={uploading || disableActions} className="px-4 py-2 bg-purple-600 text-white rounded disabled:opacity-50">
+                {uploading ? "Subiendo..." : "Enviar comprobante"}
+              </button>
             </div>
-          ))}
+          </form>
+          {!order.paymentProof && <p className="text-sm text-gray-500">No se ha subido comprobante aún.</p>}
         </div>
       )}
 
-      {/* Productos por orderItem */}
+      {/* Items */}
       <div className="space-y-4">
         {Array.isArray(order.orderItems) && order.orderItems.length > 0 ? (
           order.orderItems.map((oi) => (
             <div key={oi.id} className="border p-4 rounded">
-              <div className="flex justify-between items-center">
-                <h2 className="font-semibold">{oi.store?.name || oi.storeId || "Tienda"}</h2>
-              </div>
-
+              <h2 className="font-semibold">{oi.store?.name || oi.storeId || "Tienda"}</h2>
               <div className="mt-3 space-y-2">
                 {Array.isArray(oi.items) && oi.items.length > 0 ? (
                   oi.items.map((it) => (
                     <div key={it.id} className="flex justify-between text-sm">
                       <div>
                         <div className="font-medium">{it.product?.title || it.title || it.productName || "Producto"}</div>
-                        <div className="text-gray-500 text-xs">
-                          Precio unitario: S/ {Number(it.price || 0).toFixed(2)}
-                        </div>
+                        <div className="text-gray-500 text-xs">S/ {Number(it.price || 0).toFixed(2)} x {it.quantity || 1}</div>
                       </div>
-                      <div className="text-right">
-                        <div>{it.quantity} x</div>
-                        <div className="font-semibold">
-                          S/ {(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}
-                        </div>
+                      <div className="text-right font-semibold">
+                        S/ {(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}
                       </div>
                     </div>
                   ))
@@ -371,6 +404,25 @@ export default function OrderDetailPage() {
                   <div className="text-sm text-gray-500">No hay productos listados</div>
                 )}
               </div>
+
+              {/* Reseñas por producto */}
+              {isPaid && oi.items?.map((it) => {
+                if (!it.productId) return null;
+                const existingReview = reviews[it.productId];
+                return (
+                  <div key={`review-${it.id}`}>
+                    {existingReview ? (
+                      <ReviewDisplay review={existingReview} />
+                    ) : (
+                      <ReviewForm
+                        productId={it.productId}
+                        orderId={order.id}
+                        onReviewCreated={() => fetchReviews(order.orderItems)}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))
         ) : (
