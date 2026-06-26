@@ -117,8 +117,7 @@ export default function ScrollMascot() {
   const [celebrating, setCelebrating] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
-  const [walkX, setWalkX] = useState(0);
-  const [gridRight, setGridRight] = useState(0);
+  const gridRightRef = useRef(0);
   const lastMessageZone = useRef("");
   const encourageTimer = useRef(null);
   const hasGreeted = useRef(false);
@@ -289,7 +288,7 @@ export default function ScrollMascot() {
       const grid = document.querySelector(".grid.gap-4");
       if (grid) {
         const rect = grid.getBoundingClientRect();
-        setGridRight(Math.round(rect.right));
+        gridRightRef.current = Math.round(rect.right);
       }
     };
     measure();
@@ -298,20 +297,18 @@ export default function ScrollMascot() {
     return () => { clearInterval(t); window.removeEventListener("resize", measure); };
   }, []);
 
-  // Calculate horizontal walk: oscillate between grid right edge and before the percentage text
-  useEffect(() => {
-    if (!gridRight) return;
-    // Right limit: leave space for the progress bar (12px) + percentage text (~24px)
-    const rightLimit = window.innerWidth - 40;
-    const walkableSpace = rightLimit - gridRight;
-    if (walkableSpace <= 0) { setWalkX(0); return; }
-    // Amplitude: use full walkable space but cap at 30px
+  // Calculate walkX directly from progress (no state, no infinite loop)
+  const walkX = (() => {
+    const gr = gridRightRef.current;
+    if (!gr) return 0;
+    const rightLimit = (typeof window !== "undefined" ? window.innerWidth : 1200) - 40;
+    const walkableSpace = rightLimit - gr;
+    if (walkableSpace <= 0) return 0;
     const maxOffset = Math.min(walkableSpace, 30);
-    const t = Date.now() / 6000;
-    setWalkX(Math.sin(t * Math.PI * 2) * maxOffset);
-  });
+    // Use progress as a proxy for time-based oscillation
+    return Math.sin(progress * Math.PI * 6) * maxOffset;
+  })();
 
-  // Speech bubble on the right when mascot is left of center of its walk range
   const bubbleOnRight = walkX < -2;
 
   const atBottom = progress > 0.95;
