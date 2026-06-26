@@ -311,8 +311,8 @@ export default function ScrollMascot() {
     setWalkX(Math.sin(t * Math.PI * 2) * maxOffset);
   });
 
-  // Speech bubble on the right when mascot is far left (walkX < -5)
-  const bubbleOnRight = walkX < -5;
+  // Speech bubble on the right when mascot is left of center of its walk range
+  const bubbleOnRight = walkX < -2;
 
   const atBottom = progress > 0.95;
 
