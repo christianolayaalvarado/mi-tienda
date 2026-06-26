@@ -45,6 +45,7 @@ next-env.d.ts
 # debug scripts & backups
 scripts/
 cookiejar.txt
+cookies.txt
 package.zip
 dump/
 tmp_backup_auth/

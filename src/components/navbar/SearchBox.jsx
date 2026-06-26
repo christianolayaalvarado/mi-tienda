@@ -1,17 +1,23 @@
 // components/navbar/SearchBox.jsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export default function SearchBox({ initial = "", onSearch }) {
   const [value, setValue] = useState(initial);
+  const lastExternalRef = useRef(initial);
 
   useEffect(() => {
     const handler = setTimeout(() => onSearch?.(value || ""), 500);
     return () => clearTimeout(handler);
   }, [value, onSearch]);
 
-  useEffect(() => setValue(initial), [initial]);
+  useEffect(() => {
+    if (initial !== lastExternalRef.current) {
+      lastExternalRef.current = initial;
+      setValue(initial);
+    }
+  }, [initial]);
 
   return (
     <div className="w-full">

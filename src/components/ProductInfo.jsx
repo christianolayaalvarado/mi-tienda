@@ -285,11 +285,11 @@ export default function ProductInfo({ product }) {
       </div>
 
       <div className="flex items-center gap-4 mt-6 justify-center md:justify-start">
-        <button aria-label="Disminuir cantidad" disabled={quantity <= 1} onClick={() => { setQuantity((q) => Math.max(1, q - 1)); setAnimateQty(true); setTimeout(() => setAnimateQty(false), 200); }} className={`w-10 h-10 rounded-lg border text-lg ${quantity <= 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "hover:bg-gray-100"}`}>−</button>
+        <button aria-label="Disminuir cantidad" disabled={quantity <= 1} onClick={() => { setQuantity((q) => Math.max(1, q - 1)); setAnimateQty(true); setTimeout(() => setAnimateQty(false), 200); }} className={`w-11 h-11 rounded-lg border text-lg flex items-center justify-center ${quantity <= 1 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "hover:bg-gray-100"}`}>−</button>
 
         <span className={`text-lg font-semibold w-8 text-center ${animateQty ? "scale-125" : ""}`}>{quantity}</span>
 
-        <button aria-label="Aumentar cantidad" disabled={remainingStock === 0 || quantity >= remainingStock} onClick={() => { setQuantity((q) => Math.min(remainingStock, q + 1)); setAnimateQty(true); setTimeout(() => setAnimateQty(false), 200); }} className={`w-10 h-10 rounded-lg border text-lg ${remainingStock === 0 || quantity >= remainingStock ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "hover:bg-gray-100"}`}>+</button>
+        <button aria-label="Aumentar cantidad" disabled={remainingStock === 0 || quantity >= remainingStock} onClick={() => { setQuantity((q) => Math.min(remainingStock, q + 1)); setAnimateQty(true); setTimeout(() => setAnimateQty(false), 200); }} className={`w-11 h-11 rounded-lg border text-lg flex items-center justify-center ${remainingStock === 0 || quantity >= remainingStock ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "hover:bg-gray-100"}`}>+</button>
       </div>
 
       {quantity > 1 && <p className="text-gray-700 text-sm mt-2 font-medium">Total: <span className="text-green-600">S/ {selectionTotal.toFixed(2)}</span></p>}

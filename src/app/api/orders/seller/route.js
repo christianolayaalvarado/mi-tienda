@@ -66,10 +66,14 @@ export async function GET(req) {
       include: {
         orderItems: {
           include: {
-            store: true,
+            store: {
+              select: { id: true, name: true, code: true },
+            },
             items: {
               include: {
-                product: true,
+                product: {
+                  select: { id: true, title: true, price: true, images: true },
+                },
               },
             },
           },

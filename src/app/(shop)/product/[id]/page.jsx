@@ -14,7 +14,17 @@ export default async function ProductDetail({ params }) {
   const isValidObjectId = /^[a-fA-F0-9]{24}$/.test(id)
 
   if (!isValidObjectId) {
-    return <p className="p-6">ID de producto inválido</p>
+    return (
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-12 text-center">
+        <p className="text-gray-500 text-lg mb-4">ID de producto inválido</p>
+        <Link href="/" className="inline-flex items-center gap-1 text-green-600 hover:underline font-medium">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Volver al inicio
+        </Link>
+      </div>
+    );
   }
 
   const product = await prisma.product.findUnique({
@@ -27,7 +37,17 @@ export default async function ProductDetail({ params }) {
   })
 
   if (!product) {
-    return <p className="p-6">Producto no encontrado</p>
+    return (
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-12 text-center">
+        <p className="text-gray-500 text-lg mb-4">Producto no encontrado</p>
+        <Link href="/" className="inline-flex items-center gap-1 text-green-600 hover:underline font-medium">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Volver al inicio
+        </Link>
+      </div>
+    );
   }
 
   // 🔹 Productos relacionados

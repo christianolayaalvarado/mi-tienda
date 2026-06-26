@@ -126,11 +126,21 @@ export default function NavbarContent() {
   const prevCategoryRef = useRef(currentCategory);
   const prevSortRef = useRef(currentSort);
   const initialMountDone = useRef(false);
+  const isNavigatingRef = useRef(false);
 
   useEffect(() => {
     if (!mounted) return;
     if (!initialMountDone.current) {
       initialMountDone.current = true;
+      prevSearchRef.current = currentSearch;
+      prevCategoryRef.current = currentCategory;
+      prevSortRef.current = currentSort;
+      return;
+    }
+
+    // Skip if this render was caused by our own router.push
+    if (isNavigatingRef.current) {
+      isNavigatingRef.current = false;
       prevSearchRef.current = currentSearch;
       prevCategoryRef.current = currentCategory;
       prevSortRef.current = currentSort;
@@ -146,6 +156,7 @@ export default function NavbarContent() {
     prevSortRef.current = currentSort;
 
     if (searchChanged || categoryChanged || sortChanged) {
+      isNavigatingRef.current = true;
       const url = buildURL({ searchVal: search, categoryVal: currentCategory, sortVal: currentSort, pageVal: "1" });
       router.push(url);
     }

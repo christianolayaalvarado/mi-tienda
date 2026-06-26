@@ -1,8 +1,7 @@
 // src/app/api/auth/send-code/route.js
 import prisma from "@/lib/prisma";
 import { sendVerificationCodeEmail } from "@/lib/email";
-
-const VERIFICATION_TTL_SECONDS = Number(process.env.VERIFICATION_TTL_SECONDS || 15 * 60);
+import { checkRateLimit } from "@/lib/rateLimit";
 
 function generateCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -17,9 +16,16 @@ export async function POST(req) {
     }
     const email = rawEmail.toLowerCase().trim();
 
+    const rl = checkRateLimit(`send-code:${email}`, 5, 15 * 60 * 1000);
+    if (!rl.ok) {
+      return new Response(JSON.stringify({ ok: false, message: "Demasiados intentos. Espera unos minutos." }), { status: 429, headers: { "Content-Type": "application/json" } });
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
+
+    // Always return success to prevent email enumeration
     if (!user) {
-      return new Response(JSON.stringify({ ok: false, message: "No se encontró el email" }), { status: 404, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: true, message: "Si el email existe, se enviará un código" }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
     const code = generateCode();

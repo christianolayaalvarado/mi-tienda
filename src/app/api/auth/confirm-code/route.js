@@ -1,14 +1,13 @@
 // src/app/api/auth/confirm-code/route.js
 import prisma from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req) {
   try {
-    // Aceptar body JSON o query params para mayor compatibilidad
     let body = {};
     try {
       body = await req.json();
     } catch (e) {
-      // body no JSON o vacío; seguiremos con query params
       body = {};
     }
 
@@ -35,46 +34,47 @@ export async function POST(req) {
     const email = String(rawEmail).toLowerCase().trim();
     const code = String(rawCode).trim();
 
-    // Buscar usuario por email (normalizado)
+    const rl = checkRateLimit(`confirm-code:${email}`, 5, 15 * 60 * 1000);
+    if (!rl.ok) {
+      return new Response(JSON.stringify({ ok: false, message: "Demasiados intentos. Espera unos minutos." }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      console.warn("[/api/auth/confirm-code] user not found for email:", email);
       return new Response(JSON.stringify({ ok: false, message: "No se encontró el email" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Si no hay código guardado
     if (!user.verificationCode) {
-      console.warn("[/api/auth/confirm-code] no verificationCode stored for user:", user.id);
       return new Response(JSON.stringify({ ok: false, message: "No hay código asociado a este email" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Opcional: comprobar expiración si guardas verificationSentAt
-    // if (user.verificationSentAt) {
-    //   const sent = new Date(user.verificationSentAt).getTime();
-    //   const now = Date.now();
-    //   const TTL_MS = (process.env.VERIFICATION_TTL_SECONDS ? Number(process.env.VERIFICATION_TTL_SECONDS) : 15 * 60) * 1000;
-    //   if (now - sent > TTL_MS) {
-    //     return new Response(JSON.stringify({ ok: false, message: "Código expirado" }), { status: 410, headers: { "Content-Type": "application/json" } });
-    //   }
-    // }
+    // Check TTL expiration
+    if (user.verificationSentAt) {
+      const sent = new Date(user.verificationSentAt).getTime();
+      const now = Date.now();
+      const TTL_MS = (process.env.VERIFICATION_TTL_SECONDS ? Number(process.env.VERIFICATION_TTL_SECONDS) : 15 * 60) * 1000;
+      if (now - sent > TTL_MS) {
+        return new Response(JSON.stringify({ ok: false, message: "Código expirado. Solicita uno nuevo." }), { status: 410, headers: { "Content-Type": "application/json" } });
+      }
+    }
 
-    // Comparación segura del código (trim y comparar)
     if (String(user.verificationCode).trim() !== code) {
-      console.warn("[/api/auth/confirm-code] invalid code for user:", user.id);
       return new Response(JSON.stringify({ ok: false, message: "Código inválido" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Marcar como verificado y limpiar campos relacionados
     await prisma.user.update({
       where: { id: user.id },
       data: {

@@ -260,7 +260,7 @@ export default function CartPreview(props) {
                 <button
                   type="button"
                   onClick={() => safeOnDecrease(idForActions)}
-                  className="px-2 bg-gray-200 rounded hover:bg-gray-300"
+                  className="w-9 h-9 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300 text-base"
                   disabled={quantity <= 1 || removing}
                   aria-label={`Disminuir cantidad de ${displayName}`}
                 >
@@ -275,7 +275,7 @@ export default function CartPreview(props) {
                   disabled={disabledInc || removing}
                   aria-disabled={disabledInc || removing}
                   title={disabledInc ? "Stock máximo alcanzado" : "Aumentar cantidad"}
-                  className="px-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40"
+                  className="w-9 h-9 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-40 text-base"
                   aria-label={`Aumentar cantidad de ${displayName}`}
                 >
                   +

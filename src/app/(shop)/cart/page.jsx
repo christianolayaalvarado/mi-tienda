@@ -808,18 +808,18 @@ export default function CartPage() {
                   <div className="mt-2 flex items-center gap-2">
                     <button
                       onClick={() => handleChangeQuantity(item, Number(item.quantity || 1) - 1)}
-                      className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
+                      className="w-10 h-10 flex items-center justify-center bg-gray-200 rounded text-lg disabled:opacity-50"
                       aria-label={`Disminuir cantidad de ${displayName}`}
                       disabled={Number(item.quantity || 0) <= 1 || isRemoving || estimating || loadingServer}
                     >
                       −
                     </button>
 
-                    <div className="px-3 py-1 border rounded text-sm">{Number(item.quantity || 0)}</div>
+                    <div className="px-3 py-1 border rounded text-sm min-w-[40px] text-center">{Number(item.quantity || 0)}</div>
 
                     <button
                       onClick={() => handleChangeQuantity(item, Number(item.quantity || 0) + 1)}
-                      className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
+                      className="w-10 h-10 flex items-center justify-center bg-gray-200 rounded text-lg disabled:opacity-50"
                       aria-label={`Aumentar cantidad de ${displayName}`}
                       disabled={!canIncrease(item) || isRemoving || estimating || loadingServer}
                     >
