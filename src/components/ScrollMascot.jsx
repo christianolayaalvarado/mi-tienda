@@ -298,6 +298,7 @@ export default function ScrollMascot() {
   }, []);
 
   // Calculate walkX directly from progress (no state, no infinite loop)
+  // Always positive: mascot moves LEFT from the right edge, never RIGHT (outside viewport)
   const walkX = (() => {
     const gr = gridRightRef.current;
     if (!gr) return 0;
@@ -305,8 +306,7 @@ export default function ScrollMascot() {
     const walkableSpace = rightLimit - gr;
     if (walkableSpace <= 0) return 0;
     const maxOffset = Math.min(walkableSpace, 30);
-    // Use progress as a proxy for time-based oscillation
-    return Math.sin(progress * Math.PI * 6) * maxOffset;
+    return Math.abs(Math.sin(progress * Math.PI * 6)) * maxOffset;
   })();
 
   const atBottom = progress > 0.95;
