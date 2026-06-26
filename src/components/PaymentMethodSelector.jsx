@@ -62,7 +62,18 @@ export default function PaymentMethodSelector({ sellerId, onSelect }) {
     }
   }, [sellerId]);
 
-  if (loading) return <p className="text-sm text-gray-600">Cargando métodos de pago…</p>;
+  if (loading) {
+    return (
+      <div className="space-y-2 animate-pulse">
+        {[1, 2].map((i) => (
+          <div key={i} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+            <div className="w-5 h-5 bg-gray-200 rounded-full" />
+            <div className="h-4 bg-gray-200 rounded w-1/3" />
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (error) return <p className="text-sm text-red-600">{error}</p>;
 
   return (

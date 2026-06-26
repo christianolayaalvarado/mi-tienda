@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { OrderItemSkeleton } from "@/components/Skeletons";
 
 export default function OrdersPage() {
   const { data: session } = useSession();
@@ -34,9 +35,17 @@ export default function OrdersPage() {
     fetchOrders();
   }, [session]);
 
-  if (!session) return <p>Debes iniciar sesión para ver tus órdenes.</p>;
-  if (loading) return <p>Cargando órdenes...</p>;
-  if (error) return <p className="text-red-600">{error}</p>;
+  if (!session) return <p className="p-4 text-gray-500">Debes iniciar sesión para ver tus órdenes.</p>;
+  if (loading) {
+    return (
+      <div className="p-4 md:p-10 space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <OrderItemSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+  if (error) return <p className="p-4 text-red-600">{error}</p>;
 
   return (
     <div className="p-4 md:p-10">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { OrderItemSkeleton } from "@/components/Skeletons";
 
 function formatDate(iso) {
   try {
@@ -142,7 +143,16 @@ export default function OrdersPage() {
   };
 
   if (loading) {
-    return <p className="p-4 text-gray-600">Cargando órdenes...</p>;
+    return (
+      <div className="p-6">
+        <Breadcrumbs />
+        <div className="mt-4 space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <OrderItemSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

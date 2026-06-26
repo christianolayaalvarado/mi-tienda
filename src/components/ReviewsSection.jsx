@@ -39,7 +39,18 @@ export default function ReviewsSection({ productId }) {
     return (
       <div className="mt-8 border-t pt-6">
         <h2 className="text-xl font-semibold mb-4">Reseñas</h2>
-        <p className="text-gray-400 text-sm">Cargando...</p>
+        <div className="space-y-3 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="p-4 bg-gray-50 rounded-lg space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gray-200 rounded-full" />
+                <div className="h-3 bg-gray-200 rounded w-24" />
+              </div>
+              <div className="h-3 bg-gray-200 rounded w-full" />
+              <div className="h-3 bg-gray-200 rounded w-2/3" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

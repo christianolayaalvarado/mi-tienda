@@ -17,6 +17,7 @@ import { fetchSession } from "@/lib/useSessionCheck";
 import { safeParseLocalCart } from "@/components/navbar/utils";
 import toast from "react-hot-toast";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { CartItemSkeleton } from "@/components/Skeletons";
 
 /* -------------------------
    ModalConfirm (reutilizable)
@@ -750,8 +751,14 @@ export default function CartPage() {
         </div>
       </div>
 
-      {loadingServer && <p className="text-center text-gray-500 mb-4">Cargando carrito...</p>}
-      {estimating && <p className="text-center text-gray-500 mb-4">Obteniendo estimaciones...</p>}
+      {loadingServer && (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <CartItemSkeleton key={i} />
+          ))}
+        </div>
+      )}
+      {estimating && <p className="text-center text-gray-500 mb-4 text-sm">Obteniendo estimaciones de envío...</p>}
 
       <div className="space-y-4">
         {displayItems.map((item) => {

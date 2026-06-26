@@ -3,6 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
 import ProductCard from "@/components/ProductCard";
+import ProductCardSkeleton from "@/components/ProductCardSkeleton";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
 import ScrollMascot from "@/components/ScrollMascot";
 
@@ -156,9 +157,11 @@ export default function HomeClient() {
       )}
 
       {loading && (
-        <p className="text-center text-sm text-gray-500 mb-4">
-          Cargando productos...
-        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <ProductCardSkeleton key={i} />
+          ))}
+        </div>
       )}
 
       {!loading && products.length > 0 && (

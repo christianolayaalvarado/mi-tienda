@@ -6,6 +6,7 @@ import PaymentMethodSelector from "../../../components/PaymentMethodSelector";
 import toast from "react-hot-toast";
 import { fetchSession } from "@/lib/useSessionCheck";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { CheckoutSkeleton } from "@/components/Skeletons";
 
 /* -------------------------
    Utilidades para el carrito
@@ -448,7 +449,16 @@ export default function CheckoutPage({ params }) {
   /* -------------------------
      Render
      ------------------------- */
-  if (loading) return <div className="p-4 text-gray-600">Cargando carrito...</div>;
+  if (loading) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto">
+        <Breadcrumbs />
+        <div className="mt-4">
+          <CheckoutSkeleton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
