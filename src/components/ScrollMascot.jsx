@@ -263,14 +263,14 @@ export default function ScrollMascot() {
           className="absolute bottom-0 left-0 w-full rounded-full"
           style={{
             height: `${progress * 100}%`,
-            background: "linear-gradient(to top, #16A34A, #FACC15)",
+            background: "linear-gradient(to top, #86EFAC, #FDE68A)",
             transition: "height 0.1s linear",
           }}
         />
         {[0.25, 0.5, 0.75].map((m) => (
           <div key={m} className="absolute left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full border border-white bg-gray-300 z-10" style={{ bottom: `${m * 100}%` }} />
         ))}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 rounded-full border border-white bg-green-500 z-10" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 rounded-full border border-white bg-green-300 z-10" />
       </div>
 
       {/* Mascota */}
