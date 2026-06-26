@@ -161,52 +161,59 @@ export default function NavbarContent() {
 
   return (
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center gap-2 sm:gap-6">
-        <Link href="/" className="flex items-center shrink-0">
-          <img
-            src="/images/logo.png"
-            alt="Logo MiTienda"
-            className="h-8 sm:h-10 w-auto navbar-logo"
-          />
-        </Link>
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
+        {/* Row 1: Logo + actions (always one line) */}
+        <div className="flex items-center gap-2 sm:gap-6">
+          <Link href="/" className="flex items-center shrink-0">
+            <img
+              src="/images/logo.png"
+              alt="Logo MiTienda"
+              className="h-8 sm:h-10 w-auto navbar-logo"
+            />
+          </Link>
 
-        <div className="flex-1 min-w-0">
-          <SearchBox initial={currentSearch} onSearch={(val) => setSearch(val)} />
+          {/* Spacer pushes actions to the right */}
+          <div className="flex-1" />
+
+          <button
+            type="button"
+            aria-label={`Abrir carrito, ${count} items`}
+            onClick={() => setCartOpen((s) => !s)}
+            className="text-sm font-medium cursor-pointer relative select-none shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            aria-haspopup="true"
+            aria-expanded={cartOpen}
+            ref={cartRef}
+          >
+            <span data-cart-icon className="relative inline-block">
+              <span className="hidden sm:inline">🛒 Carrito</span>
+              <span className="sm:hidden text-xl">🛒</span>
+              {mounted && count > 0 && (
+                <span className="absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full">
+                  {count}
+                </span>
+              )}
+            </span>
+          </button>
+
+          <UserMenu />
         </div>
 
-        <button
-          type="button"
-          aria-label={`Abrir carrito, ${count} items`}
-          onClick={() => setCartOpen((s) => !s)}
-          className="text-sm font-medium cursor-pointer relative select-none shrink-0"
-          aria-haspopup="true"
-          aria-expanded={cartOpen}
-          ref={cartRef}
-        >
-          <span data-cart-icon className="relative inline-block">
-            <span className="hidden sm:inline">🛒 Carrito</span>
-            <span className="sm:hidden text-lg">🛒</span>
-            {mounted && count > 0 && (
-              <span className="absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full">
-                {count}
-              </span>
-            )}
-          </span>
-        </button>
-
-        <UserMenu />
-
-        <CartPreview
-          open={cartOpen}
-          items={cartItems}
-          subtotal={subtotal}
-          onIncrease={increaseQuantity}
-          onDecrease={decreaseQuantity}
-          onRemove={removeFromCart}
-          onClose={() => setCartOpen(false)}
-          readLocalCart={() => localRaw}
-        />
+        {/* Row 2: Search (full width, on its own line) */}
+        <div className="mt-2 sm:mt-3">
+          <SearchBox initial={currentSearch} onSearch={(val) => setSearch(val)} />
+        </div>
       </div>
+
+      <CartPreview
+        open={cartOpen}
+        items={cartItems}
+        subtotal={subtotal}
+        onIncrease={increaseQuantity}
+        onDecrease={decreaseQuantity}
+        onRemove={removeFromCart}
+        onClose={() => setCartOpen(false)}
+        readLocalCart={() => localRaw}
+      />
 
       <CategoryScroller
         categories={["Climatizado","Cocina","Coleccionable","Decoración","Electrodoméstico","Fitness","Hogar","Iluminación","Muebles","Vidrio"]}
