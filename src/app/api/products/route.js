@@ -15,6 +15,7 @@ export async function GET(req) {
     const url = new URL(req.url);
     const search = url.searchParams.get("search") || "";
     const category = url.searchParams.get("category") || "";
+    const sort = url.searchParams.get("sort") || "";
     const page = parseInt(url.searchParams.get("page") || "1", 10) || 1;
     const limit = parseInt(url.searchParams.get("limit") || "15", 10) || 15;
 
@@ -26,15 +27,41 @@ export async function GET(req) {
       ...(category ? { category: { name: category } } : {}),
     };
 
+    // Para featured: necesitamos incluir reviews y orderItemProducts para calcular el score
+    const includeFeatured = sort === "featured"
+      ? { category: true, store: true, user: true, reviews: true, orderItemProducts: true }
+      : { category: true, store: true, user: true };
+
     const total = await prisma.product.count({ where });
 
-    const products = await prisma.product.findMany({
+    let products = await prisma.product.findMany({
       where,
-      include: { category: true, store: true, user: true },
-      skip,
-      take,
-      orderBy: { createdAt: "desc" },
+      include: includeFeatured,
+      skip: sort === "featured" ? 0 : skip,
+      take: sort === "featured" ? 50 : take, // traemos más para ordenar por score
+      orderBy: sort === "featured" ? undefined : { createdAt: "desc" },
     });
+
+    // Para featured: calcular score y ordenar por popularidad
+    if (sort === "featured") {
+      products = products
+        .map((p) => {
+          const reviewCount = p.reviews?.length || 0;
+          const avgRating = reviewCount > 0
+            ? p.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+            : 0;
+          const salesCount = p.orderItemProducts?.length || 0;
+          const totalSold = p.orderItemProducts?.reduce((sum, oip) => sum + (oip.quantity || 0), 0) || 0;
+          const hasImages = p.images && p.images.length > 0 ? 1 : 0;
+
+          // Score: más peso a ventas y reviews, bonus por tener imágenes
+          const score = (totalSold * 3) + (salesCount * 2) + (reviewCount * 2) + (avgRating * 1.5) + (hasImages * 5);
+
+          return { ...p, _score: score, _avgRating: avgRating, _reviewCount: reviewCount, _totalSold: totalSold };
+        })
+        .sort((a, b) => b._score - a._score)
+        .slice(skip, skip + take);
+    }
 
     return NextResponse.json({ products, totalPages: Math.ceil(total / take), currentPage: page });
   } catch (error) {
