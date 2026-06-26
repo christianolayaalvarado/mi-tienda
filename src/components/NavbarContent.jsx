@@ -163,7 +163,7 @@ export default function NavbarContent() {
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
         {/* Row 1: Logo + actions (always one line) */}
-        <div className="flex items-center gap-1 sm:gap-6">
+        <div className="flex items-center gap-1 sm:gap-6 pr-4">
           <Link href="/" className="flex items-center shrink-0">
             <img
               src="/images/logo.png"
