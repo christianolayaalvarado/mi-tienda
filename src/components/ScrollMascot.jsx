@@ -309,8 +309,6 @@ export default function ScrollMascot() {
     return Math.sin(progress * Math.PI * 6) * maxOffset;
   })();
 
-  const bubbleOnRight = walkX < -2;
-
   const atBottom = progress > 0.95;
 
   // Arms
@@ -378,14 +376,10 @@ export default function ScrollMascot() {
       >
         {/* Speech bubble — flips based on mascot position */}
         {message && (
-          <div key={msgKey} className={`absolute top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out] ${bubbleOnRight ? "left-full ml-3" : "right-full mr-3"}`}>
+          <div key={msgKey} className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
             <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
               {message}
-              {bubbleOnRight ? (
-                <div className="absolute right-full top-1/2 -translate-y-1/2 -mr-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-white" />
-              ) : (
-                <div className="absolute left-full top-1/2 -translate-y-1/2 -ml-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[5px] border-l-white" />
-              )}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-white" />
             </div>
           </div>
         )}
