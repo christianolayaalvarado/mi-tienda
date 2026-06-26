@@ -56,6 +56,7 @@ export default function ScrollMascot() {
   const { user } = useAuthContext() || {};
   const [progress, setProgress] = useState(0);
   const [viewH, setViewH] = useState(800);
+  const [navH, setNavH] = useState(130);
   const [isWaving, setIsWaving] = useState(true);
   const [message, setMessage] = useState("");
   const [msgKey, setMsgKey] = useState(0);
@@ -69,12 +70,26 @@ export default function ScrollMascot() {
   const idleTimer = useRef(null);
   const scrollElRef = useRef(null);
 
-  // Track window height
+  // Track window height + navbar height
   useEffect(() => {
-    const updateHeight = () => setViewH(window.innerHeight);
-    updateHeight();
-    window.addEventListener("resize", updateHeight, { passive: true });
-    return () => window.removeEventListener("resize", updateHeight);
+    const updateLayout = () => {
+      setViewH(window.innerHeight);
+      const nav = document.querySelector("nav");
+      if (nav) setNavH(nav.offsetHeight);
+    };
+    updateLayout();
+    window.addEventListener("resize", updateLayout, { passive: true });
+    // Observer por si la navbar cambia de tamaño
+    const nav = document.querySelector("nav");
+    let observer = null;
+    if (nav) {
+      observer = new ResizeObserver(updateLayout);
+      observer.observe(nav);
+    }
+    return () => {
+      window.removeEventListener("resize", updateLayout);
+      if (observer) observer.disconnect();
+    };
   }, []);
 
   // Encontrar el contenedor scrolleable y escuchar su evento scroll
@@ -245,8 +260,8 @@ export default function ScrollMascot() {
   const legL = isIdle ? (idleFrame % 2 === 0 ? 0 : 3) : 0;
   const legR = isIdle ? (idleFrame % 2 === 0 ? 3 : 0) : 0;
 
-  // Posición mascot: de arriba (80px) hasta fondo del viewport
-  const startY = 80;
+  // Posición mascot: de arriba (justo debajo navbar) hasta fondo del viewport
+  const startY = navH + 10;
   const endY = viewH - 70;
   // Cuando llega al final, subir 40px para no tapar el porcentaje
   const mascotTop = atBottom
@@ -257,8 +272,8 @@ export default function ScrollMascot() {
 
   return (
     <div className="fixed right-2 sm:right-4 top-0 bottom-0 z-50 pointer-events-none">
-      {/* Barra de progreso - debajo de la navbar, más delgada */}
-      <div className="absolute right-2 sm:right-3 top-20 bottom-8 w-[3px] bg-gray-200/40 rounded-full">
+      {/* Barra de progreso - debajo de la navbar + categorías */}
+      <div className="absolute right-2 sm:right-3 bottom-8 w-[3px] bg-gray-200/40 rounded-full" style={{ top: `${navH + 10}px` }}>
         <div
           className="absolute bottom-0 left-0 w-full rounded-full"
           style={{
