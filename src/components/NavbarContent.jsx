@@ -163,7 +163,7 @@ export default function NavbarContent() {
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
         {/* Single flex row with wrap: search goes to line 2 on mobile */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-6 sm:justify-start">
           <Link href="/" className="flex items-center shrink-0 order-1">
             <img src="/images/logo.png" alt="Logo MiTienda" className="h-8 sm:h-10 w-auto navbar-logo" />
           </Link>
@@ -191,7 +191,7 @@ export default function NavbarContent() {
           </div>
 
           {/* Search: order-3 on mobile (wraps to line 2), order-2 on desktop (between logo and actions) */}
-          <div className="w-full sm:w-auto sm:flex-1 order-3 sm:order-2 pr-4 sm:pr-0">
+          <div className="w-full sm:w-auto sm:flex-1 order-3 sm:order-2">
             <SearchBox initial={currentSearch} onSearch={(val) => setSearch(val)} />
           </div>
         </div>
