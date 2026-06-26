@@ -220,9 +220,9 @@ model VerificationCode {
 model Conversation {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   buyerId     String    @db.ObjectId
-  buyer       User      @relation(fields: [buyerId], references: [id])
+  buyer       User      @relation("BuyerConversations", fields: [buyerId], references: [id])
   sellerId    String    @db.ObjectId
-  seller      User      @relation(fields: [sellerId], references: [id])
+  seller      User      @relation("SellerConversations", fields: [sellerId], references: [id])
   productId   String?   @db.ObjectId
   product     Product?  @relation(fields: [productId], references: [id])
   orderId     String?   @db.ObjectId
