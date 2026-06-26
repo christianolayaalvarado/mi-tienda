@@ -93,7 +93,7 @@ export default function ScrollMascot() {
     return () => clearInterval(t);
   }, [isIdle]);
 
-  // Primer mensaje
+  // Primer mensaje + segundo después de 6 segundos
   useEffect(() => {
     if (hasGreeted.current) return;
     hasGreeted.current = true;
@@ -103,27 +103,27 @@ export default function ScrollMascot() {
       : `¡Hola, bienvenido! Soy Shopito 🛍️`;
     setMessage(greet);
     setMsgKey((k) => k + 1);
-    const t = setTimeout(() => { setIsWaving(false); }, 3000);
-    return () => clearTimeout(t);
-  }, [user]);
 
-  // Segundo mensaje
-  useEffect(() => {
-    if (progress > 0.03 && progress < 0.15 && lastMessageZone.current === "") {
-      lastMessageZone.current = "scrolled";
+    // Después de 6s, mostrar segundo mensaje
+    const t1 = setTimeout(() => {
       setMessage("Sigue bajando, ¡hay más productos para ti! 👇");
       setMsgKey((k) => k + 1);
-    }
-  }, [progress]);
+    }, 6000);
 
-  // Mensajes por zona
+    // Dejar de saludar con brazos
+    const t2 = setTimeout(() => { setIsWaving(false); }, 3000);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [user]);
+
+  // Mensajes por zona (solo después del segundo mensaje, ~8s)
   useEffect(() => {
+    if (progress < 0.03) return;
+
     let zone = "";
     let msg = "";
 
-    if (progress < 0.03) {
-      return;
-    } else if (progress < 0.45) {
+    if (progress < 0.45) {
       zone = "early";
       msg = "Sigue bajando, ¡hay más productos para ti! 👇";
     } else if (progress < 0.55) {
@@ -148,21 +148,26 @@ export default function ScrollMascot() {
     }
   }, [progress]);
 
-  // Mensajes aleatorios: 10s visible, 10s vacío
+  // Mensajes aleatorios: empieza después de 15s, luego 10s visible, 10s vacío
   useEffect(() => {
     let showPhase = true;
-    encourageTimer.current = setInterval(() => {
-      if (showPhase) {
-        setMessage(pickRandom(ENCOURAGE_MESSAGES));
-        setMsgKey((k) => k + 1);
-        showPhase = false;
-      } else {
-        setMessage("");
-        setMsgKey((k) => k + 1);
-        showPhase = true;
-      }
-    }, 10000);
-    return () => clearInterval(encourageTimer.current);
+    const startTimeout = setTimeout(() => {
+      encourageTimer.current = setInterval(() => {
+        if (showPhase) {
+          setMessage(pickRandom(ENCOURAGE_MESSAGES));
+          setMsgKey((k) => k + 1);
+          showPhase = false;
+        } else {
+          setMessage("");
+          setMsgKey((k) => k + 1);
+          showPhase = true;
+        }
+      }, 10000);
+    }, 15000);
+    return () => {
+      clearTimeout(startTimeout);
+      clearInterval(encourageTimer.current);
+    };
   }, []);
 
   const atBottom = progress > 0.95;
