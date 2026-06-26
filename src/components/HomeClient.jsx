@@ -137,7 +137,7 @@ export default function HomeClient() {
 
   // ---------------- RENDER
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-8 pb-20 sm:pb-24">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-8 pb-20 sm:pb-16">
       {/* Carrusel de productos destacados */}
       <FeaturedCarousel />
 

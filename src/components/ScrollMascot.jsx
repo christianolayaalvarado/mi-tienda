@@ -298,18 +298,27 @@ export default function ScrollMascot() {
   }, []);
 
   // Calculate walkX directly from progress (no state, no infinite loop)
-  // Always positive: mascot moves LEFT from its base position
+  // Desktop only: mascot walks between progress bar and product grid edge
   const walkX = (() => {
     const gr = gridRightRef.current;
     if (!gr) return 0;
-    const rightEdge = (typeof window !== "undefined" ? window.innerWidth : 1200);
-    // Mascot base is ~120px from right edge (to fit 220px bubble above)
-    // Walk limit: from base to the product grid right edge
-    const mascotBaseFromRight = 120;
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+    if (isMobile) return 0; // no horizontal walk on mobile
+    const rightEdge = window.innerWidth;
+    // Desktop: mascot base at ~60px from right, walks up to 40px left
+    const mascotBaseFromRight = 60;
     const walkableSpace = rightEdge - mascotBaseFromRight - gr;
     if (walkableSpace <= 0) return 0;
-    const maxOffset = Math.min(walkableSpace, 20);
+    const maxOffset = Math.min(walkableSpace, 40);
     return Math.abs(Math.sin(progress * Math.PI * 6)) * maxOffset;
+  })();
+
+  // Determine bubble position based on mascot horizontal location (desktop only)
+  const bubblePosition = (() => {
+    if (typeof window === "undefined" || window.innerWidth < 640) return "above"; // mobile: always above
+    if (walkX > 25) return "left";   // mascot far left → bubble on right
+    if (walkX < 10) return "right";  // mascot near right edge → bubble on left
+    return "above";                   // mascot in center → bubble above
   })();
 
   const atBottom = progress > 0.95;
@@ -374,17 +383,40 @@ export default function ScrollMascot() {
 
       {/* Mascot */}
       <div
-        className="absolute right-12 sm:right-[120px] pointer-events-auto cursor-pointer group"
+        className="absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group"
         style={{ top: `${mascotTop}px`, transition: "top 0.1s linear", transform: `translateX(-${walkX}px)` }}
       >
-        {/* Speech bubble — flips based on mascot position */}
+        {/* Speech bubble — position depends on mascot location */}
         {message && (
-          <div key={msgKey} className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
-            <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
-              {message}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-white" />
-            </div>
-          </div>
+          <>
+            {/* Above (mobile default + desktop center) */}
+            {bubblePosition === "above" && (
+              <div key={msgKey + "-above"} className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
+                <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
+                  {message}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-white" />
+                </div>
+              </div>
+            )}
+            {/* Left of mascot (mascot near right edge) */}
+            {bubblePosition === "right" && (
+              <div key={msgKey + "-right"} className="absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
+                <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
+                  {message}
+                  <div className="absolute left-full top-1/2 -translate-y-1/2 -ml-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[5px] border-l-white" />
+                </div>
+              </div>
+            )}
+            {/* Right of mascot (mascot far left) */}
+            {bubblePosition === "left" && (
+              <div key={msgKey + "-left"} className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
+                <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
+                  {message}
+                  <div className="absolute right-full top-1/2 -translate-y-1/2 -mr-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-white" />
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* SVG Shopito */}

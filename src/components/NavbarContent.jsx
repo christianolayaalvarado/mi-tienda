@@ -166,28 +166,29 @@ export default function NavbarContent() {
         {/* ===== MOBILE: two rows ===== */}
         <div className="sm:hidden">
           {/* Row 1: Logo + actions */}
-          <div className="flex items-center gap-1 pr-4">
+          <div className="flex items-center justify-between pr-4">
             <Link href="/" className="flex items-center shrink-0">
               <img src="/images/logo.png" alt="Logo MiTienda" className="h-8 w-auto navbar-logo" />
             </Link>
-            <div className="flex-1" />
-            <button
-              type="button"
-              aria-label={`Abrir carrito, ${count} items`}
-              onClick={() => setCartOpen((s) => !s)}
-              className="text-sm font-medium cursor-pointer relative select-none shrink-0 min-h-[44px] flex items-center justify-center px-1"
-              aria-haspopup="true"
-              aria-expanded={cartOpen}
-              ref={cartRef}
-            >
-              <span data-cart-icon className="relative inline-block">
-                <span className="text-xl">🛒</span>
-                {mounted && count > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full">{count}</span>
-                )}
-              </span>
-            </button>
-            <UserMenu />
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label={`Abrir carrito, ${count} items`}
+                onClick={() => setCartOpen((s) => !s)}
+                className="text-sm font-medium cursor-pointer relative select-none shrink-0 min-h-[44px] flex items-center justify-center px-1"
+                aria-haspopup="true"
+                aria-expanded={cartOpen}
+                ref={cartRef}
+              >
+                <span data-cart-icon className="relative inline-block">
+                  <span className="text-xl">🛒</span>
+                  {mounted && count > 0 && (
+                    <span className="absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full">{count}</span>
+                  )}
+                </span>
+              </button>
+              <UserMenu />
+            </div>
           </div>
           {/* Row 2: Search */}
           <div className="mt-2">
