@@ -34,6 +34,24 @@ function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// Encontrar el contenedor scrolleable
+function findScrollContainer() {
+  // Buscar el div flex-1 overflow-auto del layout
+  const el = document.querySelector(".flex-1.overflow-auto");
+  if (el) return el;
+  // Fallback: buscar cualquier elemento con overflow auto/scroll
+  const all = document.querySelectorAll("div");
+  for (const d of all) {
+    const style = window.getComputedStyle(d);
+    if ((style.overflow === "auto" || style.overflow === "scroll" ||
+         style.overflowY === "auto" || style.overflowY === "scroll") &&
+        d.scrollHeight > d.clientHeight) {
+      return d;
+    }
+  }
+  return null;
+}
+
 export default function ScrollMascot() {
   const { user } = useAuthContext() || {};
   const [progress, setProgress] = useState(0);
@@ -49,6 +67,7 @@ export default function ScrollMascot() {
   const encourageTimer = useRef(null);
   const hasGreeted = useRef(false);
   const idleTimer = useRef(null);
+  const scrollElRef = useRef(null);
 
   // Track window height
   useEffect(() => {
@@ -58,10 +77,61 @@ export default function ScrollMascot() {
     return () => window.removeEventListener("resize", updateHeight);
   }, []);
 
-  // Calcular progreso real
+  // Encontrar el contenedor scrolleable y escuchar su evento scroll
+  useEffect(() => {
+    const findAndBind = () => {
+      const el = findScrollContainer();
+      if (el) {
+        scrollElRef.current = el;
+        el.addEventListener("scroll", updateProgress, { passive: true });
+        updateProgress();
+        return true;
+      }
+      return false;
+    };
+
+    // Intentar encontrar el contenedor
+    if (!findAndBind()) {
+      // Si no existe aún, observer para detectarlo
+      const interval = setInterval(() => {
+        if (findAndBind()) clearInterval(interval);
+      }, 100);
+      // También intentar en window como fallback
+      window.addEventListener("scroll", updateProgress, { passive: true });
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener("scroll", updateProgress);
+        if (scrollElRef.current) {
+          scrollElRef.current.removeEventListener("scroll", updateProgress);
+        }
+      };
+    }
+
+    return () => {
+      if (scrollElRef.current) {
+        scrollElRef.current.removeEventListener("scroll", updateProgress);
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Calcular progreso real desde el contenedor scrolleable
   const updateProgress = useCallback(() => {
-    const scrollY = window.scrollY || window.pageYOffset;
-    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const el = scrollElRef.current;
+    let scrollY = 0;
+    let scrollHeight = 0;
+    let clientHeight = 0;
+
+    if (el) {
+      scrollY = el.scrollTop;
+      scrollHeight = el.scrollHeight;
+      clientHeight = el.clientHeight;
+    } else {
+      scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      scrollHeight = document.documentElement.scrollHeight;
+      clientHeight = window.innerHeight;
+    }
+
+    const docHeight = scrollHeight - clientHeight;
     if (docHeight <= 0) { setProgress(0); return; }
     const pct = Math.min(Math.max(scrollY / docHeight, 0), 1);
     setProgress(pct);
@@ -82,16 +152,6 @@ export default function ScrollMascot() {
     window.addEventListener("mousemove", handleMouse, { passive: true });
     return () => window.removeEventListener("mousemove", handleMouse);
   }, []);
-
-  useEffect(() => {
-    updateProgress();
-    window.addEventListener("scroll", updateProgress, { passive: true });
-    window.addEventListener("resize", updateProgress, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", updateProgress);
-      window.removeEventListener("resize", updateProgress);
-    };
-  }, [updateProgress]);
 
   // Animación idle: brazos y piernas cada 0.6s
   useEffect(() => {
@@ -185,12 +245,11 @@ export default function ScrollMascot() {
   const legL = isIdle ? (idleFrame % 2 === 0 ? 0 : 3) : 0;
   const legR = isIdle ? (idleFrame % 2 === 0 ? 3 : 0) : 0;
 
-  // Posición mascot: de arriba (120px) hasta fondo del viewport
+  // Posición mascot
   const startY = 120;
   const endY = viewH - 70;
   const mascotTop = startY + progress * (endY - startY);
 
-  // Porcentaje real del scroll
   const displayPct = Math.round(progress * 100);
 
   return (
