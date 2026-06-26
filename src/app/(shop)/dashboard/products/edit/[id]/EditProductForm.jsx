@@ -267,106 +267,115 @@ export default function EditProductForm({ productId }) {
     }
   };
 
-  if (!product) return <p>Cargando...</p>;
+  if (!product) return <p className="text-gray-500">Cargando...</p>;
+
+  const inputClass = "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed";
+  const readOnlyClass = "w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed";
+  const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      {/* Editable title: permitido para todos los editores */}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {/* Editable title */}
       <div>
-        <label className="block text-sm font-medium">Nombre del producto</label>
+        <label htmlFor="edit-title" className={labelClass}>Nombre del producto</label>
         <input
+          id="edit-title"
           name="title"
           value={form.title}
           onChange={handleChange}
-          className="mt-1 block w-full border rounded p-2"
-          aria-label="Nombre del producto"
+          className={inputClass}
         />
       </div>
 
-      {/* Mensaje informativo: algunos campos son solo lectura si no eres owner */}
       {!isOwner && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-100 text-yellow-800 rounded">
-          Puedes editar el nombre y algunos campos. Algunos campos (Vendedor, Tienda, imágenes existentes, stock, precio y categoría) son solo lectura para tu cuenta.
+        <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-sm">
+          Puedes editar el nombre y algunos campos. Stock, precio, categoría e imágenes son solo lectura para tu cuenta.
         </div>
       )}
 
-      <div>
-        <label>Seller:</label>
-        <input value={product.user?.name || ""} readOnly className="border p-2 w-full bg-gray-100 cursor-not-allowed" />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={labelClass}>Vendedor</label>
+          <input value={product.user?.name || ""} readOnly className={readOnlyClass} />
+        </div>
+        <div>
+          <label className={labelClass}>Tienda</label>
+          <input value={product.store?.name || "Sin Tienda"} readOnly className={readOnlyClass} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="edit-price" className={labelClass}>Precio (S/)</label>
+          <input
+            id="edit-price"
+            type="number"
+            name="price"
+            value={form.price}
+            onChange={handleChange}
+            className={inputClass}
+            disabled={!isOwner}
+            step="0.01"
+          />
+        </div>
+        <div>
+          <label htmlFor="edit-stock" className={labelClass}>Stock</label>
+          <input
+            id="edit-stock"
+            type="number"
+            name="stock"
+            value={form.stock}
+            onChange={handleChange}
+            className={inputClass}
+            disabled={!isOwner}
+          />
+        </div>
       </div>
 
       <div>
-        <label>Tienda:</label>
-        <input value={product.store?.name || "Sin Tienda"} readOnly className="border p-2 w-full bg-gray-100 cursor-not-allowed" />
-      </div>
-
-      <div>
-        <label>Precio:</label>
-        <input
-          type="number"
-          name="price"
-          value={form.price}
-          onChange={handleChange}
-          className="border p-2 w-full"
-          disabled={!isOwner}
-          step="0.01"
-        />
-      </div>
-
-      <div>
-        <label>Stock:</label>
-        <input
-          type="number"
-          name="stock"
-          value={form.stock}
-          onChange={handleChange}
-          className="border p-2 w-full"
-          disabled={!isOwner}
-        />
-      </div>
-
-      <div>
-        <label>Categoría:</label>
+        <label htmlFor="edit-category" className={labelClass}>Categoría</label>
         <select
+          id="edit-category"
           name="categoryId"
           value={form.categoryId}
           onChange={handleChange}
-          className="border p-2 w-full"
+          className={inputClass + " bg-white"}
           disabled={!isOwner || loadingCategories}
         >
           <option value="">Seleccione</option>
           {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
           ))}
         </select>
       </div>
 
       <div>
-        <label>Descripción:</label>
+        <label htmlFor="edit-desc" className={labelClass}>Descripción</label>
         <textarea
+          id="edit-desc"
           name="description"
           value={form.description}
           onChange={handleChange}
-          className="border p-2 w-full"
+          rows={4}
+          className={inputClass + " resize-none"}
           disabled={!isOwner}
         />
       </div>
 
       <div>
-        <label>Imágenes existentes:</label>
+        <label className={labelClass}>Imágenes existentes</label>
         <div className="flex gap-2 flex-wrap">
           {product.images?.map((img, i) => (
-            <div key={i} className="relative">
-              <img src={img} className="w-24 h-24 object-cover rounded" />
+            <div key={i} className="relative group">
+              <img src={img} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border border-gray-200" alt={`Imagen ${i + 1}`} />
               {isOwner && (
                 <button
                   type="button"
                   onClick={() => handleRemoveExisting(i)}
-                  className="absolute top-0 right-0 bg-red-500 text-white w-6 h-6 text-xs rounded-full"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 text-xs rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow"
+                  aria-label={`Eliminar imagen ${i + 1}`}
                 >
-                  X
+                  ✕
                 </button>
               )}
             </div>
@@ -374,39 +383,48 @@ export default function EditProductForm({ productId }) {
         </div>
       </div>
 
-      <div>
-        <label>Agregar imágenes:</label>
-        <input
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleImageSelect}
-          className="border p-2 w-full"
-          disabled={!isOwner}
-        />
+      {isOwner && (
+        <div>
+          <label htmlFor="edit-new-images" className={labelClass}>Agregar imágenes</label>
+          <input
+            id="edit-new-images"
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-green-50 file:text-green-700 file:font-medium file:cursor-pointer hover:file:bg-green-100"
+          />
 
-        <div className="flex gap-2 flex-wrap mt-2">
-          {previewImages.map((img, i) => (
-            <div key={i} className="relative">
-              <img src={img} className="w-24 h-24 object-cover rounded" />
-              {isOwner && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveNew(i)}
-                  className="absolute top-0 right-0 bg-red-500 text-white w-6 h-6 text-xs rounded-full"
-                >
-                  X
-                </button>
-              )}
+          {previewImages.length > 0 && (
+            <div className="flex gap-2 flex-wrap mt-3">
+              {previewImages.map((img, i) => (
+                <div key={i} className="relative group">
+                  <img src={img} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border border-gray-200" alt={`Nueva imagen ${i + 1}`} />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveNew(i)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 text-xs rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow"
+                    aria-label={`Eliminar nueva imagen ${i + 1}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Guardar: habilitado para todos (solo el backend validará permisos sensibles) */}
-      <button disabled={loading} className="bg-blue-600 text-white p-2 rounded">
-        {loading ? "Guardando..." : "Guardar cambios"}
-      </button>
+      <div className="flex gap-3 pt-2">
+        <button
+          disabled={loading}
+          className={`flex-1 sm:flex-none px-6 py-3 rounded-lg font-semibold text-white transition ${
+            loading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+          }`}
+        >
+          {loading ? "Guardando..." : "Guardar cambios"}
+        </button>
+      </div>
 
       {/* Eliminar: solo owner */}
       <button type="button" onClick={handleDelete} className="bg-red-600 text-white p-2 rounded" disabled={!isOwner}>

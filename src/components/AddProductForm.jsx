@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import useCategories from "@/hooks/useCategories"; // ✅ hook centralizado
+import useCategories from "@/hooks/useCategories";
 
 const CLOUDINARY_CLOUD_NAME = "dqx8wx5fj";
 const UPLOAD_PRESET = "mi_tienda_unsigned";
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const MAX_FILES = 8; // opcional: límite de archivos por producto
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILES = 8;
 
 export default function AddProductForm() {
   const router = useRouter();
+  const { categories, loading: loadingCategories } = useCategories();
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -21,22 +22,16 @@ export default function AddProductForm() {
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // ✅ obtener categorías desde el hook centralizado
-  const { categories, loading: loadingCategories } = useCategories();
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
-    // limpiar object URLs al desmontar
-    return () => {
-      previews.forEach((p) => URL.revokeObjectURL(p));
-    };
+    return () => previews.forEach((p) => URL.revokeObjectURL(p));
   }, [previews]);
 
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files || []);
     if (selected.length === 0) return;
 
-    // limitar cantidad total
     if (files.length + selected.length > MAX_FILES) {
       toast.error(`Máximo ${MAX_FILES} imágenes por producto.`);
       return;
@@ -50,6 +45,7 @@ export default function AddProductForm() {
     const newPreviews = filtered.map((f) => URL.createObjectURL(f));
     setFiles((prev) => [...prev, ...filtered]);
     setPreviews((prev) => [...prev, ...newPreviews]);
+    if (fieldErrors.images) setFieldErrors((prev) => ({ ...prev, images: "" }));
   };
 
   const removeFile = (index) => {
@@ -61,7 +57,6 @@ export default function AddProductForm() {
     });
   };
 
-  // Subir un archivo a Cloudinary (unsigned preset)
   const uploadToCloudinary = async (file) => {
     const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
     const fd = new FormData();
@@ -78,11 +73,21 @@ export default function AddProductForm() {
     return data.secure_url;
   };
 
+  const validate = () => {
+    const errors = {};
+    if (!title.trim()) errors.title = "El título es requerido";
+    if (!price || Number(price) <= 0) errors.price = "Precio inválido";
+    if (!categoryId) errors.categoryId = "Selecciona una categoría";
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
 
-    if (!title || !price || !categoryId) {
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       toast.error("Completa los campos obligatorios.");
       return;
     }
@@ -91,7 +96,6 @@ export default function AddProductForm() {
     const uploadingToast = toast.loading("Subiendo imágenes...");
 
     try {
-      // 1) Subir archivos a Cloudinary desde el cliente (paralelo controlado)
       const uploadPromises = files.map((file) =>
         uploadToCloudinary(file).then(
           (url) => ({ status: "fulfilled", value: url }),
@@ -100,25 +104,20 @@ export default function AddProductForm() {
       );
 
       const results = await Promise.all(uploadPromises);
-
-      const successful = results
-        .filter((r) => r.status === "fulfilled")
-        .map((r) => r.value);
-
+      const successful = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
       const failed = results.filter((r) => r.status === "rejected");
+
       if (failed.length > 0) {
-        console.warn("Algunas imágenes fallaron al subir:", failed);
         toast.error(`${failed.length} imagen(es) no se subieron correctamente.`);
       }
 
-      // 2) Enviar metadata al backend (solo URLs)
       const payload = {
         title: title.trim(),
         price: Number(price),
         stock: Number(stock),
         description: description || "",
         categoryId,
-        images: successful, // solo URLs
+        images: successful,
       };
 
       const res = await fetch("/api/products", {
@@ -129,18 +128,15 @@ export default function AddProductForm() {
 
       if (!res.ok) {
         const text = await res.text();
-        console.error("Error creando producto:", res.status, text);
         toast.error(`Error creando producto: ${res.status}`);
         toast.dismiss(uploadingToast);
         setLoading(false);
         return;
       }
 
-      const data = await res.json();
-      toast.success("Producto creado ✅");
+      toast.success("Producto creado");
       toast.dismiss(uploadingToast);
 
-      // limpiar y redirigir
       setTitle("");
       setPrice("");
       setStock(1);
@@ -159,105 +155,154 @@ export default function AddProductForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto p-4 space-y-4">
-      <h2 className="text-xl font-bold">Nuevo producto</h2>
+    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto p-4 sm:p-6">
+      <h2 className="text-xl font-bold mb-6">Nuevo producto</h2>
 
-      <div>
-        <label className="block">Título *</label>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="border p-2 w-full"
-          placeholder="Nombre del producto"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-5">
+        {/* Título */}
         <div>
-          <label>Precio *</label>
+          <label htmlFor="prod-title" className="block text-sm font-medium text-gray-700 mb-1">
+            Título *
+          </label>
           <input
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="border p-2 w-full"
-            min="0"
-            step="0.01"
+            id="prod-title"
+            type="text"
+            value={title}
+            onChange={(e) => { setTitle(e.target.value); if (fieldErrors.title) setFieldErrors((p) => ({ ...p, title: "" })); }}
+            placeholder="Nombre del producto"
+            className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition ${
+              fieldErrors.title ? "border-red-400" : "border-gray-300"
+            }`}
+          />
+          {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
+        </div>
+
+        {/* Precio y Stock */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="prod-price" className="block text-sm font-medium text-gray-700 mb-1">
+              Precio (S/) *
+            </label>
+            <input
+              id="prod-price"
+              type="number"
+              value={price}
+              onChange={(e) => { setPrice(e.target.value); if (fieldErrors.price) setFieldErrors((p) => ({ ...p, price: "" })); }}
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition ${
+                fieldErrors.price ? "border-red-400" : "border-gray-300"
+              }`}
+            />
+            {fieldErrors.price && <p className="text-red-500 text-xs mt-1">{fieldErrors.price}</p>}
+          </div>
+          <div>
+            <label htmlFor="prod-stock" className="block text-sm font-medium text-gray-700 mb-1">
+              Stock *
+            </label>
+            <input
+              id="prod-stock"
+              type="number"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              min="0"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
+            />
+          </div>
+        </div>
+
+        {/* Categoría */}
+        <div>
+          <label htmlFor="prod-category" className="block text-sm font-medium text-gray-700 mb-1">
+            Categoría *
+          </label>
+          <select
+            id="prod-category"
+            value={categoryId}
+            onChange={(e) => { setCategoryId(e.target.value); if (fieldErrors.categoryId) setFieldErrors((p) => ({ ...p, categoryId: "" })); }}
+            className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition bg-white ${
+              fieldErrors.categoryId ? "border-red-400" : "border-gray-300"
+            }`}
+          >
+            <option value="">Seleccione una categoría</option>
+            {loadingCategories ? (
+              <option value="" disabled>Cargando categorías...</option>
+            ) : (
+              (categories || []).map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))
+            )}
+          </select>
+          {fieldErrors.categoryId && <p className="text-red-500 text-xs mt-1">{fieldErrors.categoryId}</p>}
+        </div>
+
+        {/* Descripción */}
+        <div>
+          <label htmlFor="prod-desc" className="block text-sm font-medium text-gray-700 mb-1">
+            Descripción
+          </label>
+          <textarea
+            id="prod-desc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+            placeholder="Describe tu producto..."
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition resize-none"
           />
         </div>
+
+        {/* Imágenes */}
         <div>
-          <label>Stock *</label>
+          <label htmlFor="prod-images" className="block text-sm font-medium text-gray-700 mb-1">
+            Imágenes (máx {MAX_FILES}, 10MB cada una)
+          </label>
           <input
-            type="number"
-            value={stock}
-            onChange={(e) => setStock(e.target.value)}
-            className="border p-2 w-full"
-            min="0"
+            id="prod-images"
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleFiles}
+            disabled={files.length >= MAX_FILES}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-green-50 file:text-green-700 file:font-medium file:cursor-pointer hover:file:bg-green-100"
           />
-        </div>
-      </div>
-
-      <div>
-        <label>Categoría *</label>
-        <select
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          className="border p-2 w-full"
-        >
-          <option value="">Seleccione</option>
-          {loadingCategories ? (
-            <option value="">Cargando categorías...</option>
-          ) : (
-            (categories || []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))
-          )}
-        </select>
-      </div>
-
-      <div>
-        <label>Descripción</label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="border p-2 w-full"
-        />
-      </div>
-
-      <div>
-        <label>Imágenes (máx 10MB cada una)</label>
-        <input
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleFiles}
-          className="border p-2 w-full"
-          disabled={files.length >= MAX_FILES}
-        />
-        <div className="flex gap-2 mt-2 flex-wrap">
-          {previews.map((p, i) => (
-            <div key={i} className="relative">
-              <img src={p} className="w-24 h-24 object-cover rounded" alt={`preview-${i}`} />
-              <button
-                type="button"
-                onClick={() => removeFile(i)}
-                className="absolute top-0 right-0 bg-red-500 text-white w-6 h-6 text-xs rounded-full"
-              >
-                X
-              </button>
+          {previews.length > 0 && (
+            <div className="flex gap-2 mt-3 flex-wrap">
+              {previews.map((p, i) => (
+                <div key={i} className="relative group">
+                  <img src={p} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border border-gray-200" alt={`Vista previa ${i + 1}`} />
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 text-xs rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow"
+                    aria-label={`Eliminar imagen ${i + 1}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       </div>
 
-      <div className="flex gap-2">
+      {/* Botones */}
+      <div className="flex gap-3 mt-6">
         <button
           type="submit"
           disabled={loading}
-          className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-60"
+          className={`flex-1 sm:flex-none px-6 py-3 rounded-lg font-semibold text-white transition ${
+            loading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+          }`}
         >
-          {loading ? "Guardando..." : "Crear producto"}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+              Guardando...
+            </span>
+          ) : (
+            "Crear producto"
+          )}
         </button>
 
         <button
@@ -267,7 +312,7 @@ export default function AddProductForm() {
             setFiles([]);
             setPreviews([]);
           }}
-          className="bg-gray-200 px-4 py-2 rounded"
+          className="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition font-medium"
         >
           Limpiar imágenes
         </button>
