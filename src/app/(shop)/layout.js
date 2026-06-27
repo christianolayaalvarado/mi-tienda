@@ -1,6 +1,5 @@
 "use client";
 
-import HelpModal from "@/components/HelpModal";
 import ShopFooter from "@/components/ShopFooter";
 
 export default function ShopLayout({ children }) {
@@ -8,7 +7,6 @@ export default function ShopLayout({ children }) {
     <>
       {children}
       <ShopFooter />
-      <HelpModal />
     </>
   );
 }
