@@ -222,9 +222,44 @@ const MASCOT_COMPONENTS = {
   bag: BagMascot,
 };
 
-export default function MascotAvatar({ type = "box", size = 64, animate = true }) {
-  const Component = MASCOT_COMPONENTS[type] || MASCOT_COMPONENTS.box;
-  return <Component size={size} animate={animate} />;
+const IMAGE_MASCOTS = {
+  box_c: { front: "/mascots/box_c/front.svg", side: "/mascots/box_c/side.svg", rear: "/mascots/box_c/rear.svg" },
+  coin_a: { front: "/mascots/coin_a/front.svg", side: "/mascots/coin_a/side.svg", rear: "/mascots/coin_a/rear.svg" },
+  cart_a: { front: "/mascots/cart_a/front.svg", side: "/mascots/cart_a/side.svg", rear: "/mascots/cart_a/rear.svg" },
+  cart_b: { front: "/mascots/cart_b/front.svg", side: "/mascots/cart_b/side.svg", rear: "/mascots/cart_b/rear.svg" },
+  coupon_c: { front: "/mascots/coupon_c/front.svg", side: "/mascots/coupon_c/side.svg", rear: "/mascots/coupon_c/rear.svg" },
+  bag_b: { front: "/mascots/bag_b/front.svg", side: "/mascots/bag_b/side.svg", rear: "/mascots/bag_b/rear.svg" },
+  rocket_b: { front: "/mascots/rocket_b/front.svg", side: "/mascots/rocket_b/side.svg", rear: "/mascots/rocket_b/rear.svg" },
+  dog_c: { front: "/mascots/dog_c/front.svg", side: "/mascots/dog_c/side.svg", rear: "/mascots/dog_c/rear.svg" },
+  cat_b: { front: "/mascots/cat_b/front.svg", side: "/mascots/cat_b/side.svg", rear: "/mascots/cat_b/rear.svg" },
+  chicken_b: { front: "/mascots/chicken_b/front.svg", side: "/mascots/chicken_b/side.svg", rear: "/mascots/chicken_b/rear.svg" },
+  cuy_c: { front: "/mascots/cuy_c/front.svg", side: "/mascots/cuy_c/side.svg", rear: "/mascots/cuy_c/rear.svg" },
+};
+
+export default function MascotAvatar({ type = "box", size = 64, animate = true, view = "front" }) {
+  const svgComponent = MASCOT_COMPONENTS[type];
+  if (svgComponent) {
+    return <svgComponent size={size} animate={animate} />;
+  }
+
+  const images = IMAGE_MASCOTS[type];
+  if (images) {
+    const src = images[view] || images.front;
+    if (src) {
+      return (
+        <img
+          src={src}
+          alt={`Mascota ${type}`}
+          width={size}
+          height={size}
+          className="object-contain"
+          style={{ width: size, height: size }}
+        />
+      );
+    }
+  }
+
+  return <BoxMascot size={size} animate={animate} />;
 }
 
-export { MASCOT_COMPONENTS, BoxMascot, CoinMascot, CartMascot, CouponMascot, BagMascot };
+export { MASCOT_COMPONENTS, IMAGE_MASCOTS, BoxMascot, CoinMascot, CartMascot, CouponMascot, BagMascot };

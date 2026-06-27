@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import MascotAvatar from "@/components/MascotAvatar";
 import { MASCOT_LIST, ACHIEVEMENT_DEFINITIONS } from "@/lib/mascotCatalog";
+import { IMAGE_MASCOTS } from "@/components/MascotAvatar";
 import toast from "react-hot-toast";
 
 export default function MascotGallery() {
@@ -30,6 +31,8 @@ export default function MascotGallery() {
       }
     })();
   }, []);
+
+  const [previewView, setPreviewView] = useState("front");
 
   const handleSelect = async (mascotId) => {
     if (!unlockedIds.includes(mascotId)) return;
@@ -119,8 +122,27 @@ export default function MascotGallery() {
                   type={mascot.id}
                   size={72}
                   animate={isUnlocked && (isHovered || isSelected)}
+                  view={IMAGE_MASCOTS[mascot.id] ? previewView : "front"}
                 />
               </div>
+
+              {IMAGE_MASCOTS[mascot.id] && isUnlocked && (
+                <div className="flex justify-center gap-1 mb-2">
+                  {["front", "side", "rear"].map((v) => (
+                    <button
+                      key={v}
+                      onClick={(e) => { e.stopPropagation(); setPreviewView(v); }}
+                      className={`text-xs px-2 py-0.5 rounded-full transition ${
+                        previewView === v
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {v === "front" ? "Frente" : v === "side" ? "Lado" : "Atrás"}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <h3 className="font-semibold text-gray-900 text-sm">{mascot.name}</h3>
 
