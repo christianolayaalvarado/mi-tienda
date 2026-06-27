@@ -214,136 +214,12 @@ function BagMascot({ size = 64, animate = true }) {
   );
 }
 
-function RocketMascot({ size = 64, animate = true }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-      <defs>
-        <linearGradient id="rocketGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#93C5FD" />
-          <stop offset="100%" stopColor="#3B82F6" />
-        </linearGradient>
-      </defs>
-      {/* Rocket body */}
-      <path d="M50 10 Q65 30 65 55 L35 55 Q35 30 50 10Z" fill="url(#rocketGrad)" stroke="#2563EB" strokeWidth="2" />
-      {/* Nose cone */}
-      <path d="M50 10 Q55 20 55 30 L45 30 Q45 20 50 10Z" fill="#BFDBFE" />
-      {/* Window */}
-      <circle cx="50" cy="38" r="8" fill="#DBEAFE" stroke="#2563EB" strokeWidth="1.5" />
-      <circle cx="50" cy="38" r="5" fill="#EFF6FF" />
-      {/* Eyes in window */}
-      <circle cx="47" cy="37" r="2" fill="#1F2937">
-        {animate && <animate attributeName="cx" values="47;48;47;46;47" dur="2.5s" repeatCount="indefinite" />}
-      </circle>
-      <circle cx="53" cy="37" r="2" fill="#1F2937">
-        {animate && <animate attributeName="cx" values="53;54;53;52;53" dur="2.5s" repeatCount="indefinite" />}
-      </circle>
-      {/* Fins */}
-      <path d="M35 45 L22 60 L35 55Z" fill="#2563EB" stroke="#1D4ED8" strokeWidth="1.5" />
-      <path d="M65 45 L78 60 L65 55Z" fill="#2563EB" stroke="#1D4ED8" strokeWidth="1.5" />
-      {/* Flame */}
-      <g>
-        <path d="M42 55 L50 80 L58 55" fill="#F97316" opacity="0.9">
-          {animate && <animate attributeName="d" values="M42 55 L50 80 L58 55;M44 55 L50 75 L56 55;M42 55 L50 80 L58 55" dur="0.4s" repeatCount="indefinite" />}
-        </path>
-        <path d="M45 55 L50 72 L55 55" fill="#FCD34D">
-          {animate && <animate attributeName="d" values="M45 55 L50 72 L55 55;M46 55 L50 68 L54 55;M45 55 L50 72 L55 55" dur="0.3s" repeatCount="indefinite" />}
-        </path>
-      </g>
-      {/* Smile */}
-      <path d="M46 42 Q50 45 54 42" stroke="#1E40AF" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CrownMascot({ size = 64, animate = true }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-      <defs>
-        <linearGradient id="crownGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FDE68A" />
-          <stop offset="100%" stopColor="#F59E0B" />
-        </linearGradient>
-      </defs>
-      {/* Crown body */}
-      <path d="M15 65 L20 30 L35 50 L50 20 L65 50 L80 30 L85 65Z" fill="url(#crownGrad)" stroke="#D97706" strokeWidth="2" />
-      {/* Crown base */}
-      <rect x="15" y="65" width="70" height="12" rx="3" fill="#F59E0B" stroke="#D97706" strokeWidth="2" />
-      {/* Gems */}
-      <circle cx="35" cy="71" r="3" fill="#EF4444" stroke="#DC2626" strokeWidth="1" />
-      <circle cx="50" cy="71" r="3" fill="#3B82F6" stroke="#2563EB" strokeWidth="1" />
-      <circle cx="65" cy="71" r="3" fill="#22C55E" stroke="#16A34A" strokeWidth="1" />
-      {/* Tips */}
-      <circle cx="20" cy="30" r="3" fill="#FDE68A" stroke="#D97706" strokeWidth="1" />
-      <circle cx="50" cy="20" r="3" fill="#FDE68A" stroke="#D97706" strokeWidth="1" />
-      <circle cx="80" cy="30" r="3" fill="#FDE68A" stroke="#D97706" strokeWidth="1" />
-      {/* Face on base */}
-      <ellipse cx="40" cy="82" rx="3" ry="3.5" fill="white" />
-      <ellipse cx="60" cy="82" rx="3" ry="3.5" fill="white" />
-      <circle cx="41" cy="82" r="1.5" fill="#1F2937" />
-      <circle cx="61" cy="82" r="1.5" fill="#1F2937" />
-      <path d="M44 87 Q50 91 56 87" stroke="#92400E" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      {/* Shine animation */}
-      {animate && (
-        <ellipse cx="30" cy="45" rx="4" ry="2" fill="white" opacity="0.5" transform="rotate(-20 30 45)">
-          <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2s" repeatCount="indefinite" />
-        </ellipse>
-      )}
-    </svg>
-  );
-}
-
-function GhostMascot({ size = 64, animate = true }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-      <defs>
-        <linearGradient id="ghostGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#E5E7EB" />
-          <stop offset="100%" stopColor="#9CA3AF" />
-        </linearGradient>
-      </defs>
-      {/* Ghost body */}
-      <path d="M25 50 Q25 15 50 15 Q75 15 75 50 L75 80 Q70 72 65 80 Q60 72 55 80 Q50 72 45 80 Q40 72 35 80 Q30 72 25 80Z" fill="url(#ghostGrad)" stroke="#6B7280" strokeWidth="2" />
-      {/* Eyes */}
-      <ellipse cx="38" cy="42" rx="6" ry="7" fill="white" />
-      <ellipse cx="62" cy="42" rx="6" ry="7" fill="white" />
-      <circle cx="40" cy="42" r="3" fill="#1F2937">
-        {animate && (
-          <>
-            <animate attributeName="cy" values="42;41;42;43;42" dur="3s" repeatCount="indefinite" />
-            <animate attributeName="r" values="3;1;3" dur="4s" repeatCount="indefinite" />
-          </>
-        )}
-      </circle>
-      <circle cx="64" cy="42" r="3" fill="#1F2937">
-        {animate && (
-          <>
-            <animate attributeName="cy" values="42;41;42;43;42" dur="3s" repeatCount="indefinite" />
-            <animate attributeName="r" values="3;1;3" dur="4s" repeatCount="indefinite" />
-          </>
-        )}
-      </circle>
-      {/* Mouth */}
-      <ellipse cx="50" cy="58" rx="5" ry="4" fill="#4B5563" />
-      {/* Floating animation */}
-      {animate && (
-        <animateTransform attributeName="transform" type="translate" values="0 0;0 -4;0 0" dur="2s" repeatCount="indefinite" />
-      )}
-      {/* Blush */}
-      <circle cx="28" cy="50" r="4" fill="#FCA5A5" opacity="0.3" />
-      <circle cx="72" cy="50" r="4" fill="#FCA5A5" opacity="0.3" />
-    </svg>
-  );
-}
-
 const MASCOT_COMPONENTS = {
   box: BoxMascot,
   coin: CoinMascot,
   cart: CartMascot,
   coupon: CouponMascot,
   bag: BagMascot,
-  rocket: RocketMascot,
-  crown: CrownMascot,
-  ghost: GhostMascot,
 };
 
 export default function MascotAvatar({ type = "box", size = 64, animate = true }) {
@@ -351,4 +227,4 @@ export default function MascotAvatar({ type = "box", size = 64, animate = true }
   return <Component size={size} animate={animate} />;
 }
 
-export { MASCOT_COMPONENTS, BoxMascot, CoinMascot, CartMascot, CouponMascot, BagMascot, RocketMascot, CrownMascot, GhostMascot };
+export { MASCOT_COMPONENTS, BoxMascot, CoinMascot, CartMascot, CouponMascot, BagMascot };

@@ -209,7 +209,7 @@ export default function HelpModal() {
       {/* Floating Button */}
       <button
         onClick={toggle}
-        className={`fixed bottom-5 right-5 z-[60] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
+        className={`fixed bottom-5 left-5 sm:left-auto sm:right-5 z-[60] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
           isOpen ? "bg-gray-700 rotate-90" : "bg-green-600 hover:bg-green-700"
         }`}
         aria-label={isOpen ? "Cerrar ayuda" : "Abrir ayuda"}
@@ -227,7 +227,7 @@ export default function HelpModal() {
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed bottom-24 right-5 z-[60] w-[360px] max-w-[calc(100vw-2.5rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden" style={{ height: "min(560px, calc(100vh - 120px))" }}>
+        <div className="fixed bottom-24 left-5 sm:left-auto sm:right-5 z-[60] w-[360px] max-w-[calc(100vw-2.5rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden" style={{ height: "min(560px, calc(100vh - 120px))" }}>
           {/* Header */}
           <div className="bg-gradient-to-br from-gray-800 to-gray-900 text-white p-5 pb-4">
             <div className="flex items-center justify-between mb-3">
