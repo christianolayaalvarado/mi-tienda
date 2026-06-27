@@ -8,6 +8,7 @@ import SearchBox from "./navbar/SearchBox";
 import CartPreview from "./navbar/CartPreview";
 import UserMenu from "./navbar/UserMenu";
 import CategoryScroller from "./navbar/CategoryScroller";
+import HelpModal from "@/components/HelpModal";
 import {
   buildURL,
   safeParseLocalCart,
@@ -171,6 +172,7 @@ export default function NavbarContent() {
   }, [cartItems, localRaw]);
 
   return (
+    <>
     <nav className="w-full bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
         {/* Single flex row with wrap: search goes to line 2 on mobile */}
@@ -227,6 +229,8 @@ export default function NavbarContent() {
           router.push(buildURL({ categoryVal: cat, pageVal: "1" }));
         }}
       />
-    </nav>
+      </nav>
+      <HelpModal />
+    </>
   );
 }

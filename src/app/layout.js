@@ -11,7 +11,7 @@ import { Toaster } from "react-hot-toast";
 // Nuevo: AuthProvider y RootLayoutClientInit
 import { AuthProvider } from "@/context/AuthProvider";
 import RootLayoutClientInit from "@/components/RootLayoutClientInit";
-import HelpModal from "@/components/HelpModal";
+import ScrollWrapper from "@/components/ScrollWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,7 +65,7 @@ export default function RootLayout({ children }) {
               <ThemeInitializer />
 
               <div className="flex-1 overflow-auto min-h-0">
-                {children}
+                <ScrollWrapper>{children}</ScrollWrapper>
               </div>
 
               <Toaster
@@ -80,8 +80,6 @@ export default function RootLayout({ children }) {
                 }}
               />
 
-              {/* Help Modal - siempre visible, fuera del scroll */}
-              <HelpModal />
             </CartProvider>
           </AuthProvider>
         </Providers>
