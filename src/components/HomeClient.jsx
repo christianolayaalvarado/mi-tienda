@@ -215,7 +215,7 @@ export default function HomeClient() {
       )}
 
       {/* Mascota animada */}
-      <ScrollMascot />
+      <ScrollMascot onClick={() => window.dispatchEvent(new CustomEvent("open-help-modal"))} />
     </div>
   );
 }

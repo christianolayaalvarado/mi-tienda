@@ -60,6 +60,14 @@ export async function POST(req, context) {
       data: { paymentStatus: "paid" },
     })
 
+    // Gamification: check for new achievements
+    try {
+      const { checkAndAwardAchievements } = await import("@/lib/gamification");
+      await checkAndAwardAchievements(order.userId);
+    } catch (e) {
+      // silent - don't block order flow
+    }
+
     // Enviar emails de notificación (no bloquear la respuesta)
     try {
       const buyerEmail = order.customerEmail || order.user?.email;

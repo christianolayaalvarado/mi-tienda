@@ -95,6 +95,14 @@ export async function POST(req) {
       },
     });
 
+    // Gamification: check for new achievements
+    try {
+      const { checkAndAwardAchievements } = await import("@/lib/gamification");
+      await checkAndAwardAchievements(userId);
+    } catch (e) {
+      // silent
+    }
+
     return NextResponse.json({ review }, { status: 201 });
   } catch (err) {
     console.error("ERROR POST review:", err);

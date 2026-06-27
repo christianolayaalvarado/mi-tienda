@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthContext } from "@/context/AuthProvider";
+import MascotAvatar from "@/components/MascotAvatar";
 
 const MESSAGES_MID = [
   "¡Ya vas por la mitad! Sigue bajando 🚀",
@@ -102,7 +103,7 @@ function Balloon({ delay, color, left }) {
 const BALLOON_COLORS = ["#F87171", "#60A5FA", "#34D399", "#FBBF24", "#A78BFA", "#FB923C", "#F472B6"];
 const CONFETTI_COLORS = ["#F87171", "#60A5FA", "#34D399", "#FBBF24", "#A78BFA", "#FB923C"];
 
-export default function ScrollMascot() {
+export default function ScrollMascot({ onClick }) {
   const { user } = useAuthContext() || {};
   const [progress, setProgress] = useState(0);
   const [viewH, setViewH] = useState(800);
@@ -117,12 +118,22 @@ export default function ScrollMascot() {
   const [celebrating, setCelebrating] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
+  const [mascotType, setMascotType] = useState("box");
   const gridRightRef = useRef(0);
   const lastMessageZone = useRef("");
   const encourageTimer = useRef(null);
   const hasGreeted = useRef(false);
   const idleTimer = useRef(null);
   const scrollElRef = useRef(null);
+
+  // Fetch user's selected mascot
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/user/mascot")
+      .then((r) => r.json())
+      .then((d) => { if (d.mascot) setMascotType(d.mascot); })
+      .catch(() => {});
+  }, [user]);
 
   // Track layout
   useEffect(() => {
@@ -381,11 +392,15 @@ export default function ScrollMascot() {
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 rounded-full border border-white bg-green-200 z-10" />
       </div>
 
-      {/* Mascot */}
-      <div
-        className="absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group"
-        style={{ top: `${mascotTop}px`, transition: "top 0.1s linear", transform: `translateX(-${walkX}px)` }}
-      >
+        {/* Mascot */}
+        <div
+          className="absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group"
+          style={{ top: `${mascotTop}px`, transition: "top 0.1s linear", transform: `translateX(-${walkX}px)` }}
+          onClick={onClick}
+          role="button"
+          tabIndex={0}
+          aria-label="Abrir ayuda"
+        >
         {/* Speech bubble — position depends on mascot location */}
         {message && (
           <>
@@ -419,85 +434,9 @@ export default function ScrollMascot() {
           </>
         )}
 
-        {/* SVG Shopito */}
+        {/* Mascot Avatar */}
         <div className={`transition-transform duration-200 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}>
-          <svg width="44" height="56" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg">
-            {/* Party hat */}
-            {atBottom && (
-              <g>
-                <polygon points="32,0 22,16 42,16" fill="#EF4444" />
-                <polygon points="32,0 22,16 42,16" fill="url(#hatGrad)" />
-                <circle cx="32" cy="1" r="2.5" fill="#FBBF24" />
-                <line x1="25" y1="10" x2="39" y2="10" stroke="#FBBF24" strokeWidth="1" />
-                <line x1="23" y1="13" x2="41" y2="13" stroke="#60A5FA" strokeWidth="0.8" />
-              </g>
-            )}
-
-            {/* Legs */}
-            <rect x="18" y="62" width="6" height="12" rx="3" fill="#D97706"
-              style={{ transform: `translateY(${isJumping ? -6 : legL}px)`, transition: "transform 0.3s ease" }} />
-            <rect x="40" y="62" width="6" height="12" rx="3" fill="#D97706"
-              style={{ transform: `translateY(${isJumping ? -6 : legR}px)`, transition: "transform 0.3s ease" }} />
-            <ellipse cx="21" cy="74" rx="5" ry="2.5" fill="#92400E"
-              style={{ transform: `translateY(${isJumping ? -6 : legL}px)`, transition: "transform 0.3s ease" }} />
-            <ellipse cx="43" cy="74" rx="5" ry="2.5" fill="#92400E"
-              style={{ transform: `translateY(${isJumping ? -6 : legR}px)`, transition: "transform 0.3s ease" }} />
-
-            {/* Arms */}
-            <rect x="4" y="30" width="6" height="18" rx="3" fill="#D97706"
-              style={{ transformOrigin: "7px 30px", transform: `rotate(${armL}deg)`, transition: "transform 0.3s ease" }} />
-            <rect x="54" y="30" width="6" height="18" rx="3" fill="#D97706"
-              style={{ transformOrigin: "57px 30px", transform: `rotate(${armR}deg)`, transition: "transform 0.3s ease" }} />
-            <circle cx="7" cy="48" r="3.5" fill="#FBBF24"
-              style={{ transform: `rotate(${armL}deg)`, transformOrigin: "7px 30px", transition: "transform 0.3s ease" }} />
-            <circle cx="57" cy="48" r="3.5" fill="#FBBF24"
-              style={{ transform: `rotate(${armR}deg)`, transformOrigin: "57px 30px", transition: "transform 0.3s ease" }} />
-
-            {/* Body */}
-            <rect x="12" y="12" width="40" height="48" rx="4" fill="#F59E0B" />
-            <rect x="12" y="12" width="40" height="48" rx="4" fill="url(#bGrad)" />
-            <path d="M22 12 C22 4, 42 4, 42 12" stroke="#D97706" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-            <line x1="20" y1="18" x2="20" y2="56" stroke="#D97706" strokeWidth="0.5" opacity="0.25" />
-            <line x1="32" y1="18" x2="32" y2="56" stroke="#D97706" strokeWidth="0.5" opacity="0.25" />
-            <line x1="44" y1="18" x2="44" y2="56" stroke="#D97706" strokeWidth="0.5" opacity="0.25" />
-
-            {/* Eyes */}
-            <ellipse cx="24" cy="32" rx="5" ry="5.5" fill="white" />
-            <ellipse cx="40" cy="32" rx="5" ry="5.5" fill="white" />
-            <circle cx={24 + eyeDirection.x} cy={33 + eyeDirection.y} r="2.8" fill="#1F2937" />
-            <circle cx={40 + eyeDirection.x} cy={33 + eyeDirection.y} r="2.8" fill="#1F2937" />
-            <circle cx={25 + eyeDirection.x * 0.5} cy={31.5 + eyeDirection.y * 0.5} r="1" fill="white" />
-            <circle cx={41 + eyeDirection.x * 0.5} cy={31.5 + eyeDirection.y * 0.5} r="1" fill="white" />
-
-            {/* Eyebrows */}
-            <line x1="20" y1="25" x2="28" y2="26" stroke="#92400E" strokeWidth="1.5" strokeLinecap="round" />
-            <line x1="36" y1="26" x2="44" y2="25" stroke="#92400E" strokeWidth="1.5" strokeLinecap="round" />
-
-            {/* Mouth */}
-            {atBottom ? (
-              <path d="M24 42 Q32 50 40 42" stroke="#92400E" strokeWidth="2" fill="#FCA5A5" strokeLinecap="round" />
-            ) : (
-              <path d="M26 43 Q32 48 38 43" stroke="#92400E" strokeWidth="2" fill="none" strokeLinecap="round" />
-            )}
-
-            {/* Cheeks */}
-            <circle cx="18" cy="40" r="2.5" fill="#FCD34D" opacity="0.5" />
-            <circle cx="46" cy="40" r="2.5" fill="#FCD34D" opacity="0.5" />
-
-            {/* Star */}
-            <path d="M32 48 L33.2 50.5 L36 51 L34 53 L34.5 56 L32 54.5 L29.5 56 L30 53 L28 51 L30.8 50.5 Z" fill="#FBBF24" />
-
-            <defs>
-              <linearGradient id="bGrad" x1="12" y1="12" x2="52" y2="60" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#FCD34D" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#D97706" stopOpacity="0.15" />
-              </linearGradient>
-              <linearGradient id="hatGrad" x1="22" y1="0" x2="42" y2="16" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#F87171" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#EF4444" stopOpacity="0.2" />
-              </linearGradient>
-            </defs>
-          </svg>
+          <MascotAvatar type={mascotType} size={56} animate={!celebrating} />
         </div>
       </div>
 

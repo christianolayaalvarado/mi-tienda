@@ -261,6 +261,16 @@ export async function POST(req, context) {
         }
       }
 
+      // Gamification: check for new achievements when fully paid
+      if (result.allPaid) {
+        try {
+          const { checkAndAwardAchievements } = await import("@/lib/gamification");
+          await checkAndAwardAchievements(order.userId);
+        } catch (e) {
+          // silent
+        }
+      }
+
       return NextResponse.json({ success: true, result });
     }
 

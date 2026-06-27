@@ -20,6 +20,7 @@ model User {
   city          String?
   address       String?
   phone         String?
+  selectedMascot String?  @default("box")
   createdAt     DateTime @default(now())
 
   products       Product[]
@@ -31,6 +32,7 @@ model User {
   buyerConversations  Conversation[] @relation("BuyerConversations")
   sellerConversations Conversation[] @relation("SellerConversations")
   reviews         Review[]
+  achievements   Achievement[]
 }
 
 model Store {
@@ -296,4 +298,15 @@ model ShippingZone {
   createdAt    DateTime @default(now())
 
   @@index([storeId])
+}
+
+model Achievement {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+  type        String
+  unlockedAt  DateTime @default(now())
+
+  @@unique([userId, type])
+  @@index([userId])
 }
