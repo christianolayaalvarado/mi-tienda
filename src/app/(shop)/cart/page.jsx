@@ -18,6 +18,7 @@ import { safeParseLocalCart } from "@/components/navbar/utils";
 import toast from "react-hot-toast";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { CartItemSkeleton } from "@/components/Skeletons";
+import EmptyState from "@/components/EmptyState";
 
 /* -------------------------
    ModalConfirm (reutilizable)
@@ -667,26 +668,27 @@ export default function CartPage() {
   // Render empty state
   if (!displayItems || displayItems.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto p-6 text-center">
-        <h1 className="text-2xl font-bold mb-4">Tu carrito está vacío</h1>
-        <p className="text-gray-600 mb-4">No tienes productos en tu carrito por ahora.</p>
+      <div className="max-w-4xl mx-auto p-6">
+        <Breadcrumbs />
 
-        {/* Aviso transitorio que se cierra solo */}
+        <EmptyState
+          icon="cart"
+          title="Tu carrito está vacío"
+          description="Aún no tienes productos en tu carrito. ¡Explora nuestro catálogo y encuentra algo que te guste!"
+          actionHref="/"
+          actionLabel="Ir a comprar"
+        />
+
         {showEmptyNotice && (
-          <div className="mb-4 inline-block bg-white border px-4 py-2 rounded shadow">
-            <strong>El carrito está vacío</strong>
+          <div className="mt-4 text-center">
+            <div className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-2 rounded-lg text-sm">
+              El carrito se ha vaciado correctamente
+            </div>
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <button
-            onClick={() => router.push("/")}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Ir a comprar
-          </button>
-
-          {typeof fetchCart === "function" && (
+        {typeof fetchCart === "function" && (
+          <div className="mt-4 text-center">
             <button
               onClick={async () => {
                 try {
@@ -720,12 +722,12 @@ export default function CartPage() {
                   setLoadingServer(false);
                 }
               }}
-              className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
             >
               Sincronizar carrito
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   }

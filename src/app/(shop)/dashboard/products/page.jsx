@@ -5,6 +5,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import useCategories from "@/hooks/useCategories";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import EmptyState from "@/components/EmptyState";
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -194,7 +195,13 @@ export default function ProductsPage() {
       </div>
 
       {products.length === 0 ? (
-        <p>No tienes productos</p>
+        <EmptyState
+          icon="package"
+          title="No tienes productos"
+          description="Crea tu primer producto para empezar a vender."
+          actionHref="/dashboard/products/new"
+          actionLabel="Crear producto"
+        />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {products.map((product) => {

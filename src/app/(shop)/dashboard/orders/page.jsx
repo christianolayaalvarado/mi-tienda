@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import EmptyState from "@/components/EmptyState";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { OrderItemSkeleton } from "@/components/Skeletons";
 
@@ -202,7 +203,11 @@ export default function OrdersPage() {
 
       {/* LISTADO */}
       {orders.length === 0 ? (
-        <p>No tienes órdenes</p>
+        <EmptyState
+          icon="order"
+          title="No tienes órdenes"
+          description="Cuando los clientes realicen pedidos, aparecerán aquí."
+        />
       ) : (
         <div className="space-y-4">
           {orders.map((order) => {

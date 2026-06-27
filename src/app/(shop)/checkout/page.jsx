@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { fetchSession } from "@/lib/useSessionCheck";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { CheckoutSkeleton } from "@/components/Skeletons";
+import EmptyState from "@/components/EmptyState";
 
 /* -------------------------
    Utilidades para el carrito
@@ -471,7 +472,13 @@ export default function CheckoutPage({ params }) {
       <div className="mb-6">
         <h2 className="font-medium">Items</h2>
         {orderItems.length === 0 ? (
-          <p className="text-sm text-gray-500">No hay items en el carrito.</p>
+          <EmptyState
+            icon="cart"
+            title="Tu carrito está vacío"
+            description="Agrega productos antes de continuar con el checkout."
+            actionHref="/"
+            actionLabel="Explorar productos"
+          />
         ) : (
           <ul className="mt-2 space-y-2">
             {orderItems.map((it) => (

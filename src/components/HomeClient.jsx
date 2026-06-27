@@ -6,6 +6,7 @@ import ProductCard from "@/components/ProductCard";
 import ProductCardSkeleton from "@/components/ProductCardSkeleton";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
 import ScrollMascot from "@/components/ScrollMascot";
+import EmptyState from "@/components/EmptyState";
 
 export default function HomeClient() {
   const router = useRouter();
@@ -173,7 +174,13 @@ export default function HomeClient() {
       )}
 
       {!loading && products.length === 0 && (
-        <p className="text-center">No se encontraron productos.</p>
+        <EmptyState
+          icon="search"
+          title="No se encontraron productos"
+          description={currentSearch ? `No hay resultados para "${currentSearch}". Intenta con otros términos.` : "Aún no hay productos disponibles. Vuelve pronto."}
+          actionHref={currentSearch ? "/" : undefined}
+          actionLabel={currentSearch ? "Limpiar búsqueda" : undefined}
+        />
       )}
 
       {safeTotalPages > 1 && (

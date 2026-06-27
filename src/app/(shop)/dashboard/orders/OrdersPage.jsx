@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { OrderItemSkeleton } from "@/components/Skeletons";
+import EmptyState from "@/components/EmptyState";
 
 export default function OrdersPage() {
   const { data: session } = useSession();
@@ -52,7 +53,13 @@ export default function OrdersPage() {
       <h1 className="text-2xl md:text-3xl font-bold mb-6">Mis Órdenes</h1>
 
       {orders.length === 0 && (
-        <p>No se encontraron órdenes.</p>
+        <EmptyState
+          icon="order"
+          title="No tienes órdenes"
+          description="Cuando realices una compra, tus pedidos aparecerán aquí."
+          actionHref="/"
+          actionLabel="Explorar productos"
+        />
       )}
 
       {orders.map((order) => (
