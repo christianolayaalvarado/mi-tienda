@@ -191,12 +191,12 @@ const MASCOT_COMPONENTS = {
 };
 
 const IMAGE_MASCOTS = {
-  box_c: { front: "/mascots/box_c/caja_front.PNG", side: "/mascots/box_c/caja_side.PNG", rear: "/mascots/box_c/caja_rear.PNG" },
+  box_c: { front: "/mascots/box_c/caja_front.svg", side: "/mascots/box_c/caja_side.PNG", rear: "/mascots/box_c/caja_rear.PNG" },
   coin_a: { front: "/mascots/coin_a/moneda_front.PNG", side: "/mascots/coin_a/moneda_side.PNG", rear: "/mascots/coin_a/moneda_rear.PNG" },
   cart_a: { front: "/mascots/cart_a/carritoazul_front.PNG", side: "/mascots/cart_a/carritoazul_side.PNG", rear: "/mascots/cart_a/carritoazul_rear.PNG" },
   cart_b: { front: "/mascots/cart_b/carritorojo_front.PNG", side: "/mascots/cart_b/carritorojo_side.PNG", rear: "/mascots/cart_b/carritorojo_rear.PNG" },
   coupon_c: { front: "/mascots/coupon_c/cupon_front.PNG", side: "/mascots/coupon_c/cupon_side.PNG", rear: "/mascots/coupon_c/cupon_rear.PNG" },
-  bag_b: { front: "/mascots/bag_b/bolsa_front.PNG", side: "/mascots/bag_b/bolsa_side.PNG", rear: "/mascots/bag_b/bolsa_rear.PNG" },
+  bag_b: { front: "/mascots/bag_b/bolsa_front.svg", side: "/mascots/bag_b/bolsa_side.PNG", rear: "/mascots/bag_b/bolsa_rear.PNG" },
   rocket_b: { front: "/mascots/rocket_b/Cohete_front.png", side: "/mascots/rocket_b/Cohete_side.png", rear: "/mascots/rocket_b/Cohete_rear.png" },
   dog_c: { front: "/mascots/dog_c/dog_front.PNG", side: "/mascots/dog_c/dog_side.PNG", rear: "/mascots/dog_c/dog_rear.PNG" },
   cat_b: { front: "/mascots/cat_b/cat_front.PNG", side: "/mascots/cat_b/cat_side.PNG", rear: "/mascots/cat_b/cat_rear.PNG" },
