@@ -254,7 +254,7 @@ export default function MascotAvatar({ type = "box", size = 64, animate = true, 
           alt={`Mascota ${type}`}
           width={size}
           height={size}
-          className="object-contain"
+          className="object-contain transition-opacity duration-300"
           style={{ width: size, height: size }}
         />
       );

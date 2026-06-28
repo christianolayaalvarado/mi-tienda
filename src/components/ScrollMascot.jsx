@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthContext } from "@/context/AuthProvider";
 import MascotAvatar from "@/components/MascotAvatar";
+import { IMAGE_MASCOTS } from "@/components/MascotAvatar";
 
 const MESSAGES_MID = [
   "¡Ya vas por la mitad! Sigue bajando 🚀",
@@ -29,6 +30,21 @@ const ENCOURAGE_MESSAGES = [
   "¡Tu hogar merece lo mejor! 🏠",
   "¡Precios que tu billetera va a amar! 💰",
   "¡Descubre productos que no sabías que necesitabas! 🔍",
+];
+
+const IDLE_ROTATE_MESSAGES = [
+  "¡Vamos, anímate a comprar! 🛒",
+  "¡No te quedes mirando, compra ya! 🛍️",
+  "¡Hay ofertas esperándote! 💰",
+  "¡Tu próxima compra favorita está aquí! ⭐",
+  "¡Dale, que el carrito te espera! 🏃",
+];
+
+const BOTTOM_ROTATE_MESSAGES = [
+  "¡Hay más productos en las siguientes páginas! 👇",
+  "¡No pares aquí, sigue descubriendo! 🔍",
+  "¡La próxima página tiene sorpresas! 🎁",
+  "¡Sigue navegando, hay tesoros! 💎",
 ];
 
 function pickRandom(arr) {
@@ -119,11 +135,14 @@ export default function ScrollMascot({ onClick }) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
   const [mascotType, setMascotType] = useState("box");
+  const [rotationView, setRotationView] = useState("front");
+  const [isRotating, setIsRotating] = useState(false);
   const gridRightRef = useRef(0);
   const lastMessageZone = useRef("");
   const encourageTimer = useRef(null);
   const hasGreeted = useRef(false);
   const idleTimer = useRef(null);
+  const rotationTimer = useRef(null);
   const scrollElRef = useRef(null);
 
   // Fetch user's selected mascot
@@ -293,6 +312,57 @@ export default function ScrollMascot({ onClick }) {
     }
   }, [progress, celebrating]);
 
+  // Premium mascot rotation: idle detection
+  const isPremium = !!IMAGE_MASCOTS[mascotType];
+  const VIEWS = ["front", "side", "rear"];
+
+  useEffect(() => {
+    if (!isPremium) return;
+    if (!isIdle) {
+      setIsRotating(false);
+      setRotationView("front");
+      clearTimeout(rotationTimer.current);
+      return;
+    }
+    const idleTimeout = setTimeout(() => {
+      setIsRotating(true);
+      let idx = 0;
+      setMessage(pickRandom(IDLE_ROTATE_MESSAGES));
+      setMsgKey((k) => k + 1);
+      rotationTimer.current = setInterval(() => {
+        idx = (idx + 1) % VIEWS.length;
+        setRotationView(VIEWS[idx]);
+      }, 800);
+    }, 5000);
+    return () => {
+      clearTimeout(idleTimeout);
+      clearInterval(rotationTimer.current);
+    };
+  }, [isIdle, isPremium, mascotType]);
+
+  // Premium mascot rotation: at bottom
+  const atBottom = progress > 0.95;
+
+  useEffect(() => {
+    if (!isPremium || !atBottom) {
+      if (isRotating && !isIdle) {
+        setIsRotating(false);
+        setRotationView("front");
+        clearInterval(rotationTimer.current);
+      }
+      return;
+    }
+    setIsRotating(true);
+    let idx = 0;
+    setMessage(pickRandom(BOTTOM_ROTATE_MESSAGES));
+    setMsgKey((k) => k + 1);
+    rotationTimer.current = setInterval(() => {
+      idx = (idx + 1) % VIEWS.length;
+      setRotationView(VIEWS[idx]);
+    }, 800);
+    return () => clearInterval(rotationTimer.current);
+  }, [atBottom, isPremium, isIdle]);
+
   // Measure product grid right edge for walk limit
   useEffect(() => {
     const measure = () => {
@@ -331,8 +401,6 @@ export default function ScrollMascot({ onClick }) {
     if (walkX < 10) return "right";  // mascot near right edge → bubble on left
     return "above";                   // mascot in center → bubble above
   })();
-
-  const atBottom = progress > 0.95;
 
   // Arms
   const armL = celebrating ? (idleFrame % 2 === 0 ? -30 : 15) : isIdle ? (idleFrame % 2 === 0 ? -12 : 5) : isWaving ? (idleFrame % 2 === 0 ? -20 : 10) : 0;
@@ -436,7 +504,7 @@ export default function ScrollMascot({ onClick }) {
 
         {/* Mascot Avatar */}
         <div className={`transition-transform duration-200 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}>
-          <MascotAvatar type={mascotType} size={56} animate={!celebrating} />
+          <MascotAvatar type={mascotType} size={56} animate={!celebrating && !isRotating} view={isRotating ? rotationView : "front"} />
         </div>
       </div>
 
