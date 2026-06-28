@@ -36,7 +36,7 @@ export async function PUT(request) {
 
   const dbUser = await prisma.user.findUnique({
     where: { email: user.email },
-    select: { id: true, selectedMascot: true },
+    select: { id: true, selectedMascot: true, role: true },
   });
 
   if (!dbUser) {
@@ -47,7 +47,7 @@ export async function PUT(request) {
     where: { userId: dbUser.id },
   });
 
-  const unlocked = getUnlockedMascots(achievements);
+  const unlocked = getUnlockedMascots(achievements, dbUser.role);
 
   if (!unlocked.includes(mascotId)) {
     return NextResponse.json({ error: "Mascota bloqueada" }, { status: 403 });

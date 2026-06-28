@@ -169,6 +169,18 @@ export const MASCOTS = {
     hasImages: true,
     views: { front: null, side: null, rear: null },
   },
+  rooster_b: {
+    id: "rooster_b",
+    name: "Gallito Amarillo",
+    description: "Un pollito amarillo con cresta roja. ¡Energía pura!",
+    type: "premium",
+    unlockCondition: "mega_seller",
+    unlockLabel: "Alcanza 100 ventas",
+    color: "#F59E0B",
+    emoji: "🐤",
+    hasImages: true,
+    views: { front: null, side: null, rear: null },
+  },
   cuy_c: {
     id: "cuy_c",
     name: "Cuy",
@@ -263,7 +275,10 @@ export function getMascotById(id) {
   return MASCOTS[id] || MASCOTS[DEFAULT_MASCOT];
 }
 
-export function getUnlockedMascots(achievements) {
+export function getUnlockedMascots(achievements, userRole) {
+  if (userRole === "admin") {
+    return MASCOT_LIST.map((m) => m.id);
+  }
   const unlockedIds = MASCOT_LIST.filter((m) => m.type === "default").map((m) => m.id);
   achievements.forEach((a) => {
     const def = ACHIEVEMENT_DEFINITIONS[a.type];

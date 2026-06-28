@@ -223,17 +223,18 @@ const MASCOT_COMPONENTS = {
 };
 
 const IMAGE_MASCOTS = {
-  box_c: { front: "/mascots/box_c/front.svg", side: "/mascots/box_c/side.svg", rear: "/mascots/box_c/rear.svg" },
-  coin_a: { front: "/mascots/coin_a/front.svg", side: "/mascots/coin_a/side.svg", rear: "/mascots/coin_a/rear.svg" },
-  cart_a: { front: "/mascots/cart_a/front.svg", side: "/mascots/cart_a/side.svg", rear: "/mascots/cart_a/rear.svg" },
-  cart_b: { front: "/mascots/cart_b/front.svg", side: "/mascots/cart_b/side.svg", rear: "/mascots/cart_b/rear.svg" },
-  coupon_c: { front: "/mascots/coupon_c/front.svg", side: "/mascots/coupon_c/side.svg", rear: "/mascots/coupon_c/rear.svg" },
-  bag_b: { front: "/mascots/bag_b/front.svg", side: "/mascots/bag_b/side.svg", rear: "/mascots/bag_b/rear.svg" },
-  rocket_b: { front: "/mascots/rocket_b/front.svg", side: "/mascots/rocket_b/side.svg", rear: "/mascots/rocket_b/rear.svg" },
-  dog_c: { front: "/mascots/dog_c/front.svg", side: "/mascots/dog_c/side.svg", rear: "/mascots/dog_c/rear.svg" },
-  cat_b: { front: "/mascots/cat_b/front.svg", side: "/mascots/cat_b/side.svg", rear: "/mascots/cat_b/rear.svg" },
-  chicken_b: { front: "/mascots/chicken_b/front.svg", side: "/mascots/chicken_b/side.svg", rear: "/mascots/chicken_b/rear.svg" },
-  cuy_c: { front: "/mascots/cuy_c/front.svg", side: "/mascots/cuy_c/side.svg", rear: "/mascots/cuy_c/rear.svg" },
+  bag_b: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604821/mascots/bag_b_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604823/mascots/bag_b_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604822/mascots/bag_b_rear.png" },
+  box_c: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604824/mascots/box_c_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604826/mascots/box_c_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604825/mascots/box_c_rear.png" },
+  cart_a: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604826/mascots/cart_a_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604828/mascots/cart_a_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604827/mascots/cart_a_rear.png" },
+  cart_b: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604829/mascots/cart_b_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604831/mascots/cart_b_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604830/mascots/cart_b_rear.png" },
+  cat_b: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604832/mascots/cat_b_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604834/mascots/cat_b_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604833/mascots/cat_b_rear.png" },
+  rocket_b: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604835/mascots/rocket_b_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604837/mascots/rocket_b_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604836/mascots/rocket_b_rear.png" },
+  coupon_c: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604838/mascots/coupon_c_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604840/mascots/coupon_c_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604839/mascots/coupon_c_rear.png" },
+  cuy_c: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604841/mascots/cuy_c_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604844/mascots/cuy_c_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604843/mascots/cuy_c_rear.png" },
+  dog_c: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604844/mascots/dog_c_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604846/mascots/dog_c_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604845/mascots/dog_c_rear.png" },
+  chicken_b: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604847/mascots/chicken_b_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604848/mascots/chicken_b_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604847/mascots/chicken_b_rear.png" },
+  coin_a: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604849/mascots/coin_a_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604850/mascots/coin_a_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604850/mascots/coin_a_rear.png" },
+  rooster_b: { front: "", side: "", rear: "" },
 };
 
 export default function MascotAvatar({ type = "box", size = 64, animate = true, view = "front" }) {

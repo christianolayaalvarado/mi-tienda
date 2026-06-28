@@ -11,7 +11,7 @@ export async function GET() {
 
   const dbUser = await prisma.user.findUnique({
     where: { email: user.email },
-    select: { id: true, selectedMascot: true },
+    select: { id: true, selectedMascot: true, role: true },
   });
 
   if (!dbUser) {
@@ -23,7 +23,7 @@ export async function GET() {
     orderBy: { unlockedAt: "desc" },
   });
 
-  const unlockedMascots = getUnlockedMascots(achievements);
+  const unlockedMascots = getUnlockedMascots(achievements, dbUser.role);
 
   const achievementsWithDetails = achievements.map((a) => ({
     ...a,
