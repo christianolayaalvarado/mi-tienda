@@ -504,7 +504,7 @@ export default function ScrollMascot({ onClick }) {
 
         {/* Mascot Avatar */}
         <div className={`transition-transform duration-200 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}>
-          <MascotAvatar type={mascotType} size={72} animate={!celebrating} view="front" />
+          <MascotAvatar type={mascotType} size={96} animate={!celebrating} view="front" />
         </div>
       </div>
 
