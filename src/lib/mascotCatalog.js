@@ -276,7 +276,7 @@ export function getMascotById(id) {
 }
 
 export function getUnlockedMascots(achievements, userRole) {
-  if (userRole === "admin") {
+  if (userRole?.toLowerCase() === "admin") {
     return MASCOT_LIST.map((m) => m.id);
   }
   const unlockedIds = MASCOT_LIST.filter((m) => m.type === "default").map((m) => m.id);

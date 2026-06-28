@@ -2,17 +2,17 @@
 
 import React from "react";
 
-function BoxMascot({ size = 64, animate = true }) {
+function BoxMascot({ size = 64, animate = true, uid = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
       <defs>
-        <linearGradient id="boxGrad" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`boxGrad${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#FBBF24" />
           <stop offset="100%" stopColor="#F59E0B" />
         </linearGradient>
       </defs>
       {/* Body */}
-      <rect x="20" y="30" width="60" height="50" rx="6" fill="url(#boxGrad)" stroke="#D97706" strokeWidth="2" />
+      <rect x="20" y="30" width="60" height="50" rx="6" fill={`url(#boxGrad${uid})`} stroke="#D97706" strokeWidth="2" />
       {/* Flap */}
       <path d="M20 30 L50 15 L80 30" fill="#FCD34D" stroke="#D97706" strokeWidth="2" strokeLinejoin="round" />
       {/* Eyes */}
@@ -51,18 +51,18 @@ function BoxMascot({ size = 64, animate = true }) {
   );
 }
 
-function CoinMascot({ size = 64, animate = true }) {
+function CoinMascot({ size = 64, animate = true, uid = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
       <defs>
-        <linearGradient id="coinGrad" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`coinGrad${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#FDE68A" />
           <stop offset="50%" stopColor="#FBBF24" />
           <stop offset="100%" stopColor="#D97706" />
         </linearGradient>
       </defs>
       {/* Outer ring */}
-      <circle cx="50" cy="50" r="40" fill="url(#coinGrad)" stroke="#B45309" strokeWidth="3" />
+      <circle cx="50" cy="50" r="40" fill={`url(#coinGrad${uid})`} stroke="#B45309" strokeWidth="3" />
       <circle cx="50" cy="50" r="33" fill="none" stroke="#D97706" strokeWidth="1.5" strokeDasharray="4 3" />
       {/* Eyes */}
       <ellipse cx="38" cy="44" rx="5" ry="6" fill="white" />
@@ -97,17 +97,17 @@ function CoinMascot({ size = 64, animate = true }) {
   );
 }
 
-function CartMascot({ size = 64, animate = true }) {
+function CartMascot({ size = 64, animate = true, uid = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
       <defs>
-        <linearGradient id="cartGrad" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`cartGrad${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#4ADE80" />
           <stop offset="100%" stopColor="#22C55E" />
         </linearGradient>
       </defs>
       {/* Cart body */}
-      <path d="M25 30 L30 70 L75 70 L80 35 L35 35" fill="url(#cartGrad)" stroke="#16A34A" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M25 30 L30 70 L75 70 L80 35 L35 35" fill={`url(#cartGrad${uid})`} stroke="#16A34A" strokeWidth="2" strokeLinejoin="round" />
       {/* Handle */}
       <path d="M15 28 L25 30" stroke="#16A34A" strokeWidth="3" strokeLinecap="round" />
       {/* Eyes */}
@@ -143,17 +143,17 @@ function CartMascot({ size = 64, animate = true }) {
   );
 }
 
-function CouponMascot({ size = 64, animate = true }) {
+function CouponMascot({ size = 64, animate = true, uid = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
       <defs>
-        <linearGradient id="couponGrad" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`couponGrad${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#C084FC" />
           <stop offset="100%" stopColor="#A855F7" />
         </linearGradient>
       </defs>
       {/* Coupon body */}
-      <rect x="15" y="35" width="70" height="40" rx="5" fill="url(#couponGrad)" stroke="#7C3AED" strokeWidth="2" />
+      <rect x="15" y="35" width="70" height="40" rx="5" fill={`url(#couponGrad${uid})`} stroke="#7C3AED" strokeWidth="2" />
       {/* Scissors cut line */}
       <circle cx="15" cy="55" r="5" fill="#F3E8FF" stroke="#7C3AED" strokeWidth="1.5" />
       <circle cx="85" cy="55" r="5" fill="#F3E8FF" stroke="#7C3AED" strokeWidth="1.5" />
@@ -181,17 +181,17 @@ function CouponMascot({ size = 64, animate = true }) {
   );
 }
 
-function BagMascot({ size = 64, animate = true }) {
+function BagMascot({ size = 64, animate = true, uid = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
       <defs>
-        <linearGradient id="bagGrad" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`bagGrad${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#F9A8D4" />
           <stop offset="100%" stopColor="#EC4899" />
         </linearGradient>
       </defs>
       {/* Bag body */}
-      <path d="M25 35 L20 85 L80 85 L75 35 Z" fill="url(#bagGrad)" stroke="#DB2777" strokeWidth="2" />
+      <path d="M25 35 L20 85 L80 85 L75 35 Z" fill={`url(#bagGrad${uid})`} stroke="#DB2777" strokeWidth="2" />
       {/* Handles */}
       <path d="M35 35 Q35 18 50 18 Q65 18 65 35" fill="none" stroke="#DB2777" strokeWidth="3" strokeLinecap="round" />
       {/* Eyes */}
@@ -238,9 +238,10 @@ const IMAGE_MASCOTS = {
 };
 
 export default function MascotAvatar({ type = "box", size = 64, animate = true, view = "front" }) {
-  const svgComponent = MASCOT_COMPONENTS[type];
-  if (svgComponent) {
-    return <svgComponent size={size} animate={animate} />;
+  const uid = React.useId();
+  const SvgComponent = MASCOT_COMPONENTS[type];
+  if (SvgComponent) {
+    return <SvgComponent size={size} animate={animate} uid={uid} />;
   }
 
   const images = IMAGE_MASCOTS[type];
@@ -260,7 +261,7 @@ export default function MascotAvatar({ type = "box", size = 64, animate = true, 
     }
   }
 
-  return <BoxMascot size={size} animate={animate} />;
+  return <BoxMascot size={size} animate={animate} uid={uid} />;
 }
 
 export { MASCOT_COMPONENTS, IMAGE_MASCOTS, BoxMascot, CoinMascot, CartMascot, CouponMascot, BagMascot };
