@@ -150,7 +150,7 @@ export default function ScrollMascot({ onClick }) {
   // Fetch user's selected mascot (re-fetch on route change)
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/user/mascot", { credentials: "include" })
+    fetch("/api/user/mascot", { credentials: "include", cache: "no-store", headers: { "Cache-Control": "no-cache" } })
       .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then((d) => { if (!cancelled && d.mascot) setMascotType(d.mascot); })
       .catch(() => {});

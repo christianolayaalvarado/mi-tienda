@@ -3,6 +3,8 @@ import { getAuthUserFromCookie } from "@/lib/authFromCookie";
 import prisma from "@/lib/prisma";
 import { MASCOTS, getUnlockedMascots } from "@/lib/mascotCatalog";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const user = await getAuthUserFromCookie();
   if (!user?.email) {
