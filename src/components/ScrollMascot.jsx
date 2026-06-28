@@ -136,12 +136,7 @@ export default function ScrollMascot({ onClick }) {
   const [celebrating, setCelebrating] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
-  const [mascotType, setMascotType] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("selectedMascot") || "box";
-    }
-    return "box";
-  });
+  const [mascotType, setMascotType] = useState("box");
   const [rotationView, setRotationView] = useState("front");
   const [isRotating, setIsRotating] = useState(false);
   const gridRightRef = useRef(0);
@@ -151,6 +146,12 @@ export default function ScrollMascot({ onClick }) {
   const idleTimer = useRef(null);
   const rotationTimer = useRef(null);
   const scrollElRef = useRef(null);
+
+  // Read saved mascot from localStorage (client-side only, after mount)
+  useEffect(() => {
+    const saved = localStorage.getItem("selectedMascot");
+    if (saved) setMascotType(saved);
+  }, []);
 
   // Listen for mascot-changed events (from gallery)
   useEffect(() => {
