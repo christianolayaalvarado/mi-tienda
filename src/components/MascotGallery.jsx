@@ -64,6 +64,8 @@ export default function MascotGallery() {
       });
       if (res.ok) {
         setSelected(mascotId);
+        localStorage.setItem("selectedMascot", mascotId);
+        try { window.dispatchEvent(new CustomEvent("mascot-changed", { detail: { mascotId } })); } catch {}
         if (refresh) refresh();
         toast.success("Mascota cambiada");
       } else {

@@ -136,7 +136,12 @@ export default function ScrollMascot({ onClick }) {
   const [celebrating, setCelebrating] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
-  const [mascotType, setMascotType] = useState("box");
+  const [mascotType, setMascotType] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("selectedMascot") || "box";
+    }
+    return "box";
+  });
   const [rotationView, setRotationView] = useState("front");
   const [isRotating, setIsRotating] = useState(false);
   const gridRightRef = useRef(0);
@@ -147,10 +152,23 @@ export default function ScrollMascot({ onClick }) {
   const rotationTimer = useRef(null);
   const scrollElRef = useRef(null);
 
+  // Listen for mascot-changed events (from gallery)
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.detail?.mascotId) {
+        setMascotType(e.detail.mascotId);
+        localStorage.setItem("selectedMascot", e.detail.mascotId);
+      }
+    };
+    window.addEventListener("mascot-changed", handler);
+    return () => window.removeEventListener("mascot-changed", handler);
+  }, []);
+
   // Initialize from user context (available immediately, no fetch needed)
   useEffect(() => {
     if (user?.selectedMascot) {
       setMascotType(user.selectedMascot);
+      localStorage.setItem("selectedMascot", user.selectedMascot);
     }
   }, [user?.selectedMascot]);
 
@@ -162,7 +180,12 @@ export default function ScrollMascot({ onClick }) {
         if (!r.ok) throw new Error(`mascot-fetch-${r.status}`);
         return r.json();
       })
-      .then((d) => { if (!cancelled && d.mascot) setMascotType(d.mascot); })
+      .then((d) => {
+        if (!cancelled && d.mascot) {
+          setMascotType(d.mascot);
+          localStorage.setItem("selectedMascot", d.mascot);
+        }
+      })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [pathname]);
