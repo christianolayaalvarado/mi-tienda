@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
+import Image from "next/image";
 
 function BoxMascot({ size = 64, animate = true, uid = "" }) {
   return (
@@ -239,26 +240,25 @@ const IMAGE_MASCOTS = {
 
 export default function MascotAvatar({ type = "box", size = 64, animate = true, view = "front" }) {
   const uid = React.useId();
-  const [imgError, setImgError] = useState(false);
 
   const SvgComponent = MASCOT_COMPONENTS[type];
-  if (SvgComponent && !imgError) {
+  if (SvgComponent) {
     return <SvgComponent size={size} animate={animate} uid={uid} />;
   }
 
   const images = IMAGE_MASCOTS[type];
-  if (images && !imgError) {
+  if (images) {
     const src = images[view] || images.front;
     if (src) {
       return (
-        <img
+        <Image
           src={src}
           alt={`Mascota ${type}`}
           width={size}
           height={size}
-          className="object-contain transition-opacity duration-300"
-          style={{ width: size, height: size }}
-          onError={() => setImgError(true)}
+          className="object-contain"
+          unoptimized
+          priority
         />
       );
     }
