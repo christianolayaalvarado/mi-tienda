@@ -234,7 +234,7 @@ const IMAGE_MASCOTS = {
   dog_c: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604844/mascots/dog_c_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604846/mascots/dog_c_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604845/mascots/dog_c_rear.png" },
   chicken_b: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604847/mascots/chicken_b_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604848/mascots/chicken_b_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604847/mascots/chicken_b_rear.png" },
   coin_a: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604849/mascots/coin_a_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604850/mascots/coin_a_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782604850/mascots/coin_a_rear.png" },
-  rooster_b: { front: "", side: "", rear: "" },
+  rooster_b: { front: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782606489/mascots/rooster_b_front.png", side: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782606492/mascots/rooster_b_side.png", rear: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1782606491/mascots/rooster_b_rear.png" },
 };
 
 export default function MascotAvatar({ type = "box", size = 64, animate = true, view = "front" }) {
