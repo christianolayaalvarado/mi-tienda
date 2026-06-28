@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import MascotAvatar from "@/components/MascotAvatar";
 import { MASCOT_LIST, ACHIEVEMENT_DEFINITIONS } from "@/lib/mascotCatalog";
+import { useAuthContext } from "@/context/AuthProvider";
 import toast from "react-hot-toast";
 
 export default function MascotGallery() {
+  const { refresh } = useAuthContext() || {};
   const [selected, setSelected] = useState("box");
   const [unlockedIds, setUnlockedIds] = useState(["box"]);
   const [achievements, setAchievements] = useState([]);
@@ -62,6 +64,7 @@ export default function MascotGallery() {
       });
       if (res.ok) {
         setSelected(mascotId);
+        if (refresh) refresh();
         toast.success("Mascota cambiada");
       } else {
         const data = await res.json();

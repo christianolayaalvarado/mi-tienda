@@ -1,6 +1,7 @@
 // src/app/api/auth/me/route.js
 import jwt from "jsonwebtoken";
 import { getJwtSecret } from "@/lib/getJwtSecret";
+import prisma from "@/lib/prisma";
 
 function getCookieValue(cookieHeader, name) {
   if (!cookieHeader) return undefined;
@@ -34,7 +35,18 @@ export async function GET(req) {
       return new Response(JSON.stringify({ ok: false, message: "Token inválido o expirado" }), { status: 401, headers: { "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ ok: true, user: payload }), { status: 200, headers: { "Content-Type": "application/json" } });
+    let selectedMascot = "box";
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: payload.id },
+        select: { selectedMascot: true },
+      });
+      if (dbUser?.selectedMascot) {
+        selectedMascot = dbUser.selectedMascot;
+      }
+    } catch {}
+
+    return new Response(JSON.stringify({ ok: true, user: { ...payload, selectedMascot } }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err) {
     console.error("[/api/auth/me] error:", err);
     return new Response(JSON.stringify({ ok: false, message: "Token inválido o expirado" }), { status: 401, headers: { "Content-Type": "application/json" } });

@@ -147,11 +147,34 @@ export default function ScrollMascot({ onClick }) {
   const rotationTimer = useRef(null);
   const scrollElRef = useRef(null);
 
+  // Initialize from user context (available immediately, no fetch needed)
+  useEffect(() => {
+    if (user?.selectedMascot) {
+      setMascotType(user.selectedMascot);
+    }
+  }, [user?.selectedMascot]);
+
+  // Fetch user's selected mascot as fallback (re-fetch on route change)
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/user/mascot", { credentials: "include", cache: "no-store", headers: { "Cache-Control": "no-cache" } })
+      .then((r) => {
+        if (!r.ok) throw new Error(`mascot-fetch-${r.status}`);
+        return r.json();
+      })
+      .then((d) => { if (!cancelled && d.mascot) setMascotType(d.mascot); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [pathname]);
+
   // Fetch user's selected mascot (re-fetch on route change)
   useEffect(() => {
     let cancelled = false;
     fetch("/api/user/mascot", { credentials: "include", cache: "no-store", headers: { "Cache-Control": "no-cache" } })
-      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((r) => {
+        if (!r.ok) throw new Error(`mascot-fetch-${r.status}`);
+        return r.json();
+      })
       .then((d) => { if (!cancelled && d.mascot) setMascotType(d.mascot); })
       .catch(() => {});
     return () => { cancelled = true; };
