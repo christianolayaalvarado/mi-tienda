@@ -33,21 +33,6 @@ const ENCOURAGE_MESSAGES = [
   "¡Descubre productos que no sabías que necesitabas! 🔍",
 ];
 
-const IDLE_ROTATE_MESSAGES = [
-  "¡Vamos, anímate a comprar! 🛒",
-  "¡No te quedes mirando, compra ya! 🛍️",
-  "¡Hay ofertas esperándote! 💰",
-  "¡Tu próxima compra favorita está aquí! ⭐",
-  "¡Dale, que el carrito te espera! 🏃",
-];
-
-const BOTTOM_ROTATE_MESSAGES = [
-  "¡Hay más productos en las siguientes páginas! 👇",
-  "¡No pares aquí, sigue descubriendo! 🔍",
-  "¡La próxima página tiene sorpresas! 🎁",
-  "¡Sigue navegando, hay tesoros! 💎",
-];
-
 function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -144,36 +129,10 @@ export default function ScrollMascot({ onClick }) {
   const idleTimer = useRef(null);
   const scrollElRef = useRef(null);
 
-  // Read saved mascot from localStorage (client-side only, after mount)
-  useEffect(() => {
-    const saved = localStorage.getItem("selectedMascot");
-    if (saved) setMascotType(saved);
-  }, []);
-
-  // Listen for mascot-changed events (from gallery)
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.detail?.mascotId) {
-        setMascotType(e.detail.mascotId);
-        localStorage.setItem("selectedMascot", e.detail.mascotId);
-      }
-    };
-    window.addEventListener("mascot-changed", handler);
-    return () => window.removeEventListener("mascot-changed", handler);
-  }, []);
-
-  // Initialize from user context (available immediately, no fetch needed)
-  useEffect(() => {
-    if (user?.selectedMascot) {
-      setMascotType(user.selectedMascot);
-      localStorage.setItem("selectedMascot", user.selectedMascot);
-    }
-  }, [user?.selectedMascot]);
-
-  // Fetch user's selected mascot as fallback (re-fetch on route change)
+  // Single source of truth: fetch mascot from API on mount and route change
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/user/mascot", { credentials: "include", cache: "no-store", headers: { "Cache-Control": "no-cache" } })
+    fetch("/api/user/mascot", { credentials: "include", cache: "no-store" })
       .then((r) => {
         if (!r.ok) throw new Error(`mascot-fetch-${r.status}`);
         return r.json();
@@ -188,18 +147,13 @@ export default function ScrollMascot({ onClick }) {
     return () => { cancelled = true; };
   }, [pathname]);
 
-  // Fetch user's selected mascot (re-fetch on route change)
+  // Also update from user context when it loads (instant, no fetch needed)
   useEffect(() => {
-    let cancelled = false;
-    fetch("/api/user/mascot", { credentials: "include", cache: "no-store", headers: { "Cache-Control": "no-cache" } })
-      .then((r) => {
-        if (!r.ok) throw new Error(`mascot-fetch-${r.status}`);
-        return r.json();
-      })
-      .then((d) => { if (!cancelled && d.mascot) setMascotType(d.mascot); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [pathname]);
+    if (user?.selectedMascot && user.selectedMascot !== mascotType) {
+      setMascotType(user.selectedMascot);
+      localStorage.setItem("selectedMascot", user.selectedMascot);
+    }
+  }, [user?.selectedMascot]);
 
   // Track layout
   useEffect(() => {
