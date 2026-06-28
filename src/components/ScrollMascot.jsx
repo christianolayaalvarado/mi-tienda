@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthContext } from "@/context/AuthProvider";
-import MascotAvatar from "@/components/MascotAvatar";
-import { IMAGE_MASCOTS } from "@/components/MascotAvatar";
+import MascotAvatar, { MASCOT_COMPONENTS } from "@/components/MascotAvatar";
 import { usePathname } from "next/navigation";
 
 const MESSAGES_MID = [
@@ -313,8 +312,6 @@ export default function ScrollMascot({ onClick }) {
     }
   }, [progress, celebrating]);
 
-  // Premium mascot: no rotation, just show front view
-  const isPremium = !!IMAGE_MASCOTS[mascotType];
   const atBottom = progress > 0.95;
 
   // Measure product grid right edge for walk limit
