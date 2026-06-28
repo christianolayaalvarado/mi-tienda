@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthContext } from "@/context/AuthProvider";
-import MascotAvatar, { MASCOT_COMPONENTS } from "@/components/MascotAvatar";
+import MascotAvatar, { IMAGE_MASCOTS } from "@/components/MascotAvatar";
 import { usePathname } from "next/navigation";
 
 const MESSAGES_MID = [
