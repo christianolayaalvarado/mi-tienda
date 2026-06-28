@@ -21,6 +21,7 @@ model User {
   address       String?
   phone         String?
   selectedMascot String?  @default("box")
+  mascotNames    Json?     @default("{}")
   createdAt     DateTime @default(now())
 
   products       Product[]

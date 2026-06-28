@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthContext } from "@/context/AuthProvider";
 import MascotAvatar from "@/components/MascotAvatar";
 import { IMAGE_MASCOTS } from "@/components/MascotAvatar";
+import { usePathname } from "next/navigation";
 
 const MESSAGES_MID = [
   "¡Ya vas por la mitad! Sigue bajando 🚀",
@@ -121,6 +122,7 @@ const CONFETTI_COLORS = ["#F87171", "#60A5FA", "#34D399", "#FBBF24", "#A78BFA", 
 
 export default function ScrollMascot({ onClick }) {
   const { user } = useAuthContext() || {};
+  const pathname = usePathname();
   const [progress, setProgress] = useState(0);
   const [viewH, setViewH] = useState(800);
   const [navH, setNavH] = useState(130);
@@ -145,7 +147,7 @@ export default function ScrollMascot({ onClick }) {
   const rotationTimer = useRef(null);
   const scrollElRef = useRef(null);
 
-  // Fetch user's selected mascot
+  // Fetch user's selected mascot (re-fetch on route change)
   useEffect(() => {
     let cancelled = false;
     fetch("/api/user/mascot", { credentials: "include" })
@@ -153,7 +155,7 @@ export default function ScrollMascot({ onClick }) {
       .then((d) => { if (!cancelled && d.mascot) setMascotType(d.mascot); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  }, [pathname]);
 
   // Track layout
   useEffect(() => {
@@ -505,9 +507,8 @@ export default function ScrollMascot({ onClick }) {
 
         {/* Mascot Avatar */}
         <div className={`transition-transform duration-200 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}>
-          <MascotAvatar type={mascotType} size={56} animate={!celebrating && !isRotating} view={isRotating ? rotationView : "front"} />
+          <MascotAvatar type={mascotType} size={72} animate={!celebrating && !isRotating} view={isRotating ? rotationView : "front"} />
         </div>
-        <div className="text-[8px] text-center text-gray-400 mt-0.5 select-none">{mascotType}</div>
       </div>
 
       {/* Percentage */}
