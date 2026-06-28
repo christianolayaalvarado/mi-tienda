@@ -361,6 +361,7 @@ export default function ScrollMascot({ onClick }) {
 
   // Premium mascot: no rotation, just show front view
   const isPremium = !!IMAGE_MASCOTS[mascotType];
+  const atBottom = progress > 0.95;
 
   // Measure product grid right edge for walk limit
   useEffect(() => {
