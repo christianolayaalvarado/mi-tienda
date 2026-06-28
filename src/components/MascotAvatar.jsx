@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 
 function BoxMascot({ size = 64, animate = true, uid = "" }) {
   return (
@@ -251,14 +250,12 @@ export default function MascotAvatar({ type = "box", size = 64, animate = true, 
     const src = images[view] || images.front;
     if (src) {
       return (
-        <Image
+        <img
           src={src}
           alt={`Mascota ${type}`}
           width={size}
           height={size}
-          className="object-contain"
-          unoptimized
-          priority
+          style={{ width: size, height: size, objectFit: "contain", display: "block", background: "transparent" }}
         />
       );
     }

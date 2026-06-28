@@ -147,12 +147,13 @@ export default function ScrollMascot({ onClick }) {
 
   // Fetch user's selected mascot
   useEffect(() => {
-    if (!user) return;
-    fetch("/api/user/mascot")
-      .then((r) => r.json())
-      .then((d) => { if (d.mascot) setMascotType(d.mascot); })
+    let cancelled = false;
+    fetch("/api/user/mascot", { credentials: "include" })
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((d) => { if (!cancelled && d.mascot) setMascotType(d.mascot); })
       .catch(() => {});
-  }, [user]);
+    return () => { cancelled = true; };
+  }, []);
 
   // Track layout
   useEffect(() => {
@@ -506,6 +507,7 @@ export default function ScrollMascot({ onClick }) {
         <div className={`transition-transform duration-200 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}>
           <MascotAvatar type={mascotType} size={56} animate={!celebrating && !isRotating} view={isRotating ? rotationView : "front"} />
         </div>
+        <div className="text-[8px] text-center text-gray-400 mt-0.5 select-none">{mascotType}</div>
       </div>
 
       {/* Percentage */}
