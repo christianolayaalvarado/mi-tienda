@@ -137,14 +137,11 @@ export default function ScrollMascot({ onClick }) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
   const [mascotType, setMascotType] = useState("box");
-  const [rotationView, setRotationView] = useState("front");
-  const [isRotating, setIsRotating] = useState(false);
   const gridRightRef = useRef(0);
   const lastMessageZone = useRef("");
   const encourageTimer = useRef(null);
   const hasGreeted = useRef(false);
   const idleTimer = useRef(null);
-  const rotationTimer = useRef(null);
   const scrollElRef = useRef(null);
 
   // Read saved mascot from localStorage (client-side only, after mount)
@@ -362,56 +359,8 @@ export default function ScrollMascot({ onClick }) {
     }
   }, [progress, celebrating]);
 
-  // Premium mascot rotation: idle detection
+  // Premium mascot: no rotation, just show front view
   const isPremium = !!IMAGE_MASCOTS[mascotType];
-  const VIEWS = ["front", "side", "rear"];
-
-  useEffect(() => {
-    if (!isPremium) return;
-    if (!isIdle) {
-      setIsRotating(false);
-      setRotationView("front");
-      clearTimeout(rotationTimer.current);
-      return;
-    }
-    const idleTimeout = setTimeout(() => {
-      setIsRotating(true);
-      let idx = 0;
-      setMessage(pickRandom(IDLE_ROTATE_MESSAGES));
-      setMsgKey((k) => k + 1);
-      rotationTimer.current = setInterval(() => {
-        idx = (idx + 1) % VIEWS.length;
-        setRotationView(VIEWS[idx]);
-      }, 800);
-    }, 5000);
-    return () => {
-      clearTimeout(idleTimeout);
-      clearInterval(rotationTimer.current);
-    };
-  }, [isIdle, isPremium, mascotType]);
-
-  // Premium mascot rotation: at bottom
-  const atBottom = progress > 0.95;
-
-  useEffect(() => {
-    if (!isPremium || !atBottom) {
-      if (isRotating && !isIdle) {
-        setIsRotating(false);
-        setRotationView("front");
-        clearInterval(rotationTimer.current);
-      }
-      return;
-    }
-    setIsRotating(true);
-    let idx = 0;
-    setMessage(pickRandom(BOTTOM_ROTATE_MESSAGES));
-    setMsgKey((k) => k + 1);
-    rotationTimer.current = setInterval(() => {
-      idx = (idx + 1) % VIEWS.length;
-      setRotationView(VIEWS[idx]);
-    }, 800);
-    return () => clearInterval(rotationTimer.current);
-  }, [atBottom, isPremium, isIdle]);
 
   // Measure product grid right edge for walk limit
   useEffect(() => {
@@ -554,7 +503,7 @@ export default function ScrollMascot({ onClick }) {
 
         {/* Mascot Avatar */}
         <div className={`transition-transform duration-200 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}>
-          <MascotAvatar type={mascotType} size={72} animate={!celebrating && !isRotating} view={isRotating ? rotationView : "front"} />
+          <MascotAvatar type={mascotType} size={72} animate={!celebrating} view="front" />
         </div>
       </div>
 
