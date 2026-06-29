@@ -122,7 +122,8 @@ export default function ScrollMascot({ onClick }) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
   const [mascotType, setMascotType] = useState("box");
-  const [mascotName, setMascotName] = useState("Shopito");
+  const [mascotName, setMascotName] = useState("");
+  const mascotNameResolved = useRef(false);
   const gridRightRef = useRef(0);
   const lastMessageZone = useRef("");
   const encourageTimer = useRef(null);
@@ -176,9 +177,13 @@ export default function ScrollMascot({ onClick }) {
         const customName = d?.names?.[mascotType];
         const defaultName = MASCOTS[mascotType]?.name || "Shopito";
         setMascotName(customName || defaultName);
+        mascotNameResolved.current = true;
       })
       .catch(() => {
-        if (!cancelled) setMascotName(MASCOTS[mascotType]?.name || "Shopito");
+        if (!cancelled) {
+          setMascotName(MASCOTS[mascotType]?.name || "Shopito");
+          mascotNameResolved.current = true;
+        }
       });
     return () => { cancelled = true; };
   }, [mascotType]);
@@ -192,8 +197,14 @@ export default function ScrollMascot({ onClick }) {
         const customName = names[mascotType];
         const defaultName = MASCOTS[mascotType]?.name || "Shopito";
         setMascotName(customName || defaultName);
+      } else {
+        const defaultName = MASCOTS[mascotType]?.name || "Shopito";
+        setMascotName(defaultName);
       }
-    } catch {}
+    } catch {
+      const defaultName = MASCOTS[mascotType]?.name || "Shopito";
+      setMascotName(defaultName);
+    }
   }, [mascotType]);
 
   // Listen for mascot-changed custom events (dispatched by MascotGallery)
@@ -309,18 +320,21 @@ export default function ScrollMascot({ onClick }) {
     return () => clearInterval(t);
   }, [isIdle]);
 
-  // Welcome messages
+  // Welcome messages — wait for user and mascotName to be resolved
   useEffect(() => {
     if (hasGreeted.current) return;
+    if (!user) return;
+    if (!mascotNameResolved.current) return;
+    if (!mascotName) return;
     hasGreeted.current = true;
-    const name = user?.name || "";
-    const greet = name ? `¡Hola ${name}, bienvenido! Soy ${mascotName} 🛍️` : `¡Hola, bienvenido! Soy ${mascotName} 🛍️`;
+    const userName = user?.name || "";
+    const greet = userName ? `¡Hola ${userName}, bienvenido! Soy ${mascotName} 🛍️` : `¡Hola, bienvenido! Soy ${mascotName} 🛍️`;
     setMessage(greet);
     setMsgKey((k) => k + 1);
     const t1 = setTimeout(() => { setMessage("Sigue bajando, ¡hay más productos para ti! 👇"); setMsgKey((k) => k + 1); }, 6000);
     const t2 = setTimeout(() => { setIsWaving(false); }, 3000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [user]);
+  }, [user, mascotName]);
 
   // Zone messages
   useEffect(() => {
