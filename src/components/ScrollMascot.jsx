@@ -154,6 +154,29 @@ export default function ScrollMascot({ onClick }) {
     }
   }, [user?.selectedMascot]);
 
+  // Listen for mascot-changed custom events (dispatched by MascotGallery)
+  useEffect(() => {
+    const handleMascotChanged = (e) => {
+      const newType = e?.detail?.mascotId;
+      if (newType && newType !== mascotType) {
+        setMascotType(newType);
+      }
+    };
+    window.addEventListener("mascot-changed", handleMascotChanged);
+    return () => window.removeEventListener("mascot-changed", handleMascotChanged);
+  }, [mascotType]);
+
+  // Listen for localStorage changes (cross-tab support)
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === "selectedMascot" && e.newValue && e.newValue !== mascotType) {
+        setMascotType(e.newValue);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [mascotType]);
+
   // Track layout
   useEffect(() => {
     const updateLayout = () => {

@@ -191,12 +191,12 @@ const MASCOT_COMPONENTS = {
 };
 
 const IMAGE_MASCOTS = {
-  box_c: { front: "/mascots/box_c/caja_front.svg", side: "/mascots/box_c/caja_side.png", rear: "/mascots/box_c/caja_rear.png" },
+  box_c: { front: "/mascots/box_c/caja_front.png", side: "/mascots/box_c/caja_side.png", rear: "/mascots/box_c/caja_rear.png" },
   coin_a: { front: "/mascots/coin_a/moneda_front.png", side: "/mascots/coin_a/moneda_side.png", rear: "/mascots/coin_a/moneda_rear.png" },
   cart_a: { front: "/mascots/cart_a/carritoazul_front.png", side: "/mascots/cart_a/carritoazul_side.png", rear: "/mascots/cart_a/carritoazul_rear.png" },
   cart_b: { front: "/mascots/cart_b/carritorojo_front.png", side: "/mascots/cart_b/carritorojo_side.png", rear: "/mascots/cart_b/carritorojo_rear.png" },
   coupon_c: { front: "/mascots/coupon_c/cupon_front.png", side: "/mascots/coupon_c/cupon_side.png", rear: "/mascots/coupon_c/cupon_rear.png" },
-  bag_b: { front: "/mascots/bag_b/bolsa_front.svg", side: "/mascots/bag_b/bolsa_side.png", rear: "/mascots/bag_b/bolsa_rear.png" },
+  bag_b: { front: "/mascots/bag_b/bolsa_front.png", side: "/mascots/bag_b/bolsa_side.png", rear: "/mascots/bag_b/bolsa_rear.png" },
   rocket_b: { front: "/mascots/rocket_b/Cohete_front.png", side: "/mascots/rocket_b/Cohete_side.png", rear: "/mascots/rocket_b/Cohete_rear.png" },
   dog_c: { front: "/mascots/dog_c/dog_front.png", side: "/mascots/dog_c/dog_side.png", rear: "/mascots/dog_c/dog_rear.png" },
   cat_b: { front: "/mascots/cat_b/cat_front.png", side: "/mascots/cat_b/cat_side.png", rear: "/mascots/cat_b/cat_rear.png" },
@@ -204,6 +204,27 @@ const IMAGE_MASCOTS = {
   rooster_b: { front: "/mascots/rooster_b/Gallo_front.png", side: "/mascots/rooster_b/Gallo_side.png", rear: "/mascots/rooster_b/Gallo_rear.png" },
   cuy_c: { front: "/mascots/cuy_c/cuy_front.png", side: "/mascots/cuy_c/cuy_side.png", rear: "/mascots/cuy_c/cuy_rear.png" },
 };
+
+function PremiumMascotImg({ type, src, size }) {
+  const [failed, setFailed] = React.useState(false);
+  const uid = React.useId();
+
+  if (failed) {
+    return <BoxMascot size={size} animate={true} uid={uid} />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`Mascota ${type}`}
+      width={size}
+      height={size}
+      className="object-contain"
+      style={{ width: size, height: size }}
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export default function MascotAvatar({ type = "box", size = 64, animate = true, view = "front" }) {
   const uid = React.useId();
@@ -217,17 +238,7 @@ export default function MascotAvatar({ type = "box", size = 64, animate = true, 
   if (images) {
     const src = images[view] || images.front;
     if (src) {
-      return (
-        <img
-          src={src}
-          alt={`Mascota ${type}`}
-          width={size}
-          height={size}
-          className="object-contain"
-          style={{ width: size, height: size }}
-          onError={(e) => { e.target.style.display = "none"; }}
-        />
-      );
+      return <PremiumMascotImg type={type} src={src} size={size} />;
     }
   }
 
