@@ -128,7 +128,17 @@ export default function ScrollMascot({ onClick }) {
   const idleTimer = useRef(null);
   const scrollElRef = useRef(null);
 
-  // Single source of truth: fetch mascot from API on mount and route change
+  // Instant read from localStorage on mount (no API delay)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("selectedMascot");
+      if (saved && saved !== mascotType) {
+        setMascotType(saved);
+      }
+    } catch {}
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch from API on mount and route change (overwrites localStorage if newer)
   useEffect(() => {
     let cancelled = false;
     fetch("/api/user/mascot", { credentials: "include", cache: "no-store" })
@@ -158,24 +168,25 @@ export default function ScrollMascot({ onClick }) {
   useEffect(() => {
     const handleMascotChanged = (e) => {
       const newType = e?.detail?.mascotId;
-      if (newType && newType !== mascotType) {
+      if (newType) {
         setMascotType(newType);
+        localStorage.setItem("selectedMascot", newType);
       }
     };
     window.addEventListener("mascot-changed", handleMascotChanged);
     return () => window.removeEventListener("mascot-changed", handleMascotChanged);
-  }, [mascotType]);
+  }, []);
 
   // Listen for localStorage changes (cross-tab support)
   useEffect(() => {
     const handleStorage = (e) => {
-      if (e.key === "selectedMascot" && e.newValue && e.newValue !== mascotType) {
+      if (e.key === "selectedMascot" && e.newValue) {
         setMascotType(e.newValue);
       }
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
-  }, [mascotType]);
+  }, []);
 
   // Track layout
   useEffect(() => {
