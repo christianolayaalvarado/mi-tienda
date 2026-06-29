@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthContext } from "@/context/AuthProvider";
 import MascotAvatar, { IMAGE_MASCOTS } from "@/components/MascotAvatar";
 import { usePathname } from "next/navigation";
+import { MASCOTS } from "@/lib/mascotCatalog";
 
 const MESSAGES_MID = [
   "¡Ya vas por la mitad! Sigue bajando 🚀",
@@ -121,6 +122,7 @@ export default function ScrollMascot({ onClick }) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
   const [mascotType, setMascotType] = useState("box");
+  const [mascotName, setMascotName] = useState("Shopito");
   const gridRightRef = useRef(0);
   const lastMessageZone = useRef("");
   const encourageTimer = useRef(null);
@@ -163,6 +165,36 @@ export default function ScrollMascot({ onClick }) {
       localStorage.setItem("selectedMascot", user.selectedMascot);
     }
   }, [user?.selectedMascot]);
+
+  // Fetch custom mascot names and compute display name
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/user/mascot-names", { credentials: "include", cache: "no-store" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (cancelled) return;
+        const customName = d?.names?.[mascotType];
+        const defaultName = MASCOTS[mascotType]?.name || "Shopito";
+        setMascotName(customName || defaultName);
+      })
+      .catch(() => {
+        if (!cancelled) setMascotName(MASCOTS[mascotType]?.name || "Shopito");
+      });
+    return () => { cancelled = true; };
+  }, [mascotType]);
+
+  // Also update name from localStorage custom names (instant)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("mascotNames");
+      if (raw) {
+        const names = JSON.parse(raw);
+        const customName = names[mascotType];
+        const defaultName = MASCOTS[mascotType]?.name || "Shopito";
+        setMascotName(customName || defaultName);
+      }
+    } catch {}
+  }, [mascotType]);
 
   // Listen for mascot-changed custom events (dispatched by MascotGallery)
   useEffect(() => {
@@ -282,7 +314,7 @@ export default function ScrollMascot({ onClick }) {
     if (hasGreeted.current) return;
     hasGreeted.current = true;
     const name = user?.name || "";
-    const greet = name ? `¡Hola ${name}, bienvenido! Soy Shopito 🛍️` : `¡Hola, bienvenido! Soy Shopito 🛍️`;
+    const greet = name ? `¡Hola ${name}, bienvenido! Soy ${mascotName} 🛍️` : `¡Hola, bienvenido! Soy ${mascotName} 🛍️`;
     setMessage(greet);
     setMsgKey((k) => k + 1);
     const t1 = setTimeout(() => { setMessage("Sigue bajando, ¡hay más productos para ti! 👇"); setMsgKey((k) => k + 1); }, 6000);

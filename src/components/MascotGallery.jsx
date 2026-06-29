@@ -35,6 +35,7 @@ export default function MascotGallery() {
         if (namesRes.ok) {
           const data = await namesRes.json();
           setCustomNames(data.names || {});
+          try { localStorage.setItem("mascotNames", JSON.stringify(data.names || {})); } catch {}
         }
       } catch {
         // silent
@@ -105,6 +106,7 @@ export default function MascotGallery() {
       if (res.ok) {
         const data = await res.json();
         setCustomNames(data.names);
+        try { localStorage.setItem("mascotNames", JSON.stringify(data.names)); } catch {}
         toast.success("Nombre actualizado");
       } else {
         toast.error("Error al guardar nombre");
