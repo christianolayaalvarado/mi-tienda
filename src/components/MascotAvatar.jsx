@@ -210,19 +210,39 @@ function PremiumMascotImg({ type, src, size }) {
   const uid = React.useId();
 
   if (failed) {
-    return <BoxMascot size={size} animate={true} uid={uid} />;
+    return <BoxMascot size={size} animate uid={uid} />;
   }
 
   return (
-    <img
-      src={src}
-      alt={`Mascota ${type}`}
-      width={size}
-      height={size}
-      className="object-contain"
-      style={{ width: size, height: size }}
-      onError={() => setFailed(true)}
-    />
+    <div
+      style={{
+        width: size,
+        height: size,
+        minWidth: size,
+        minHeight: size,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <img
+        src={src}
+        alt={`Mascota ${type}`}
+        draggable={false}
+        loading="eager"
+        decoding="async"
+        onError={() => setFailed(true)}
+        style={{
+          display: "block",
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          userSelect: "none",
+          pointerEvents: "none",
+        }}
+      />
+    </div>
   );
 }
 
