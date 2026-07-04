@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import MascotAnimationController from "@/components/mascot/MascotAnimationController";
+import MascotAnimationController from "@/lib/mascot/MascotAnimationController";
 
 function BoxMascot({ size = 64, animate = true, uid = "" }) {
   return (
