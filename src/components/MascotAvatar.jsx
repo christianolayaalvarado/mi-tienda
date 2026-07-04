@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import MascotAnimationController from "@/components/mascot/MascotAnimationController";
 
 function BoxMascot({ size = 64, animate = true, uid = "" }) {
   return (
@@ -230,7 +231,7 @@ function PremiumMascotImg({ type, src, size }) {
         src={src}
         alt={`Mascota ${type}`}
         draggable={false}
-        loading="eager"
+        loading="lazy"
         decoding="async"
         onError={() => setFailed(true)}
         style={{
@@ -249,20 +250,45 @@ function PremiumMascotImg({ type, src, size }) {
 export default function MascotAvatar({ type = "box", size = 64, animate = true, view = "front" }) {
   const uid = React.useId();
 
-  const SvgComponent = MASCOT_COMPONENTS[type];
-  if (SvgComponent) {
-    return <SvgComponent size={size} animate={animate} uid={uid} />;
-  }
+const SvgComponent = MASCOT_COMPONENTS[type];
+
+if (SvgComponent) {
+  return (
+    <MascotAnimationController>
+      <SvgComponent
+        size={size}
+        animate={animate}
+        uid={uid}
+      />
+    </MascotAnimationController>
+  );
+}
 
   const images = IMAGE_MASCOTS[type];
   if (images) {
     const src = images[view] || images.front;
     if (src) {
-      return <PremiumMascotImg type={type} src={src} size={size} />;
-    }
+  return (
+    <MascotAnimationController>
+      <PremiumMascotImg
+        type={type}
+        src={src}
+        size={size}
+      />
+    </MascotAnimationController>
+  );
+}
   }
 
-  return <BoxMascot size={size} animate={animate} uid={uid} />;
+  return (
+  <MascotAnimationController>
+    <BoxMascot
+      size={size}
+      animate={animate}
+      uid={uid}
+    />
+  </MascotAnimationController>
+);
 }
 
 export { MASCOT_COMPONENTS, IMAGE_MASCOTS, BoxMascot, CoinMascot, CartMascot, CouponMascot, BagMascot };
