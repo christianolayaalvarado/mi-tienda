@@ -63,7 +63,7 @@ export default function MascotPromoBanner() {
 
   return (
     <div
-      className="relative w-full h-full min-h-[320px] rounded-xl overflow-hidden flex flex-col"
+      className="relative w-full h-full min-h-[180px] lg:min-h-[220px] rounded-xl overflow-hidden flex flex-col"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

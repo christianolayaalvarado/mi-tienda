@@ -25,10 +25,17 @@ export default function HomeClient() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [promoVisible, setPromoVisible] = useState(false);
 
   const fetchController = useRef(null);
   const isFirstLoad = useRef(true);
   const mounted = useRef(false);
+
+  // Animate promo banner in after 2 seconds (push effect)
+  useEffect(() => {
+    const t = setTimeout(() => setPromoVisible(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
 
   // evitar renderizar una paginación enorme
   const safeTotalPages = Math.max(1, Math.min(Number(totalPages || 1), 500));
@@ -146,11 +153,21 @@ export default function HomeClient() {
       <MascotWelcomeModal />
 
       {/* Carrusel de productos destacados + Promo de mascotas */}
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div className="flex-[2] min-w-0">
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+        <div
+          className="min-w-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ flex: promoVisible ? "1 1 0" : "1 1 100%" }}
+        >
           <FeaturedCarousel />
         </div>
-        <div className="flex-[1] min-w-[280px] lg:min-w-0">
+        <div
+          className="min-w-0 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{
+            flex: promoVisible ? "0 0 300px" : "0 0 0px",
+            opacity: promoVisible ? 1 : 0,
+            marginRight: promoVisible ? 0 : "-1rem",
+          }}
+        >
           <MascotPromoBanner />
         </div>
       </div>
