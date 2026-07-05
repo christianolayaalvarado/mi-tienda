@@ -89,7 +89,7 @@ export default function FeaturedCarousel() {
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-indigo-50"
+      className="relative w-full h-[140px] sm:h-[150px] overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-indigo-50"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       ref={carouselRef}
