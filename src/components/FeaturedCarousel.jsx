@@ -73,7 +73,7 @@ export default function FeaturedCarousel() {
 
   if (loading) {
     return (
-      <div className="w-full h-40 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl animate-pulse flex items-center justify-center">
+      <div className="w-full h-[140px] sm:h-[150px] bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl animate-pulse flex items-center justify-center">
         <svg className="w-8 h-8 text-blue-300 animate-spin" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
