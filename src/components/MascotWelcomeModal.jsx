@@ -76,15 +76,6 @@ export default function MascotWelcomeModal() {
     }
   }, [isOpen]);
 
-  // Auto-close after 48 seconds if not manually closed
-  useEffect(() => {
-    if (!isOpen) return;
-    const t = setTimeout(() => {
-      if (isOpen) handleClose();
-    }, 48000);
-    return () => clearTimeout(t);
-  }, [isOpen, handleClose]);
-
   useEffect(() => {
     if (!isOpen) return;
     const interval = setInterval(() => {
@@ -104,6 +95,13 @@ export default function MascotWelcomeModal() {
       }, 300);
     }, 100);
   }, []);
+
+  // Auto-close after 48 seconds if not manually closed
+  useEffect(() => {
+    if (!isOpen) return;
+    const t = setTimeout(() => handleClose(), 48000);
+    return () => clearTimeout(t);
+  }, [isOpen, handleClose]);
 
   const goToSlide = (idx) => {
     if (idx !== currentSlide) setCurrentSlide(idx);
