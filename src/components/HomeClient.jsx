@@ -161,11 +161,11 @@ export default function HomeClient() {
       <MascotWelcomeModal />
 
       {/* Carrusel de productos destacados + Promo de mascotas */}
-      <div className="h-[200px] sm:h-[220px]">
-        <div className="flex flex-col lg:flex-row gap-3 h-full">
+      <div className="h-[200px]">
+        <div className="flex gap-2 h-full">
           <div
             className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 h-full"
-            style={{ flex: promoVisible ? "3 1 0" : "1 1 100%" }}
+            style={{ flex: promoVisible ? "1 1 0" : "1 1 100%" }}
           >
             <FeaturedCarousel />
           </div>
