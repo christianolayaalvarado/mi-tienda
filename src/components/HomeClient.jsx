@@ -31,9 +31,17 @@ export default function HomeClient() {
   const isFirstLoad = useRef(true);
   const mounted = useRef(false);
 
-  // Animate promo banner in after 2 seconds (push effect)
+  // Animate promo banner cycle: in 2s → out 60s → in 120s → repeat
   useEffect(() => {
-    const t = setTimeout(() => setPromoVisible(true), 2000);
+    let t;
+    const cycle = () => {
+      setPromoVisible(true);
+      t = setTimeout(() => {
+        setPromoVisible(false);
+        t = setTimeout(cycle, 120000);
+      }, 60000);
+    };
+    t = setTimeout(cycle, 2000);
     return () => clearTimeout(t);
   }, []);
 
