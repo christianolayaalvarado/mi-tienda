@@ -161,7 +161,7 @@ export default function HomeClient() {
       <MascotWelcomeModal />
 
       {/* Carrusel de productos destacados + Promo de mascotas */}
-      <div className="h-[140px] sm:h-[150px]">
+      <div className="h-[200px] sm:h-[220px]">
         <div className="flex flex-col lg:flex-row gap-3 h-full">
           <div
             className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 h-full"
