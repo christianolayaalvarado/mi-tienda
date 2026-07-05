@@ -7,6 +7,7 @@
 // =========================================================
 
 import { BaseLayer } from "./layers/BaseLayer";
+import { BreathingLayer } from "./layers/BreathingLayer";
 
 export class RenderPipeline {
   constructor() {
@@ -20,6 +21,7 @@ export class RenderPipeline {
    */
   registerDefaultLayers() {
     this.layers.push(new BaseLayer());
+    this.layers.push(new BreathingLayer());
   }
 
   /**
