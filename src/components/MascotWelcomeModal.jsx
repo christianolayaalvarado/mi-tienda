@@ -62,7 +62,7 @@ export default function MascotWelcomeModal() {
     try {
       const shown = localStorage.getItem("mascot-welcome-shown");
       if (!shown) {
-        const t = setTimeout(() => setIsOpen(true), 1500);
+        const t = setTimeout(() => setIsOpen(true), 30000);
         return () => clearTimeout(t);
       }
     } catch {}
@@ -75,6 +75,15 @@ export default function MascotWelcomeModal() {
       setIsVisible(false);
     }
   }, [isOpen]);
+
+  // Auto-close after 48 seconds if not manually closed
+  useEffect(() => {
+    if (!isOpen) return;
+    const t = setTimeout(() => {
+      if (isOpen) handleClose();
+    }, 48000);
+    return () => clearTimeout(t);
+  }, [isOpen, handleClose]);
 
   useEffect(() => {
     if (!isOpen) return;
