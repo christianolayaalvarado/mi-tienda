@@ -161,23 +161,21 @@ export default function HomeClient() {
       <MascotWelcomeModal />
 
       {/* Carrusel de productos destacados + Promo de mascotas */}
-      <div className="h-[200px]">
-        <div className="flex gap-2 h-full">
-          <div
-            className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 h-full"
-            style={{ flex: promoVisible ? "1 1 0" : "1 1 100%" }}
-          >
-            <FeaturedCarousel />
-          </div>
-          <div
-            className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 overflow-hidden h-full"
-            style={{
-              flex: promoVisible ? "1 1 0" : "0 1 0",
-              opacity: promoVisible ? 1 : 0,
-            }}
-          >
-            <MascotPromoBanner />
-          </div>
+      <div className="flex flex-col lg:flex-row gap-2 lg:gap-3 h-auto lg:h-[200px]">
+        <div
+          className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 h-[200px] lg:h-full"
+          style={{ flex: promoVisible ? "1 1 0" : "1 1 100%" }}
+        >
+          <FeaturedCarousel />
+        </div>
+        <div
+          className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 overflow-hidden h-[200px] lg:h-full"
+          style={{
+            flex: promoVisible ? "1 1 0" : "0 1 0",
+            opacity: promoVisible ? 1 : 0,
+          }}
+        >
+          <MascotPromoBanner />
         </div>
       </div>
 
