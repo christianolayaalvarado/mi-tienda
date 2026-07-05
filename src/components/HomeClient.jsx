@@ -5,6 +5,8 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import ProductCard from "@/components/ProductCard";
 import ProductCardSkeleton from "@/components/ProductCardSkeleton";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
+import MascotPromoBanner from "@/components/MascotPromoBanner";
+import MascotWelcomeModal from "@/components/MascotWelcomeModal";
 import ScrollMascot from "@/components/ScrollMascot";
 import EmptyState from "@/components/EmptyState";
 
@@ -140,8 +142,18 @@ export default function HomeClient() {
   // ---------------- RENDER
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 py-8 pb-20 sm:pb-16">
-      {/* Carrusel de productos destacados */}
-      <FeaturedCarousel />
+      {/* Modal de bienvenida de mascotas */}
+      <MascotWelcomeModal />
+
+      {/* Carrusel de productos destacados + Promo de mascotas */}
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex-[2] min-w-0">
+          <FeaturedCarousel />
+        </div>
+        <div className="flex-[1] min-w-[280px] lg:min-w-0">
+          <MascotPromoBanner />
+        </div>
+      </div>
 
       {/* Título de sección */}
       {!currentSearch && !currentCategory && (
