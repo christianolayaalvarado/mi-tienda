@@ -172,7 +172,7 @@ export default function HomeClient() {
       {/* Mobile: stacked vertically, banner slides down */}
       {/* Desktop: side by side, banner slides in from right */}
       <div className="flex flex-col lg:flex-row gap-2 lg:gap-3">
-        <div className="h-[200px] w-full min-w-0">
+        <div className="h-[180px] w-full min-w-0">
           <FeaturedCarousel />
         </div>
         <div
@@ -180,18 +180,18 @@ export default function HomeClient() {
           style={
             isDesktop
               ? {
-                  maxWidth: promoVisible ? "320px" : "0",
+                  maxWidth: promoVisible ? "300px" : "0",
                   opacity: promoVisible ? 1 : 0,
-                  width: promoVisible ? "320px" : "0",
+                  width: promoVisible ? "300px" : "0",
                 }
               : {
-                  maxHeight: promoVisible ? "200px" : "0",
+                  maxHeight: promoVisible ? "180px" : "0",
                   opacity: promoVisible ? 1 : 0,
                   width: "100%",
                 }
           }
         >
-          <div className="h-[200px] w-full">
+          <div className="h-[180px] w-full">
             <MascotPromoBanner />
           </div>
         </div>
