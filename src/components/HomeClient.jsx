@@ -26,10 +26,18 @@ export default function HomeClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [promoVisible, setPromoVisible] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
 
   const fetchController = useRef(null);
   const isFirstLoad = useRef(true);
   const mounted = useRef(false);
+
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Animate promo banner cycle: in 2s → out 60s → in 120s → repeat
   useEffect(() => {
@@ -161,21 +169,31 @@ export default function HomeClient() {
       <MascotWelcomeModal />
 
       {/* Carrusel de productos destacados + Promo de mascotas */}
-      <div className="flex flex-col lg:flex-row gap-2 lg:gap-3 h-auto lg:h-[200px]">
-        <div
-          className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 h-[200px] lg:h-full"
-          style={{ flex: promoVisible ? "1 1 0" : "1 1 100%" }}
-        >
+      {/* Mobile: stacked vertically, banner slides down */}
+      {/* Desktop: side by side, banner slides in from right */}
+      <div className="flex flex-col lg:flex-row gap-2 lg:gap-3">
+        <div className="h-[200px] w-full min-w-0">
           <FeaturedCarousel />
         </div>
         <div
-          className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 overflow-hidden h-[200px] lg:h-full"
-          style={{
-            flex: promoVisible ? "1 1 0" : "0 1 0",
-            opacity: promoVisible ? 1 : 0,
-          }}
+          className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 overflow-hidden"
+          style={
+            isDesktop
+              ? {
+                  maxWidth: promoVisible ? "320px" : "0",
+                  opacity: promoVisible ? 1 : 0,
+                  width: promoVisible ? "320px" : "0",
+                }
+              : {
+                  maxHeight: promoVisible ? "200px" : "0",
+                  opacity: promoVisible ? 1 : 0,
+                  width: "100%",
+                }
+          }
         >
-          <MascotPromoBanner />
+          <div className="h-[200px] w-full">
+            <MascotPromoBanner />
+          </div>
         </div>
       </div>
 
