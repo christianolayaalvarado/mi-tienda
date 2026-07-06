@@ -116,12 +116,12 @@ export default function MascotPromoBanner() {
 
           <div key={`info-${currentIdx}`} className="animate-[fadeInUp_0.4s_ease-out]">
             <div className="flex items-center gap-1 mb-0.5">
-              <h3 className="text-white font-bold text-xs sm:text-sm text-left leading-tight drop-shadow-md">{item.title}</h3>
+              <h3 className="text-white font-bold text-sm sm:text-lg text-left leading-tight drop-shadow-md">{item.title}</h3>
               <span className={`${item.badgeColor} text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 shadow`}>
                 {item.badge}
               </span>
             </div>
-            <p className="text-white/90 text-[10px] leading-snug text-left drop-shadow-sm">{item.desc}</p>
+            <p className="text-white/90 text-[11px] sm:text-xs leading-snug text-left drop-shadow-sm">{item.desc}</p>
           </div>
 
           <div className="flex gap-1 mt-0.5">
