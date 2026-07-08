@@ -1,26 +1,18 @@
 // =========================================================
-// MASCOT ENGINE
+// MASCOT ENGINE v2.7
 // Module: BaseLayer
-// Responsibility:
-// Creates the initial render state used by all render
-// layers. Every subsequent layer extends or modifies
-// this state.
+// ---------------------------------------------------------
+// Inicializa el RenderState completo utilizado por todas
+// las capas del Render Pipeline.
 // =========================================================
 
 export class BaseLayer {
-  /**
-   * Creates the base render state.
-   *
-   * @param {Object} renderState
-   * @param {Object} mascotState
-   * @returns {Object}
-   */
   apply(renderState = {}, mascotState = {}) {
     return {
       ...renderState,
 
       // =====================================================
-      // Position
+      // Posición
       // =====================================================
 
       position: {
@@ -29,51 +21,170 @@ export class BaseLayer {
       },
 
       // =====================================================
-      // Transformations
+      // Transformaciones
       // =====================================================
 
       transform: {
         global: {
           translateX: 0,
           translateY: 0,
-          scale: 1,
+
           rotation: 0,
+
+          scale: 1,
+          scaleX: 1,
+          scaleY: 1,
+
+          skewX: 0,
+          skewY: 0,
+
+          pivotX: 0,
+          pivotY: 0,
         },
 
         parts: {
-          body: {},
-          head: {},
-          eyes: {},
-          ears: {},
-          tail: {},
-          accessory: {},
+          body: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+            scaleX: 1,
+            scaleY: 1,
+          },
+
+          head: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+            scaleX: 1,
+            scaleY: 1,
+          },
+
+          leftEar: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+          },
+
+          rightEar: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+          },
+
+          leftArm: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+          },
+
+          rightArm: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+          },
+
+          leftLeg: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+          },
+
+          rightLeg: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+          },
+
+          eyes: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+
+            blink: 1,
+            pupilX: 0,
+            pupilY: 0,
+          },
+
+          tail: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+          },
+
+          shadow: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            opacity: 1,
+          },
+
+          accessory: {
+            translateX: 0,
+            translateY: 0,
+            rotation: 0,
+            scale: 1,
+          },
         },
       },
 
       // =====================================================
-      // Visual
+      // Apariencia
       // =====================================================
 
-      opacity: 1,
+      opacity: mascotState.visible === false ? 0 : 1,
+
+      visible: mascotState.visible !== false,
+
+      zIndex: 0,
+
+      // =====================================================
+      // Filtros
+      // =====================================================
 
       filters: {
         brightness: 1,
         saturation: 1,
+        contrast: 1,
         blur: 0,
         hue: 0,
+        grayscale: 0,
       },
 
       // =====================================================
-      // Orientation
+      // CSS generado por el pipeline
       // =====================================================
 
-      view: mascotState.direction || "front",
+      transformCSS: "",
+
+      filterCSS: "",
 
       // =====================================================
-      // Animation metadata
+      // Orientación
       // =====================================================
 
-      animation: {},
+      view: mascotState.direction ?? "front",
+
+      // =====================================================
+      // Información de animación
+      // =====================================================
+
+      animation: {
+        current: mascotState.animation?.current ?? "idle",
+        progress: mascotState.animation?.progress ?? 0,
+        playing: mascotState.animation?.playing ?? false,
+      },
     };
   }
 }
