@@ -156,3 +156,10 @@ body {
   0%, 100% { filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.3)); }
   50% { filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.6)); }
 }
+
+/* Mascot: ZZZ float */
+@keyframes zzzFloat {
+  0% { opacity: 0; transform: translateY(0) translateX(0) scale(0.5); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-30px) translateX(15px) scale(1.2); }
+}

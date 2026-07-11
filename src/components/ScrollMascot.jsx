@@ -5,73 +5,13 @@ import { useAuthContext } from "@/context/AuthProvider";
 import { useMascotContext } from "@/context/MascotProvider";
 import MascotAvatar from "@/components/MascotAvatar";
 import Mascot3D from "@/components/Mascot3D";
+import AccessoryShop from "@/components/AccessoryShop";
+import useMascotBehavior from "@/hooks/useMascotBehavior";
+import useMascotPersonality from "@/hooks/useMascotPersonality";
+import useMascotCoins from "@/hooks/useMascotCoins";
 import { usePathname } from "next/navigation";
 import { MASCOTS } from "@/lib/mascotCatalog";
 import { MascotEmotion } from "@/lib/mascot/MascotEmotion";
-
-const MESSAGES_MID = [
-  "¡Ya vas por la mitad! Sigue bajando 🚀",
-  "Mira estos productos increíbles 👀",
-  "¡No te pierdas nuestras ofertas! 💰",
-  "¿Ya viste lo que tenemos para ti? 🏠",
-];
-
-const MESSAGES_BOTTOM = [
-  "¡Llegaste al final! Ya viste todo 🎉",
-  "¡Genial! Ya conoces todos nuestros productos ⭐",
-];
-
-const ENCOURAGE_MESSAGES = [
-  "¡Productos con precios de infarto! 🔥",
-  "¡Ofertas que no puedes dejar pasar! 💸",
-  "¡Todo para tu hogar al mejor precio! 🏡",
-  "¡Calidad que te va a sorprender! ✨",
-  "¡Compra inteligente, compra en Mi Tienda! 🛒",
-  "¡Envío rápido a toda tu puerta! 🚚",
-  "¡Los mejores vendedores están aquí! ⭐",
-  "¡Regala algo especial hoy! 🎁",
-  "¡Productos únicos que enamoran! 💝",
-  "¡Tu hogar merece lo mejor! 🏠",
-  "¡Precios que tu billetera va a amar! 💰",
-  "¡Descubre productos que no sabías que necesitabas! 🔍",
-];
-
-const EMOTION_VISUAL = {
-  [MascotEmotion.HAPPY]: { scale: "scale-110", filter: "brightness(1.1)", emoji: "😊" },
-  [MascotEmotion.EXCITED]: { scale: "scale-125", filter: "brightness(1.2) saturate(1.3)", emoji: "🤩" },
-  [MascotEmotion.PROUD]: { scale: "scale-115", filter: "brightness(1.1)", emoji: "🏆" },
-  [MascotEmotion.CELEBRATING]: { scale: "scale-120", filter: "brightness(1.15) saturate(1.2)", emoji: "🎉" },
-  [MascotEmotion.LOVE]: { scale: "scale-110", filter: "brightness(1.1) hue-rotate(-10deg)", emoji: "💖" },
-  [MascotEmotion.GREETING]: { scale: "scale-105", filter: "brightness(1.05)", emoji: "👋" },
-  [MascotEmotion.CURIOUS]: { scale: "scale-105", filter: "brightness(1.05)", emoji: "🤔" },
-  [MascotEmotion.THINKING]: { scale: "scale-100", filter: "brightness(0.95)", emoji: "💭" },
-  [MascotEmotion.SURPRISED]: { scale: "scale-130", filter: "brightness(1.2) saturate(1.4)", emoji: "😲" },
-  [MascotEmotion.SLEEPY]: { scale: "scale-95", filter: "brightness(0.85) saturate(0.8)", emoji: "😴" },
-  [MascotEmotion.SAD]: { scale: "scale-95", filter: "brightness(0.8) saturate(0.7)", emoji: "😢" },
-  [MascotEmotion.ANGRY]: { scale: "scale-105", filter: "brightness(0.9) saturate(1.3) hue-rotate(10deg)", emoji: "😠" },
-  [MascotEmotion.IDLE]: { scale: "scale-100", filter: "none", emoji: "" },
-};
-
-function pickRandom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function findScrollContainer() {
-  const el = document.querySelector(".flex-1.overflow-auto");
-  if (el) return el;
-  const all = document.querySelectorAll("div");
-  for (const d of all) {
-    const style = window.getComputedStyle(d);
-    if (
-      (style.overflow === "auto" || style.overflow === "scroll" ||
-        style.overflowY === "auto" || style.overflowY === "scroll") &&
-      d.scrollHeight > d.clientHeight
-    ) {
-      return d;
-    }
-  }
-  return null;
-}
 
 function ConfettiParticle({ delay, color }) {
   const left = Math.random() * 100;
@@ -81,10 +21,8 @@ function ConfettiParticle({ delay, color }) {
     <div
       className="absolute pointer-events-none"
       style={{
-        left: `${left}%`,
-        top: "-10px",
-        width: `${size}px`,
-        height: `${size}px`,
+        left: `${left}%`, top: "-10px",
+        width: `${size}px`, height: `${size}px`,
         backgroundColor: color,
         borderRadius: Math.random() > 0.5 ? "50%" : "2px",
         animation: `confettiFall ${duration}s ease-in ${delay}s forwards`,
@@ -99,24 +37,37 @@ function Balloon({ delay, color, left }) {
     <div
       className="absolute pointer-events-none"
       style={{
-        left: `${left}%`,
-        bottom: "0%",
+        left: `${left}%`, bottom: "0%",
         animation: `balloonFloat 3s ease-out ${delay}s forwards`,
         opacity: 0,
       }}
     >
       <svg width="24" height="32" viewBox="0 0 24 32">
         <ellipse cx="12" cy="12" rx="10" ry="12" fill={color} opacity="0.85" />
-        <ellipse cx="12" cy="12" rx="10" ry="12" fill="url(#balloonShine)" />
         <polygon points="12,23 10,26 14,26" fill={color} opacity="0.85" />
         <line x1="12" y1="26" x2="12" y2="32" stroke="#9CA3AF" strokeWidth="0.5" />
-        <defs>
-          <radialGradient id="balloonShine" cx="0.35" cy="0.35">
-            <stop offset="0%" stopColor="white" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="white" stopOpacity="0" />
-          </radialGradient>
-        </defs>
       </svg>
+    </div>
+  );
+}
+
+function ZzzBubbles({ active }) {
+  if (!active) return null;
+  return (
+    <div className="absolute -top-6 left-0 pointer-events-none">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="absolute text-blue-400 font-bold opacity-0"
+          style={{
+            left: `${i * 8}px`,
+            fontSize: `${10 + i * 3}px`,
+            animation: `zzzFloat 2s ease-out ${i * 0.6}s infinite`,
+          }}
+        >
+          Z
+        </span>
+      ))}
     </div>
   );
 }
@@ -128,6 +79,8 @@ export default function ScrollMascot({ onClick }) {
   const { user } = useAuthContext() || {};
   const { emotion, lastMessage: emotionMsg, emotionMessageKey, triggerInteraction } = useMascotContext() || {};
   const pathname = usePathname();
+
+  // Core states
   const [progress, setProgress] = useState(0);
   const [viewH, setViewH] = useState(800);
   const [navH, setNavH] = useState(130);
@@ -135,52 +88,53 @@ export default function ScrollMascot({ onClick }) {
   const [message, setMessage] = useState("");
   const [msgKey, setMsgKey] = useState(0);
   const [isJumping, setIsJumping] = useState(false);
-  const [eyeDirection, setEyeDirection] = useState({ x: 0, y: 0 });
-  const [isIdle, setIsIdle] = useState(true);
-  const [idleFrame, setIdleFrame] = useState(0);
   const [celebrating, setCelebrating] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
   const [mascotType, setMascotType] = useState("box");
   const [mascotName, setMascotName] = useState("");
-  const [idleSeconds, setIdleSeconds] = useState(0);
+  const [showShop, setShowShop] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
   const mascotNameResolved = useRef(false);
-  const gridRightRef = useRef(0);
   const lastMessageZone = useRef("");
   const encourageTimer = useRef(null);
   const hasGreeted = useRef(false);
-  const idleTimer = useRef(null);
   const scrollElRef = useRef(null);
+  const mascotRef = useRef(null);
+  const lastActivityRef = useRef(Date.now());
 
-  // Instant read from localStorage on mount
+  // Systems
+  const {
+    state: mascotState, position, direction, isGrounded, zzz, jump, reactToActivity, STATES,
+  } = useMascotBehavior({
+    screenWidth: typeof window !== "undefined" ? window.innerWidth : 1200,
+    screenHeight: viewH,
+    navHeight: navH,
+    isActive: true,
+  });
+
+  const { mood, moodEmoji, lastDialogue, dialogueKey, speak } = useMascotPersonality();
+  const { coins, newCoinAnimation, addScrollCoins, getEquippedDisplay, equipped } = useMascotCoins();
+
+  // --- PERSISTENCE ---
   useEffect(() => {
     try {
       const saved = localStorage.getItem("selectedMascot");
-      if (saved && saved !== mascotType) {
-        setMascotType(saved);
-      }
+      if (saved && saved !== mascotType) setMascotType(saved);
     } catch {}
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line
 
-  // Fetch from API on mount and route change
   useEffect(() => {
     let cancelled = false;
     fetch("/api/user/mascot", { credentials: "include", cache: "no-store" })
-      .then((r) => {
-        if (!r.ok) throw new Error(`mascot-fetch-${r.status}`);
-        return r.json();
-      })
-      .then((d) => {
-        if (!cancelled && d.mascot) {
-          setMascotType(d.mascot);
-          localStorage.setItem("selectedMascot", d.mascot);
-        }
-      })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (!cancelled && d?.mascot) { setMascotType(d.mascot); localStorage.setItem("selectedMascot", d.mascot); } })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [pathname]);
 
-  // Update from user context
   useEffect(() => {
     if (user?.selectedMascot && user.selectedMascot !== mascotType) {
       setMascotType(user.selectedMascot);
@@ -188,7 +142,6 @@ export default function ScrollMascot({ onClick }) {
     }
   }, [user?.selectedMascot]);
 
-  // Fetch custom mascot names
   useEffect(() => {
     let cancelled = false;
     fetch("/api/user/mascot-names", { credentials: "include", cache: "no-store" })
@@ -196,324 +149,182 @@ export default function ScrollMascot({ onClick }) {
       .then((d) => {
         if (cancelled) return;
         const customName = d?.names?.[mascotType];
-        const defaultName = MASCOTS[mascotType]?.name || "Shopito";
-        setMascotName(customName || defaultName);
+        setMascotName(customName || MASCOTS[mascotType]?.name || "Shopito");
         mascotNameResolved.current = true;
       })
-      .catch(() => {
-        if (!cancelled) {
-          setMascotName(MASCOTS[mascotType]?.name || "Shopito");
-          mascotNameResolved.current = true;
-        }
-      });
+      .catch(() => { if (!cancelled) { setMascotName(MASCOTS[mascotType]?.name || "Shopito"); mascotNameResolved.current = true; } });
     return () => { cancelled = true; };
   }, [mascotType]);
 
-  // Also update name from localStorage custom names
   useEffect(() => {
     try {
       const raw = localStorage.getItem("mascotNames");
-      if (raw) {
-        const names = JSON.parse(raw);
-        const customName = names[mascotType];
-        const defaultName = MASCOTS[mascotType]?.name || "Shopito";
-        setMascotName(customName || defaultName);
-      } else {
-        setMascotName(MASCOTS[mascotType]?.name || "Shopito");
-      }
-    } catch {
-      setMascotName(MASCOTS[mascotType]?.name || "Shopito");
-    }
+      if (raw) { const names = JSON.parse(raw); setMascotName(names[mascotType] || MASCOTS[mascotType]?.name || "Shopito"); }
+      else setMascotName(MASCOTS[mascotType]?.name || "Shopito");
+    } catch { setMascotName(MASCOTS[mascotType]?.name || "Shopito"); }
   }, [mascotType]);
 
-  // Listen for mascot-changed custom events
   useEffect(() => {
-    const handleMascotChanged = (e) => {
-      const newType = e?.detail?.mascotId;
-      if (newType) {
-        setMascotType(newType);
-        localStorage.setItem("selectedMascot", newType);
-      }
-    };
-    window.addEventListener("mascot-changed", handleMascotChanged);
-    return () => window.removeEventListener("mascot-changed", handleMascotChanged);
+    const h = (e) => { const t = e?.detail?.mascotId; if (t) { setMascotType(t); localStorage.setItem("selectedMascot", t); } };
+    window.addEventListener("mascot-changed", h);
+    return () => window.removeEventListener("mascot-changed", h);
   }, []);
 
-  // Listen for localStorage changes (cross-tab)
   useEffect(() => {
-    const handleStorage = (e) => {
-      if (e.key === "selectedMascot" && e.newValue) {
-        setMascotType(e.newValue);
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    const h = (e) => { if (e.key === "selectedMascot" && e.newValue) setMascotType(e.newValue); };
+    window.addEventListener("storage", h);
+    return () => window.removeEventListener("storage", h);
   }, []);
 
-  // Track layout
+  // --- LAYOUT ---
   useEffect(() => {
-    const updateLayout = () => {
-      setViewH(window.innerHeight);
-      const nav = document.querySelector("nav");
-      if (nav) setNavH(nav.offsetHeight);
-    };
-    updateLayout();
-    window.addEventListener("resize", updateLayout, { passive: true });
-    const nav = document.querySelector("nav");
-    let observer = null;
-    if (nav) {
-      observer = new ResizeObserver(updateLayout);
-      observer.observe(nav);
-    }
-    return () => {
-      window.removeEventListener("resize", updateLayout);
-      if (observer) observer.disconnect();
-    };
+    const update = () => { setViewH(window.innerHeight); const nav = document.querySelector("nav"); if (nav) setNavH(nav.offsetHeight); };
+    update();
+    window.addEventListener("resize", update, { passive: true });
+    return () => window.removeEventListener("resize", update);
   }, []);
 
-  // Find scroll container
+  // --- SCROLL ---
   useEffect(() => {
     const findAndBind = () => {
-      const el = findScrollContainer();
-      if (el) {
-        scrollElRef.current = el;
-        el.addEventListener("scroll", updateProgress, { passive: true });
-        updateProgress();
-        return true;
-      }
+      const el = document.querySelector(".flex-1.overflow-auto");
+      if (el) { scrollElRef.current = el; el.addEventListener("scroll", updateProgress, { passive: true }); updateProgress(); return true; }
       return false;
     };
-
     if (!findAndBind()) {
-      const interval = setInterval(() => {
-        if (findAndBind()) clearInterval(interval);
-      }, 100);
+      const interval = setInterval(() => { if (findAndBind()) clearInterval(interval); }, 100);
       window.addEventListener("scroll", updateProgress, { passive: true });
-      return () => {
-        clearInterval(interval);
-        window.removeEventListener("scroll", updateProgress);
-        if (scrollElRef.current) scrollElRef.current.removeEventListener("scroll", updateProgress);
-      };
+      return () => { clearInterval(interval); window.removeEventListener("scroll", updateProgress); };
     }
     return () => { if (scrollElRef.current) scrollElRef.current.removeEventListener("scroll", updateProgress); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line
 
   const updateProgress = useCallback(() => {
     const el = scrollElRef.current;
     let scrollY = 0, scrollHeight = 0, clientHeight = 0;
-    if (el) {
-      scrollY = el.scrollTop;
-      scrollHeight = el.scrollHeight;
-      clientHeight = el.clientHeight;
-    } else {
-      scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-      scrollHeight = document.documentElement.scrollHeight;
-      clientHeight = window.innerHeight;
-    }
+    if (el) { scrollY = el.scrollTop; scrollHeight = el.scrollHeight; clientHeight = el.clientHeight; }
+    else { scrollY = window.scrollY || document.documentElement.scrollTop; scrollHeight = document.documentElement.scrollHeight; clientHeight = window.innerHeight; }
     const docHeight = scrollHeight - clientHeight;
     if (docHeight <= 0) { setProgress(0); return; }
     const pct = Math.min(Math.max(scrollY / docHeight, 0), 1);
     setProgress(pct);
-    setIsIdle(false);
-    clearTimeout(idleTimer.current);
-    setIdleSeconds(0);
-    idleTimer.current = setTimeout(() => setIsIdle(true), 800);
-  }, []);
+    lastActivityRef.current = Date.now();
+    reactToActivity();
+    addScrollCoins(pct * 100);
+  }, [reactToActivity, addScrollCoins]);
 
-  // Count idle seconds
-  useEffect(() => {
-    if (!isIdle) { setIdleSeconds(0); return; }
-    const t = setInterval(() => setIdleSeconds((s) => s + 1), 1000);
-    return () => clearInterval(t);
-  }, [isIdle]);
-
-  // Mouse eyes — smooth tracking
-  useEffect(() => {
-    const handleMouse = (e) => {
-      const centerX = window.innerWidth - 50;
-      const centerY = window.innerHeight / 2;
-      const dx = (e.clientX - centerX) / window.innerWidth;
-      const dy = (e.clientY - centerY) / window.innerHeight;
-      setEyeDirection({ x: dx * 2.5, y: dy * 2 });
-    };
-    window.addEventListener("mousemove", handleMouse, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMouse);
-  }, []);
-
-  // Idle animation frame
-  useEffect(() => {
-    if (!isIdle) return;
-    const t = setInterval(() => setIdleFrame((f) => f + 1), 600);
-    return () => clearInterval(t);
-  }, [isIdle]);
-
-  // Show emotion message from context
-  useEffect(() => {
-    if (emotionMsg) {
-      setMessage(emotionMsg);
-      setMsgKey((k) => k + 1);
-    }
-  }, [emotionMsg, emotionMessageKey]);
-
-  // Welcome messages
-  useEffect(() => {
-    if (hasGreeted.current) return;
-    if (!user) return;
-    if (!mascotNameResolved.current) return;
-    if (!mascotName) return;
-    hasGreeted.current = true;
-    const userName = user?.name || "";
-    const greet = userName
-      ? `¡Hola ${userName}, bienvenido! Soy ${mascotName} 🛍️`
-      : `¡Hola, bienvenido! Soy ${mascotName} 🛍️`;
-    setMessage(greet);
-    setMsgKey((k) => k + 1);
-    const t1 = setTimeout(() => { setMessage("Sigue bajando, ¡hay más productos para ti! 👇"); setMsgKey((k) => k + 1); }, 6000);
-    const t2 = setTimeout(() => { setIsWaving(false); }, 3000);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [user, mascotName]);
-
-  // Zone messages
+  // --- ZONE MESSAGES ---
   useEffect(() => {
     if (progress < 0.03) return;
     let zone = "", msg = "";
-    if (progress < 0.45) {
-      zone = "early"; msg = "Sigue bajando, ¡hay más productos para ti! 👇";
-    } else if (progress < 0.55) {
-      zone = "mid"; msg = pickRandom(MESSAGES_MID);
-      setIsJumping(true); setTimeout(() => setIsJumping(false), 600);
-    } else if (progress < 0.95) {
-      zone = "late"; msg = "¡Casi llegas! Faltan poquitos productos 🏁";
-    } else {
-      zone = "bottom"; msg = pickRandom(MESSAGES_BOTTOM);
-    }
-    if (zone !== lastMessageZone.current && zone !== "") {
-      lastMessageZone.current = zone;
-      setMessage(msg);
-      setMsgKey((k) => k + 1);
-    }
-  }, [progress]);
+    if (progress < 0.45) { zone = "early"; msg = speak("scrolling"); }
+    else if (progress < 0.55) { zone = "mid"; msg = speak("scrolling"); setIsJumping(true); setTimeout(() => setIsJumping(false), 600); }
+    else if (progress < 0.95) { zone = "late"; msg = speak("scrolling"); }
+    else { zone = "bottom"; msg = speak("bottom"); }
+    if (zone !== lastMessageZone.current && zone !== "") { lastMessageZone.current = zone; setMessage(msg); setMsgKey((k) => k + 1); }
+  }, [progress, speak]);
 
-  // Random messages
+  // --- RANDOM MESSAGES ---
   useEffect(() => {
     let showPhase = true;
-    const startTimeout = setTimeout(() => {
+    const t = setTimeout(() => {
       encourageTimer.current = setInterval(() => {
-        if (showPhase) { setMessage(pickRandom(ENCOURAGE_MESSAGES)); setMsgKey((k) => k + 1); showPhase = false; }
+        if (showPhase) { setMessage(speak("idle")); setMsgKey((k) => k + 1); showPhase = false; }
         else { setMessage(""); setMsgKey((k) => k + 1); showPhase = true; }
-      }, 10000);
-    }, 15000);
-    return () => { clearTimeout(startTimeout); clearInterval(encourageTimer.current); };
-  }, []);
+      }, 12000);
+    }, 20000);
+    return () => { clearTimeout(t); clearInterval(encourageTimer.current); };
+  }, [speak]);
 
-  // CELEBRATION at bottom
+  // --- WELCOME ---
+  useEffect(() => {
+    if (hasGreeted.current || !user || !mascotNameResolved.current || !mascotName) return;
+    hasGreeted.current = true;
+    const greet = speak("greeting");
+    setMessage(greet); setMsgKey((k) => k + 1);
+    const t1 = setTimeout(() => { setMessage(speak("scrolling")); setMsgKey((k) => k + 1); }, 6000);
+    const t2 = setTimeout(() => setIsWaving(false), 3000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [user, mascotName, speak]);
+
+  // --- CELEBRATION ---
   useEffect(() => {
     if (progress > 0.95) {
       if (!celebrating) {
-        setCelebrating(true);
-        setIsJumping(true);
-        setShowConfetti(true);
-        setShowBalloons(true);
-        setMessage("¡Felicidades! Llegaste al final 🎉🎊");
-        setMsgKey((k) => k + 1);
+        setCelebrating(true); setIsJumping(true); setShowConfetti(true); setShowBalloons(true);
+        setMessage(speak("bottom")); setMsgKey((k) => k + 1);
         setTimeout(() => setIsJumping(false), 2000);
         setTimeout(() => setShowConfetti(false), 4000);
         setTimeout(() => setShowBalloons(false), 4000);
       }
-    } else {
-      if (celebrating) {
-        setCelebrating(false);
-        setShowConfetti(false);
-        setShowBalloons(false);
-      }
+    } else { setCelebrating(false); setShowConfetti(false); setShowBalloons(false); }
+  }, [progress, celebrating, speak]);
+
+  // --- DRAG & DROP ---
+  const handleDragStart = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const rect = mascotRef.current?.getBoundingClientRect();
+    if (rect) {
+      setDragOffset({ x: clientX - rect.left - rect.width / 2, y: clientY - rect.top - rect.height / 2 });
     }
-  }, [progress, celebrating]);
-
-  const atBottom = progress > 0.95;
-
-  // Measure product grid right edge
-  useEffect(() => {
-    const measure = () => {
-      const grid = document.querySelector(".grid.gap-4");
-      if (grid) {
-        const rect = grid.getBoundingClientRect();
-        gridRightRef.current = Math.round(rect.right);
-      }
-    };
-    measure();
-    const t = setInterval(measure, 2000);
-    window.addEventListener("resize", measure, { passive: true });
-    return () => { clearInterval(t); window.removeEventListener("resize", measure); };
   }, []);
 
-  // Calculate walkX
-  const walkX = (() => {
-    const gr = gridRightRef.current;
-    if (!gr) return 0;
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
-    if (isMobile) return 0;
-    const rightEdge = window.innerWidth;
-    const mascotBaseFromRight = 60;
-    const walkableSpace = rightEdge - mascotBaseFromRight - gr;
-    if (walkableSpace <= 0) return 0;
-    const maxOffset = Math.min(walkableSpace, 40);
-    return Math.abs(Math.sin(progress * Math.PI * 6)) * maxOffset;
-  })();
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMove = (e) => {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const el = mascotRef.current;
+      if (el) {
+        el.style.position = "fixed";
+        el.style.left = `${clientX - dragOffset.x}px`;
+        el.style.top = `${clientY - dragOffset.y}px`;
+        el.style.transform = "scale(1.1)";
+        el.style.zIndex = "9999";
+      }
+    };
+    const handleUp = () => {
+      setIsDragging(false);
+      const el = mascotRef.current;
+      if (el) {
+        el.style.position = "";
+        el.style.left = "";
+        el.style.top = "";
+        el.style.transform = "";
+        el.style.zIndex = "";
+      }
+      reactToActivity();
+      setMessage(speak("idle")); setMsgKey((k) => k + 1);
+    };
+    window.addEventListener("mousemove", handleMove, { passive: false });
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleMove, { passive: false });
+    window.addEventListener("touchend", handleUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchend", handleUp);
+    };
+  }, [isDragging, dragOffset, reactToActivity, speak]);
 
-  // Bubble position
-  const bubblePosition = (() => {
-    if (typeof window === "undefined" || window.innerWidth < 640) return "above";
-    if (walkX > 25) return "left";
-    if (walkX < 10) return "right";
-    return "above";
-  })();
-
-  // Arms
-  const armL = celebrating
-    ? (idleFrame % 2 === 0 ? -30 : 15)
-    : isIdle
-      ? (idleFrame % 2 === 0 ? -12 : 5)
-      : isWaving
-        ? (idleFrame % 2 === 0 ? -20 : 10)
-        : 0;
-  const armR = celebrating
-    ? (idleFrame % 2 === 0 ? 15 : -30)
-    : isIdle
-      ? (idleFrame % 2 === 0 ? 5 : -12)
-      : isWaving
-        ? (idleFrame % 2 === 0 ? 10 : -20)
-        : 0;
-  const legL = celebrating
-    ? (idleFrame % 2 === 0 ? 0 : 6)
-    : isIdle
-      ? (idleFrame % 2 === 0 ? 0 : 3)
-      : 0;
-  const legR = celebrating
-    ? (idleFrame % 2 === 0 ? 6 : 0)
-    : isIdle
-      ? (idleFrame % 2 === 0 ? 3 : 0)
-      : 0;
-
+  // --- RENDER ---
+  const atBottom = progress > 0.95;
   const startY = navH + 10;
   const endY = viewH - 70;
-  const mascotTop = atBottom ? endY - 40 : startY + progress * (endY - startY);
   const displayPct = Math.round(progress * 100);
+  const equippedAccessories = getEquippedDisplay();
 
-  // Emotion visual state
-  const emotionVisual = EMOTION_VISUAL[emotion] || EMOTION_VISUAL[MascotEmotion.IDLE];
+  const confetti = Array.from({ length: 20 }, (_, i) => ({ id: i, delay: Math.random() * 1.5, color: CONFETTI_COLORS[i % CONFETTI_COLORS.length] }));
+  const balloons = Array.from({ length: 6 }, (_, i) => ({ id: i, delay: i * 0.3, color: BALLOON_COLORS[i % BALLOON_COLORS.length], left: 10 + i * 15 }));
 
-  const confetti = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    delay: Math.random() * 1.5,
-    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-  }));
-
-  const balloons = Array.from({ length: 6 }, (_, i) => ({
-    id: i,
-    delay: i * 0.3,
-    color: BALLOON_COLORS[i % BALLOON_COLORS.length],
-    left: 10 + i * 15,
-  }));
+  const isSleeping = mascotState === STATES.SLEEPING;
+  const isSitting = mascotState === STATES.SITTING;
+  const isLying = mascotState === STATES.LYING;
+  const isWalking = mascotState === STATES.WALKING;
 
   return (
     <div className="fixed right-2 sm:right-4 top-0 bottom-0 z-50 pointer-events-none">
@@ -533,82 +344,84 @@ export default function ScrollMascot({ onClick }) {
 
       {/* Progress bar */}
       <div className="absolute right-2 sm:right-3 bottom-8 w-[3px] bg-gray-200/40 rounded-full" style={{ top: `${navH + 10}px` }}>
-        <div
-          className="absolute bottom-0 left-0 w-full rounded-full"
-          style={{
-            height: `${progress * 100}%`,
-            background: "linear-gradient(to top, #D1FAE5, #FEF9C3)",
-            transition: "height 0.1s linear",
-          }}
-        />
+        <div className="absolute bottom-0 left-0 w-full rounded-full" style={{ height: `${progress * 100}%`, background: "linear-gradient(to top, #D1FAE5, #FEF9C3)", transition: "height 0.1s linear" }} />
         {[0.25, 0.5, 0.75].map((m) => (
           <div key={m} className="absolute left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full border border-white bg-gray-300 z-10" style={{ bottom: `${m * 100}%` }} />
         ))}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 rounded-full border border-white bg-green-200 z-10" />
       </div>
 
+      {/* Coins display */}
+      <div
+        className={`absolute right-0 top-24 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg border border-yellow-200 cursor-pointer pointer-events-auto transition-all ${newCoinAnimation ? "scale-125" : ""}`}
+        onClick={() => setShowShop(true)}
+        title="Abrir tienda de accesorios"
+      >
+        <span className="text-sm">🪙</span>
+        <span className="text-xs font-bold text-yellow-600">{coins}</span>
+      </div>
+
+      {/* Mood emoji */}
+      <div className="absolute right-0 top-36 text-lg pointer-events-none select-none" title={`Mood: ${mood}`}>
+        {moodEmoji}
+      </div>
+
       {/* Mascot */}
       <div
-        className="absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group"
-        style={{ top: `${mascotTop}px`, transition: "top 0.1s linear", transform: `translateX(-${walkX}px)` }}
-        onClick={() => { onClick?.(); triggerInteraction(); }}
+        ref={mascotRef}
+        className="absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group select-none"
+        style={{
+          top: isWalking ? `${position.y}px` : atBottom ? `${endY - 40}px` : `${startY + progress * (endY - startY)}px`,
+          transition: isWalking ? "top 0.03s linear, left 0.03s linear" : "top 0.1s linear",
+          transform: isSitting ? "scale(0.9)" : isLying ? "scale(0.85) rotate(-5deg)" : "",
+        }}
+        onMouseDown={handleDragStart}
+        onTouchStart={handleDragStart}
+        onClick={() => { onClick?.(); triggerInteraction(); jump(); setMessage(speak("idle")); setMsgKey((k) => k + 1); }}
         role="button"
         tabIndex={0}
-        aria-label="Abrir ayuda"
+        aria-label="Mascota"
       >
         {/* Speech bubble */}
-        {message && (
-          <>
-            {bubblePosition === "above" && (
-              <div key={msgKey + "-above"} className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
-                <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
-                  {message}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-white" />
-                </div>
-              </div>
-            )}
-            {bubblePosition === "right" && (
-              <div key={msgKey + "-right"} className="absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
-                <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
-                  {message}
-                  <div className="absolute left-full top-1/2 -translate-y-1/2 -ml-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[5px] border-l-white" />
-                </div>
-              </div>
-            )}
-            {bubblePosition === "left" && (
-              <div key={msgKey + "-left"} className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
-                <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
-                  {message}
-                  <div className="absolute right-full top-1/2 -translate-y-1/2 -mr-1 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-white" />
-                </div>
-              </div>
-            )}
-          </>
+        {(message || lastDialogue) && (
+          <div key={msgKey + (dialogueKey || 0)} className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
+            <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
+              {message || lastDialogue}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-white" />
+            </div>
+          </div>
         )}
 
-        {/* Mascot Avatar with emotion effects */}
+        {/* ZZZ bubbles */}
+        <ZzzBubbles active={isSleeping} />
+
+        {/* Mascot Avatar */}
         <div
-          className={`transition-all duration-300 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"} ${isIdle ? "animate-[mascotFloat_3s_ease-in-out_infinite]" : ""}`}
+          className={`transition-all duration-300 ${
+            isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" :
+            isWalking ? "animate-[mascotFloat_0.5s_ease-in-out_infinite]" :
+            "group-hover:scale-110"
+          }`}
           style={{
-            filter: emotionVisual.filter === "none" ? undefined : emotionVisual.filter,
-            dropShadow: isIdle ? "0 4px 12px rgba(251,191,36,0.4)" : "0 2px 6px rgba(0,0,0,0.15)",
+            filter: isSleeping ? "brightness(0.7) saturate(0.5)" : "none",
+            transform: `scale(${isSitting ? 0.9 : isLying ? 0.85 : 1})`,
           }}
         >
           <Mascot3D
             size={96}
-            idleTime={idleSeconds}
-            isScrolling={!isIdle}
+            idleTime={0}
+            isScrolling={!isWalking}
             mascotType={mascotType}
           >
-            <MascotAvatar type={mascotType} size={96} animate={!celebrating} view="front" />
+            <MascotAvatar type={mascotType} size={96} animate={!celebrating && !isSleeping} view="front" />
           </Mascot3D>
 
-          {/* Emotion emoji badge */}
-          {emotionVisual.emoji && (
-            <div className="absolute -top-2 -right-2 text-lg animate-[fadeInScale_0.3s_ease-out]">
-              {emotionVisual.emoji}
+          {/* Equipped accessories */}
+          {equippedAccessories.map((acc) => (
+            <div key={acc.id} className="absolute -top-3 left-1/2 -translate-x-1/2 text-xl pointer-events-none" title={acc.name}>
+              {acc.emoji}
             </div>
-          )}
+          ))}
         </div>
       </div>
 
@@ -616,6 +429,9 @@ export default function ScrollMascot({ onClick }) {
       <div className="absolute bottom-2 right-0 text-[10px] font-bold text-gray-400 tabular-nums select-none">
         {displayPct}%
       </div>
+
+      {/* Shop */}
+      {showShop && <AccessoryShop onClose={() => setShowShop(false)} />}
     </div>
   );
 }
