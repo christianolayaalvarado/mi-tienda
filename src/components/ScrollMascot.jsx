@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthContext } from "@/context/AuthProvider";
 import { useMascotContext } from "@/context/MascotProvider";
 import MascotAvatar from "@/components/MascotAvatar";
+import Mascot3D from "@/components/Mascot3D";
 import { usePathname } from "next/navigation";
 import { MASCOTS } from "@/lib/mascotCatalog";
 import { MascotEmotion } from "@/lib/mascot/MascotEmotion";
@@ -142,8 +143,9 @@ export default function ScrollMascot({ onClick }) {
   const [showBalloons, setShowBalloons] = useState(false);
   const [mascotType, setMascotType] = useState("box");
   const [mascotName, setMascotName] = useState("");
-  const [breathPhase, setBreathPhase] = useState(0);
   const [blinkState, setBlinkState] = useState(false);
+  const [mascotView, setMascotView] = useState("front");
+  const [idleSeconds, setIdleSeconds] = useState(0);
   const mascotNameResolved = useRef(false);
   const gridRightRef = useRef(0);
   const lastMessageZone = useRef("");
@@ -318,8 +320,27 @@ export default function ScrollMascot({ onClick }) {
     setProgress(pct);
     setIsIdle(false);
     clearTimeout(idleTimer.current);
+    setIdleSeconds(0);
     idleTimer.current = setTimeout(() => setIsIdle(true), 800);
   }, []);
+
+  // Count idle seconds
+  useEffect(() => {
+    if (!isIdle) { setIdleSeconds(0); return; }
+    const t = setInterval(() => setIdleSeconds((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [isIdle]);
+
+  // Rotate view on idle
+  useEffect(() => {
+    if (isIdle && idleSeconds > 3) {
+      const sequence = ["side", "rear", "side", "front"];
+      const idx = Math.floor((idleSeconds - 4) / 4) % sequence.length;
+      setMascotView(sequence[idx]);
+    } else if (!isIdle) {
+      setMascotView("front");
+    }
+  }, [isIdle, idleSeconds]);
 
   // Mouse eyes — smooth tracking
   useEffect(() => {
@@ -340,17 +361,6 @@ export default function ScrollMascot({ onClick }) {
     const t = setInterval(() => setIdleFrame((f) => f + 1), 600);
     return () => clearInterval(t);
   }, [isIdle]);
-
-  // Breathing animation
-  useEffect(() => {
-    let frame;
-    const animate = () => {
-      setBreathPhase((p) => (p + 0.03) % (Math.PI * 2));
-      frame = requestAnimationFrame(animate);
-    };
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, []);
 
   // Blinking animation
   useEffect(() => {
@@ -521,9 +531,6 @@ export default function ScrollMascot({ onClick }) {
   const mascotTop = atBottom ? endY - 40 : startY + progress * (endY - startY);
   const displayPct = Math.round(progress * 100);
 
-  // Breathing transform
-  const breathScale = 1 + Math.sin(breathPhase) * 0.015;
-
   // Emotion visual state
   const emotionVisual = EMOTION_VISUAL[emotion] || EMOTION_VISUAL[MascotEmotion.IDLE];
 
@@ -615,11 +622,18 @@ export default function ScrollMascot({ onClick }) {
         <div
           className={`transition-all duration-300 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}
           style={{
-            transform: `scale(${breathScale})`,
             filter: emotionVisual.filter === "none" ? undefined : emotionVisual.filter,
           }}
         >
-          <MascotAvatar type={mascotType} size={96} animate={!celebrating} view="front" />
+          <Mascot3D
+            view={mascotView}
+            size={96}
+            idleTime={idleSeconds}
+            isScrolling={!isIdle}
+            mascotType={mascotType}
+          >
+            <MascotAvatar type={mascotType} size={96} animate={!celebrating} view={mascotView} />
+          </Mascot3D>
 
           {/* Blink overlay */}
           {blinkState && (
