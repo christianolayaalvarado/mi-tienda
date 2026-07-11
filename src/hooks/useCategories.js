@@ -1,3 +1,4 @@
+"use client";
 // src/hooks/useCategories.js
 import { useEffect, useState } from "react";
 

@@ -1,3 +1,4 @@
+"use client";
 // lib/useCartLoader.js
 import { useEffect, useState, useRef } from "react";
 import { fetchSession } from "@/lib/useSessionCheck";
