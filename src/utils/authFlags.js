@@ -1,3 +1,4 @@
+"use client";
 // src/utils/authFlags.js
 export const LOGOUT_GUARD_MS = 15000;
 

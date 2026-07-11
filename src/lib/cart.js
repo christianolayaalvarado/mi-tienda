@@ -1,3 +1,4 @@
+"use client";
 // src/lib/cart.js
 export function readCartRaw() {
   try {

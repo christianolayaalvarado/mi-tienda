@@ -1,3 +1,4 @@
+"use client";
 // src/lib/useSessionCheck.js
 import { isLogoutInProgress, isRecentLogout } from "@/utils/authFlags";
 

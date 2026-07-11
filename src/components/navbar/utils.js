@@ -1,3 +1,4 @@
+"use client";
 // src/components/navbar/utils.js
 
 export function debounce(fn, wait = 300) {
