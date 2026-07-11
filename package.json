@@ -33,7 +33,6 @@
     "swiper": "^12.1.2"
   },
   "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.15.8",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^25.5.0",
     "autoprefixer": "^10.4.27",
@@ -46,7 +45,7 @@
     "typescript": "^5.9.3"
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=18"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
