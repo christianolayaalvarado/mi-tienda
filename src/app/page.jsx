@@ -3,7 +3,6 @@ import HomeClient from "@/components/HomeClient"
 
 export default async function HomePage({ searchParams }) {
 
-  // 🔥 FIX NUEVO NEXT.JS
   const params = await searchParams
 
   const search = params?.search || ""
@@ -22,23 +21,33 @@ export default async function HomePage({ searchParams }) {
       : {}),
   }
 
-  const total = await prisma.product.count({ where })
+  let products = []
+  let totalPages = 1
 
-  const products = await prisma.product.findMany({
-    where,
-    include: {
-      category: true,
-      store: true,
-    },
-    skip,
-    take: limit,
-    orderBy: { createdAt: "desc" },
-  })
+  try {
+    const total = await prisma.product.count({ where })
+
+    const fetched = await prisma.product.findMany({
+      where,
+      include: {
+        category: true,
+        store: true,
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    })
+
+    products = fetched
+    totalPages = Math.ceil(total / limit)
+  } catch (err) {
+    console.error("[HomePage] Error fetching products:", err)
+  }
 
   return (
     <HomeClient
       initialProducts={products}
-      initialTotalPages={Math.ceil(total / limit)}
+      initialTotalPages={totalPages}
     />
   )
 }
