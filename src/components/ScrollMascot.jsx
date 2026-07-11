@@ -615,7 +615,7 @@ export default function ScrollMascot({ onClick }) {
         <div
           className={`transition-all duration-300 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}
           style={{
-            transform: `scale(${breathScale * (parseFloat(emotionVisual.scale?.replace("scale-", "") || 1))})`,
+            transform: `scale(${breathScale})`,
             filter: emotionVisual.filter === "none" ? undefined : emotionVisual.filter,
           }}
         >
