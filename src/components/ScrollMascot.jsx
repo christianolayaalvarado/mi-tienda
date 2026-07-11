@@ -377,7 +377,7 @@ export default function ScrollMascot({ onClick }) {
         }}
         onMouseDown={handleDragStart}
         onTouchStart={handleDragStart}
-        onClick={() => { onClick?.(); triggerInteraction(); jump(); setMessage(speak("idle")); setMsgKey((k) => k + 1); }}
+        onClick={() => { if (showShop) return; onClick?.(); triggerInteraction(); jump(); setMessage(speak("idle")); setMsgKey((k) => k + 1); }}
         role="button"
         tabIndex={0}
         aria-label="Mascota"

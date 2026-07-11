@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import useMascotCoins from "@/hooks/useMascotCoins";
 
 const CATEGORIES = [
@@ -27,35 +27,65 @@ export default function AccessoryShop({ onClose }) {
     setTimeout(() => setMessage(""), 3000);
   };
 
+  const stopProp = useCallback((e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  }, []);
+
+  const handleOverlayClick = useCallback((e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden animate-[fadeInScale_0.3s_ease-out]">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={handleOverlayClick}
+      onMouseDown={stopProp}
+      onMouseUp={stopProp}
+      onTouchStart={stopProp}
+      onTouchEnd={stopProp}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col animate-[fadeInScale_0.3s_ease-out]"
+        onClick={stopProp}
+        onMouseDown={stopProp}
+        onMouseUp={stopProp}
+        onTouchStart={stopProp}
+        onTouchEnd={stopProp}
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-4 text-white">
+        <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-4 text-white shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">🛍️ Tienda de Accesorios</h2>
             <div className="flex items-center gap-3">
               <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-bold">
                 🪙 {coins}
               </span>
-              <button onClick={onClose} className="text-white/80 hover:text-white text-xl">×</button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onClose(); }}
+                className="text-white/80 hover:text-white text-xl"
+              >
+                ×
+              </button>
             </div>
           </div>
         </div>
 
         {/* Message */}
         {message && (
-          <div className="bg-green-100 text-green-700 text-sm text-center py-2 font-medium">
+          <div className="bg-green-100 text-green-700 text-sm text-center py-2 font-medium shrink-0">
             {message}
           </div>
         )}
 
         {/* Categories */}
-        <div className="flex gap-1 p-2 border-b overflow-x-auto">
+        <div className="flex gap-1 p-2 border-b overflow-x-auto shrink-0">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={(e) => { e.stopPropagation(); setActiveCategory(cat.id); }}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
                 activeCategory === cat.id
                   ? "bg-purple-100 text-purple-700"
@@ -68,8 +98,8 @@ export default function AccessoryShop({ onClose }) {
           ))}
         </div>
 
-        {/* Items */}
-        <div className="p-3 overflow-y-auto max-h-[50vh] grid grid-cols-2 gap-2">
+        {/* Items - scrollable */}
+        <div className="p-3 overflow-y-auto flex-1 min-h-0 grid grid-cols-2 gap-2">
           {filtered.map((item) => {
             const isOwned = owned.includes(item.id);
             const isEquipped = equipped[item.category] === item.id;
@@ -94,21 +124,21 @@ export default function AccessoryShop({ onClose }) {
 
                 {isEquipped ? (
                   <button
-                    onClick={() => equipAccessory(item.id)}
+                    onClick={(e) => { e.stopPropagation(); equipAccessory(item.id); }}
                     className="w-full text-[10px] bg-purple-500 text-white rounded-lg py-1 font-medium"
                   >
                     ✓ Equipado
                   </button>
                 ) : isOwned ? (
                   <button
-                    onClick={() => equipAccessory(item.id)}
+                    onClick={(e) => { e.stopPropagation(); equipAccessory(item.id); }}
                     className="w-full text-[10px] bg-green-500 text-white rounded-lg py-1 font-medium"
                   >
                     Equipar
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleBuy(item.id)}
+                    onClick={(e) => { e.stopPropagation(); handleBuy(item.id); }}
                     disabled={!canAfford}
                     className={`w-full text-[10px] rounded-lg py-1 font-medium ${
                       canAfford
