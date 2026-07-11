@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAuthContext } from "@/context/AuthProvider";
 import { useMascotContext } from "@/context/MascotProvider";
 import MascotAvatar from "@/components/MascotAvatar";
@@ -369,7 +370,7 @@ export default function ScrollMascot({ onClick }) {
       {/* Mascot */}
       <div
         ref={mascotRef}
-        className="absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group select-none"
+        className={`absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group select-none ${showShop ? "pointer-events-none" : ""}`}
         style={{
           top: isWalking ? `${position.y}px` : atBottom ? `${endY - 40}px` : `${startY + progress * (endY - startY)}px`,
           transition: isWalking ? "top 0.03s linear, left 0.03s linear" : "top 0.1s linear",
@@ -430,8 +431,11 @@ export default function ScrollMascot({ onClick }) {
         {displayPct}%
       </div>
 
-      {/* Shop */}
-      {showShop && <AccessoryShop onClose={() => setShowShop(false)} />}
+      {/* Shop rendered via portal to document body (outside pointer-events-none) */}
+      {showShop && createPortal(
+        <AccessoryShop onClose={() => setShowShop(false)} />,
+        document.body
+      )}
     </div>
   );
 }
