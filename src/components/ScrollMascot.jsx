@@ -143,7 +143,6 @@ export default function ScrollMascot({ onClick }) {
   const [showBalloons, setShowBalloons] = useState(false);
   const [mascotType, setMascotType] = useState("box");
   const [mascotName, setMascotName] = useState("");
-  const [mascotView, setMascotView] = useState("front");
   const [idleSeconds, setIdleSeconds] = useState(0);
   const mascotNameResolved = useRef(false);
   const gridRightRef = useRef(0);
@@ -327,17 +326,6 @@ export default function ScrollMascot({ onClick }) {
     const t = setInterval(() => setIdleSeconds((s) => s + 1), 1000);
     return () => clearInterval(t);
   }, [isIdle]);
-
-  // Rotate view on idle
-  useEffect(() => {
-    if (isIdle && idleSeconds > 3) {
-      const sequence = ["side", "rear", "side", "front"];
-      const idx = Math.floor((idleSeconds - 4) / 4) % sequence.length;
-      setMascotView(sequence[idx]);
-    } else if (!isIdle) {
-      setMascotView("front");
-    }
-  }, [isIdle, idleSeconds]);
 
   // Mouse eyes — smooth tracking
   useEffect(() => {
@@ -600,21 +588,19 @@ export default function ScrollMascot({ onClick }) {
 
         {/* Mascot Avatar with emotion effects */}
         <div
-          className={`transition-all duration-300 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}
+          className={`transition-all duration-300 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"} ${isIdle ? "animate-[mascotFloat_3s_ease-in-out_infinite]" : ""}`}
           style={{
             filter: emotionVisual.filter === "none" ? undefined : emotionVisual.filter,
+            dropShadow: isIdle ? "0 4px 12px rgba(251,191,36,0.4)" : "0 2px 6px rgba(0,0,0,0.15)",
           }}
         >
           <Mascot3D
-            view={mascotView}
             size={96}
             idleTime={idleSeconds}
             isScrolling={!isIdle}
             mascotType={mascotType}
           >
             <MascotAvatar type={mascotType} size={96} animate={!celebrating} view="front" />
-            <MascotAvatar type={mascotType} size={96} animate={!celebrating} view="side" />
-            <MascotAvatar type={mascotType} size={96} animate={!celebrating} view="rear" />
           </Mascot3D>
 
           {/* Emotion emoji badge */}

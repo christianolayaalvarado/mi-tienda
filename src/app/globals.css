@@ -144,3 +144,15 @@ body {
   0% { opacity: 0; transform: translateX(100px); }
   100% { opacity: 1; transform: translateX(0); }
 }
+
+/* Mascot: gentle float */
+@keyframes mascotFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Mascot: glow pulse */
+@keyframes mascotGlow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.3)); }
+  50% { filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.6)); }
+}
