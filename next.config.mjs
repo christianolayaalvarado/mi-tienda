@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ["next-auth", "@next-auth/prisma-adapter"],
   images: {
     remotePatterns: [
       {
