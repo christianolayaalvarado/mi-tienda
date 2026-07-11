@@ -117,7 +117,7 @@ export default function ScrollMascot({ onClick }) {
   });
 
   const { mood, moodEmoji, lastDialogue, dialogueKey, speak } = useMascotPersonality();
-  const { coins, newCoinAnimation, addScrollCoins, getEquippedDisplay, equipped } = useMascotCoins();
+  const { coins, newCoinAnimation, lastBonusMsg, addScrollCoins, getEquippedDisplay, getScrollSpeed, getWalkSpeed, equipped } = useMascotCoins();
 
   // --- PERSISTENCE ---
   useEffect(() => {
@@ -354,12 +354,22 @@ export default function ScrollMascot({ onClick }) {
 
       {/* Coins display */}
       <div
-        className={`absolute right-0 top-24 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg border border-yellow-200 cursor-pointer pointer-events-auto transition-all ${newCoinAnimation ? "scale-125" : ""}`}
-        onClick={() => setShowShop(true)}
-        title="Abrir tienda de accesorios"
+        className={`absolute right-0 top-24 flex flex-col items-center gap-1 pointer-events-none transition-all ${newCoinAnimation ? "scale-125" : ""}`}
       >
-        <span className="text-sm">🪙</span>
-        <span className="text-xs font-bold text-yellow-600">{coins}</span>
+        <div
+          className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg border border-yellow-200 cursor-pointer pointer-events-auto"
+          onClick={() => setShowShop(true)}
+          title="Abrir tienda de accesorios"
+        >
+          <span className="text-sm">🪙</span>
+          <span className="text-xs font-bold text-yellow-600">{coins}</span>
+        </div>
+        {/* Bonus message */}
+        {lastBonusMsg && (
+          <div className="bg-green-500 text-white text-[9px] font-medium px-2 py-0.5 rounded-full animate-[fadeInScale_0.2s_ease-out] whitespace-nowrap">
+            {lastBonusMsg}
+          </div>
+        )}
       </div>
 
       {/* Mood emoji */}
