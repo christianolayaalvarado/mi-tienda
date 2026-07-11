@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "rm -rf node_modules/.cache && prisma generate && next build --webpack",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -21,7 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.577.0",
     "mongodb": "^7.3.0",
-    "next": "^16.2.0",
+    "next": "^15.3.0",
     "next-auth": "^4.24.13",
     "nodemailer": "^7.0.13",
     "prisma": "^5.22.0",
@@ -37,7 +37,7 @@
     "@types/node": "^25.5.0",
     "autoprefixer": "^10.4.27",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "^15.3.0",
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.7",
     "ts-node": "^10.9.2",

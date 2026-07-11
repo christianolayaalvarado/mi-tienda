@@ -1,5 +1,4 @@
 // src/lib/authOptions.js
-import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "./prisma";
 import bcrypt from "bcrypt";
@@ -12,8 +11,10 @@ export const authOptions = {
   adapter: PrismaAdapter(prisma),
 
   providers: [
-    CredentialsProvider({
+    {
+      id: "credentials",
       name: "Credentials",
+      type: "credentials",
       credentials: {
         email: { label: "Correo", type: "text" },
         password: { label: "Contraseña", type: "password" },
@@ -33,18 +34,7 @@ export const authOptions = {
           if (!user || !user.password) return null;
           if (!user.emailVerified) throw new Error("Cuenta no verificada");
 
-          let isValid = false;
-          try {
-            isValid = await bcrypt.compare(credentials.password, user.password);
-          } catch (bcryptErr) {
-            try {
-              const bcryptjs = require("bcryptjs");
-              isValid = bcryptjs.compareSync(credentials.password, user.password);
-            } catch (fallbackErr) {
-              console.error("[auth][authorize] password compare error:", fallbackErr);
-              throw new Error("Error interno de autenticación");
-            }
-          }
+          const isValid = await bcrypt.compare(credentials.password, user.password);
 
           if (!isValid) return null;
 
@@ -62,7 +52,7 @@ export const authOptions = {
           throw new Error("Error interno de autenticación");
         }
       },
-    }),
+    },
   ],
 
   session: {
@@ -99,9 +89,6 @@ export const authOptions = {
           emailVerified: token.emailVerified ?? false,
         };
       }
-      try {
-        console.log("[NEXTAUTH][session] session callback for user:", session?.user?.email || "<no-email>", "time:", new Date().toISOString());
-      } catch (e) { }
       return session;
     },
   },
@@ -120,9 +107,6 @@ export const authOptions = {
   },
 
   secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
-
-  // NOTE: A strong JWT secret is enforced by getJwtSecret.js in custom JWT routes.
-  // NextAuth uses NEXTAUTH_SECRET which should also be set to a strong value.
 };
 
 export default authOptions;

@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ["next-auth", "@next-auth/prisma-adapter"],
+  serverExternalPackages: ["@next-auth/prisma-adapter"],
   images: {
     remotePatterns: [
       {
@@ -10,6 +10,19 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.module.rules.push({
+        test: /\.js$/,
+        include: /node_modules[/\\]next-auth/,
+        type: "javascript/auto",
+        resolve: {
+          mainFields: ["module", "main"],
+        },
+      });
+    }
+    return config;
   },
 };
 
