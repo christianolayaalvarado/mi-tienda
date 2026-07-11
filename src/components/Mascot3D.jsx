@@ -1,14 +1,19 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, Children } from "react";
 
 /**
- * Mascot3D — wraps a mascot with 3D perspective transforms.
+ * Mascot3D — realistic 3D feel via view switching + parallax + idle behaviors.
+ *
+ * Renders only the active view (no crossfade artifacts).
+ * Transitions use scale + translate for depth illusion.
+ *
+ * Children should be 3 elements: [front, side, rear]
  *
  * Props:
- *   children     — the mascot element to wrap
+ *   children     — [front, side, rear] mascot elements
  *   view         — "front" | "side" | "rear"
- *   size         — base size of the mascot
+ *   size         — base size
  *   idleTime     — seconds idle
  *   isScrolling  — whether user is scrolling
  *   mascotType   — mascot id for per-species behaviors
@@ -21,46 +26,49 @@ export default function Mascot3D({
   isScrolling = false,
   mascotType = "box",
 }) {
-  const [rotateY, setRotateY] = useState(0);
-  const [targetRotateY, setTargetRotateY] = useState(0);
-  const [zoomScale, setZoomScale] = useState(1);
   const [peckOffset, setPeckOffset] = useState({ x: 0, y: 0 });
   const [tiltX, setTiltX] = useState(0);
   const [tiltY, setTiltY] = useState(0);
-  const rotateAnimRef = useRef(null);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [parallaxX, setParallaxX] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const peckAnimRef = useRef(null);
+  const transTimerRef = useRef(null);
+  const prevViewRef = useRef(view);
 
-  // Map view to rotateY
-  const viewAngles = { front: 0, side: -30, rear: 180 };
+  const childArray = Children.toArray(children);
+  const viewIndex = { front: 0, side: 1, rear: 2 };
+  const activeIdx = viewIndex[view] ?? 0;
 
-  // Smooth rotateY interpolation
+  // Detect view change — trigger scale transition
   useEffect(() => {
-    const target = viewAngles[view] || 0;
-    setTargetRotateY(target);
+    if (view === prevViewRef.current) return;
+
+    setIsTransitioning(true);
+    clearTimeout(transTimerRef.current);
+
+    transTimerRef.current = setTimeout(() => {
+      prevViewRef.current = view;
+      requestAnimationFrame(() => {
+        setIsTransitioning(false);
+      });
+    }, 150);
+
+    return () => clearTimeout(transTimerRef.current);
   }, [view]);
 
+  // Parallax per view
   useEffect(() => {
-    const animate = () => {
-      setRotateY((prev) => {
-        const diff = targetRotateY - prev;
-        if (Math.abs(diff) < 0.5) return targetRotateY;
-        return prev + diff * 0.08;
-      });
-      rotateAnimRef.current = requestAnimationFrame(animate);
-    };
-    rotateAnimRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(rotateAnimRef.current);
-  }, [targetRotateY]);
+    if (view === "side") setParallaxX(6);
+    else if (view === "rear") setParallaxX(-4);
+    else setParallaxX(0);
+  }, [view]);
 
-  // Zoom effect on long idle
+  // Zoom on idle
   useEffect(() => {
-    if (idleTime > 10) {
-      setZoomScale(1.25);
-    } else if (idleTime > 5) {
-      setZoomScale(1.1);
-    } else {
-      setZoomScale(1);
-    }
+    if (idleTime > 10) setZoomScale(1.2);
+    else if (idleTime > 5) setZoomScale(1.08);
+    else setZoomScale(1);
   }, [idleTime]);
 
   // Per-mascot idle behaviors
@@ -72,124 +80,102 @@ export default function Mascot3D({
       return;
     }
 
-    cancelAnimationFrame(peckAnimRef.current);
+    clearTimeout(peckAnimRef.current);
 
-    // Different behaviors per species
     const isBird = ["chicken_b", "rooster_b"].includes(mascotType);
     const isCat = mascotType === "cat_b";
     const isDog = mascotType === "dog_c";
     const isCuy = mascotType === "cuy_c";
 
     if (isBird) {
-      // Pecking behavior
       let phase = 0;
       const peck = () => {
         phase = (phase + 1) % 6;
         if (phase < 3) {
-          // Head down (peck)
-          const progress = phase / 2;
-          setPeckOffset({ x: 0, y: 8 * progress });
-          setTiltX(15 * progress);
+          const p = phase / 2;
+          setPeckOffset({ x: 0, y: 10 * p });
+          setTiltX(12 * p);
         } else {
-          // Head up
-          const progress = (phase - 3) / 2;
-          setPeckOffset({ x: 0, y: 8 * (1 - progress) });
-          setTiltX(15 * (1 - progress));
+          const p = (phase - 3) / 2;
+          setPeckOffset({ x: 0, y: 10 * (1 - p) });
+          setTiltX(12 * (1 - p));
         }
-        peckAnimRef.current = setTimeout(peck, 400);
+        peckAnimRef.current = setTimeout(peck, 450);
       };
-      peckAnimRef.current = setTimeout(peck, 1000);
+      peckAnimRef.current = setTimeout(peck, 1200);
     } else if (isCat) {
-      // Stretching / looking around
       let phase = 0;
       const stretch = () => {
         phase = (phase + 1) % 8;
-        if (phase < 2) {
-          setTiltX(-8);
-          setTiltY(5);
-        } else if (phase < 4) {
-          setTiltX(8);
-          setTiltY(-5);
-        } else if (phase < 6) {
-          setTiltX(-3);
-          setTiltY(0);
-          setZoomScale(1.05);
-        } else {
-          setTiltX(0);
-          setTiltY(0);
-          setZoomScale(1);
-        }
-        peckAnimRef.current = setTimeout(stretch, 600);
+        if (phase < 2) { setTiltX(-6); setTiltY(4); }
+        else if (phase < 4) { setTiltX(6); setTiltY(-4); }
+        else if (phase < 6) { setTiltX(-2); setTiltY(0); setZoomScale(1.04); }
+        else { setTiltX(0); setTiltY(0); setZoomScale(1); }
+        peckAnimRef.current = setTimeout(stretch, 650);
       };
       peckAnimRef.current = setTimeout(stretch, 1500);
     } else if (isDog) {
-      // Head tilt
       let phase = 0;
       const tilt = () => {
         phase = (phase + 1) % 6;
-        if (phase < 3) {
-          setTiltY(12);
-          setTiltX(-5);
-        } else {
-          setTiltY(-12);
-          setTiltX(5);
-        }
-        peckAnimRef.current = setTimeout(tilt, 700);
+        setTiltY(phase < 3 ? 10 : -10);
+        setTiltX(phase < 3 ? -3 : 3);
+        peckAnimRef.current = setTimeout(tilt, 750);
       };
       peckAnimRef.current = setTimeout(tilt, 1200);
     } else if (isCuy) {
-      // Nose wiggle (small rapid movements)
       let phase = 0;
       const wiggle = () => {
         phase = (phase + 1) % 4;
-        setPeckOffset({
-          x: phase % 2 === 0 ? 2 : -2,
-          y: phase < 2 ? 1 : -1,
-        });
-        peckAnimRef.current = setTimeout(wiggle, 200);
+        setPeckOffset({ x: phase % 2 === 0 ? 2 : -2, y: phase < 2 ? 1 : -1 });
+        peckAnimRef.current = setTimeout(wiggle, 220);
       };
-      peckAnimRef.current = setTimeout(wiggle, 800);
+      peckAnimRef.current = setTimeout(wiggle, 900);
     } else {
-      // Generic gentle sway
       let phase = 0;
       const sway = () => {
         phase = (phase + 1) % 6;
-        setTiltY(Math.sin(phase * Math.PI / 3) * 5);
-        peckAnimRef.current = setTimeout(sway, 500);
+        setTiltY(Math.sin(phase * Math.PI / 3) * 4);
+        peckAnimRef.current = setTimeout(sway, 550);
       };
-      peckAnimRef.current = setTimeout(sway, 1000);
+      peckAnimRef.current = setTimeout(sway, 1100);
     }
 
     return () => clearTimeout(peckAnimRef.current);
   }, [isScrolling, idleTime, mascotType]);
 
+  // Scale: normal 1, transitioning 0.92 (slight shrink for depth feel)
+  const transitionScale = isTransitioning ? 0.92 : 1;
+
   return (
     <div
       style={{
-        perspective: "400px",
+        perspective: "600px",
         perspectiveOrigin: "center center",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
         width: size,
         height: size,
+        position: "relative",
       }}
     >
+      {/* Only active view rendered — no layering artifacts */}
       <div
         style={{
           transform: `
-            scale(${zoomScale})
-            rotateY(${rotateY}deg)
-            rotateX(${tiltX}deg)
-            translateX(${peckOffset.x}px)
+            scale(${zoomScale * transitionScale})
+            translateX(${parallaxX + peckOffset.x}px)
             translateY(${peckOffset.y}px)
+            rotateX(${tiltX}deg)
+            rotateY(${tiltY}deg)
           `,
           transformStyle: "preserve-3d",
-          transition: "transform 0.3s cubic-bezier(0.34,1.56,0.64,1)",
+          transition: "transform 0.35s cubic-bezier(0.34,1.56,0.64,1)",
           willChange: "transform",
         }}
       >
-        {children}
+        {childArray[activeIdx]}
       </div>
     </div>
   );

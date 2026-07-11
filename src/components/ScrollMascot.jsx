@@ -143,7 +143,6 @@ export default function ScrollMascot({ onClick }) {
   const [showBalloons, setShowBalloons] = useState(false);
   const [mascotType, setMascotType] = useState("box");
   const [mascotName, setMascotName] = useState("");
-  const [blinkState, setBlinkState] = useState(false);
   const [mascotView, setMascotView] = useState("front");
   const [idleSeconds, setIdleSeconds] = useState(0);
   const mascotNameResolved = useRef(false);
@@ -153,8 +152,6 @@ export default function ScrollMascot({ onClick }) {
   const hasGreeted = useRef(false);
   const idleTimer = useRef(null);
   const scrollElRef = useRef(null);
-  const breathRef = useRef(null);
-  const blinkRef = useRef(null);
 
   // Instant read from localStorage on mount
   useEffect(() => {
@@ -361,23 +358,6 @@ export default function ScrollMascot({ onClick }) {
     const t = setInterval(() => setIdleFrame((f) => f + 1), 600);
     return () => clearInterval(t);
   }, [isIdle]);
-
-  // Blinking animation
-  useEffect(() => {
-    const blink = () => {
-      setBlinkState(true);
-      setTimeout(() => setBlinkState(false), 150);
-    };
-    const scheduleNext = () => {
-      const delay = 2500 + Math.random() * 4000;
-      blinkRef.current = setTimeout(() => {
-        blink();
-        scheduleNext();
-      }, delay);
-    };
-    scheduleNext();
-    return () => clearTimeout(blinkRef.current);
-  }, []);
 
   // Show emotion message from context
   useEffect(() => {
@@ -632,15 +612,10 @@ export default function ScrollMascot({ onClick }) {
             isScrolling={!isIdle}
             mascotType={mascotType}
           >
-            <MascotAvatar type={mascotType} size={96} animate={!celebrating} view={mascotView} />
+            <MascotAvatar type={mascotType} size={96} animate={!celebrating} view="front" />
+            <MascotAvatar type={mascotType} size={96} animate={!celebrating} view="side" />
+            <MascotAvatar type={mascotType} size={96} animate={!celebrating} view="rear" />
           </Mascot3D>
-
-          {/* Blink overlay */}
-          {blinkState && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-12 h-1 bg-gray-800/20 rounded-full" style={{ top: "40%", position: "absolute" }} />
-            </div>
-          )}
 
           {/* Emotion emoji badge */}
           {emotionVisual.emoji && (
