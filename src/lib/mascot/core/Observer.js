@@ -1,11 +1,9 @@
 /**
  * =========================================================
- * MASCOT ENGINE v2.3
+ * MASCOT ENGINE v2.7
  * Module: Observer
  * ---------------------------------------------------------
- * Sistema de publicación/suscripción reutilizable.
- *
- * Puede utilizarse por cualquier módulo del Character Engine.
+ * Sistema Publish / Subscribe reutilizable.
  * =========================================================
  */
 
@@ -14,12 +12,6 @@ export default class Observer {
     this.listeners = new Set();
   }
 
-  /**
-   * Registra un listener.
-   *
-   * @param {Function} callback
-   * @returns {Function} unsubscribe
-   */
   subscribe(callback) {
     if (typeof callback !== "function") {
       return () => { };
@@ -27,57 +19,43 @@ export default class Observer {
 
     this.listeners.add(callback);
 
-    return () => {
-      this.unsubscribe(callback);
-    };
+    return () => this.unsubscribe(callback);
   }
 
-  /**
-   * Elimina un listener.
-   *
-   * @param {Function} callback
-   */
   unsubscribe(callback) {
     this.listeners.delete(callback);
   }
 
-  /**
-   * Notifica a todos los listeners.
-   *
-   * @param {*} payload
-   */
   notify(payload = null) {
-    for (const callback of this.listeners) {
+    if (this.listeners.size === 0) return;
+
+    [...this.listeners].forEach((callback) => {
       try {
         callback(payload);
       } catch (error) {
         console.error("[Observer]", error);
       }
-    }
+    });
   }
 
-  /**
-   * Elimina todos los listeners.
-   */
   clear() {
     this.listeners.clear();
   }
 
-  /**
-   * Devuelve el número de listeners.
-   *
-   * @returns {number}
-   */
   size() {
     return this.listeners.size;
   }
 
-  /**
-   * Indica si existen listeners registrados.
-   *
-   * @returns {boolean}
-   */
   hasListeners() {
     return this.listeners.size > 0;
+  }
+
+  once(callback) {
+    const unsubscribe = this.subscribe((payload) => {
+      unsubscribe();
+      callback(payload);
+    });
+
+    return unsubscribe;
   }
 }

@@ -1,9 +1,10 @@
 // =========================================================
-// MASCOT ENGINE v2
+// MASCOT ENGINE v2.7
 // Module: BlinkLayer
-// Responsibility:
-// Generates natural blinking using the shared animation
-// clock and the mascot's own animation state.
+// ---------------------------------------------------------
+// Genera el parpadeo natural de la mascota.
+// No modifica MascotState.
+// Solo produce información para RenderState.
 // =========================================================
 
 import { animationClock } from "@/lib/mascot/core/AnimationClock";
@@ -15,40 +16,54 @@ const MAX_BLINK_INTERVAL = 5.0;
 const BLINK_DURATION = 0.12;
 
 export class BlinkLayer {
-  apply(renderState, mascotState) {
+  apply(renderState = {}, mascotState = {}) {
     const time = animationClock.getTime();
 
-    // Ensure animation state exists
-    if (!mascotState.animation?.blink) {
-      return renderState;
-    }
+    // Crear estado interno si aún no existe
+    mascotState.animation ??= {};
+
+    mascotState.animation.blink ??= {
+      value: 0,
+      isBlinking: false,
+      blinkStartTime: 0,
+      nextBlinkTime: 0,
+    };
 
     const blink = mascotState.animation.blink;
 
-    // Schedule first blink
+    // Programar primer parpadeo
     if (blink.nextBlinkTime === 0) {
       blink.nextBlinkTime =
-        time + random.range(MIN_BLINK_INTERVAL, MAX_BLINK_INTERVAL);
+        time +
+        random.range(
+          MIN_BLINK_INTERVAL,
+          MAX_BLINK_INTERVAL
+        );
     }
 
-    // Start blinking
+    // Iniciar parpadeo
     if (!blink.isBlinking && time >= blink.nextBlinkTime) {
       blink.isBlinking = true;
       blink.blinkStartTime = time;
     }
 
-    // Blink animation
+    // Animación
     if (blink.isBlinking) {
-      const progress = (time - blink.blinkStartTime) / BLINK_DURATION;
+      const progress =
+        (time - blink.blinkStartTime) /
+        BLINK_DURATION;
 
       if (progress >= 1) {
         blink.isBlinking = false;
         blink.value = 0;
 
         blink.nextBlinkTime =
-          time + random.range(MIN_BLINK_INTERVAL, MAX_BLINK_INTERVAL);
+          time +
+          random.range(
+            MIN_BLINK_INTERVAL,
+            MAX_BLINK_INTERVAL
+          );
       } else {
-        // 0 → 1 → 0
         blink.value =
           progress < 0.5
             ? progress * 2
@@ -60,7 +75,7 @@ export class BlinkLayer {
       ...renderState,
 
       animation: {
-        ...renderState.animation,
+        ...(renderState.animation ?? {}),
 
         blink: blink.value,
       },

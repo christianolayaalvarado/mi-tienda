@@ -1,47 +1,37 @@
 // =========================================================
-// MASCOT ENGINE v2.5
+// MASCOT ENGINE v2.7
 // Module: EmotionLayer
 // ---------------------------------------------------------
 // Convierte la emoción actual en transformaciones visuales.
-//
-// No decide emociones.
-// No modifica el estado.
-// Solamente interpreta MascotState.emotion y modifica
-// el RenderState.
 // =========================================================
 
 import { MascotEmotion } from "../../MascotEmotion";
 
 export class EmotionLayer {
-  /**
-   * Aplica transformaciones visuales según la emoción.
-   *
-   * @param {Object} renderState
-   * @param {Object} mascotState
-   * @returns {Object}
-   */
-  apply(renderState, mascotState) {
+  apply(renderState = {}, mascotState = {}) {
     const emotion = mascotState.emotion;
 
     const global = {
-      ...renderState.transform.global,
+      translateX: 0,
+      translateY: 0,
+      rotation: 0,
+      scale: 1,
+      scaleX: 1,
+      scaleY: 1,
+      ...(renderState.transform?.global ?? {}),
     };
 
     const filters = {
-      ...renderState.filters,
+      brightness: 1,
+      saturation: 1,
+      blur: 0,
+      hue: 0,
+      ...(renderState.filters ?? {}),
     };
 
     switch (emotion) {
-      // ===================================================
-      // Estado normal
-      // ===================================================
-
       case MascotEmotion.IDLE:
         break;
-
-      // ===================================================
-      // Feliz
-      // ===================================================
 
       case MascotEmotion.HAPPY:
         global.scale += 0.03;
@@ -49,19 +39,11 @@ export class EmotionLayer {
         filters.brightness += 0.05;
         break;
 
-      // ===================================================
-      // Muy feliz
-      // ===================================================
-
       case MascotEmotion.EXCITED:
         global.scale += 0.06;
         filters.saturation += 0.30;
         filters.brightness += 0.10;
         break;
-
-      // ===================================================
-      // Celebrando
-      // ===================================================
 
       case MascotEmotion.CELEBRATING:
         global.scale += 0.08;
@@ -70,26 +52,16 @@ export class EmotionLayer {
         filters.brightness += 0.15;
         break;
 
-      // ===================================================
-      // Orgulloso
-      // ===================================================
-
       case MascotEmotion.PROUD:
         global.scale += 0.04;
+        filters.brightness += 0.08;
         break;
-
-      // ===================================================
-      // Amor
-      // ===================================================
 
       case MascotEmotion.LOVE:
         global.scale += 0.05;
         filters.saturation += 0.20;
+        filters.brightness += 0.05;
         break;
-
-      // ===================================================
-      // Curioso
-      // ===================================================
 
       case MascotEmotion.CURIOUS:
         global.rotation -= 5;
@@ -105,15 +77,12 @@ export class EmotionLayer {
 
       case MascotEmotion.CONFUSED:
         global.rotation += 8;
+        filters.blur += 0.25;
         break;
 
       case MascotEmotion.SURPRISED:
         global.scale += 0.05;
         break;
-
-      // ===================================================
-      // Descanso
-      // ===================================================
 
       case MascotEmotion.SLEEPY:
         global.scale -= 0.03;
@@ -129,37 +98,22 @@ export class EmotionLayer {
       case MascotEmotion.WAITING:
         break;
 
-      // ===================================================
-      // Triste
-      // ===================================================
-
       case MascotEmotion.SAD:
         global.scale -= 0.05;
         filters.saturation -= 0.25;
         filters.brightness -= 0.12;
         break;
 
-      // ===================================================
-      // Molesto
-      // ===================================================
-
       case MascotEmotion.ANGRY:
         global.rotation += 2;
         filters.saturation += 0.10;
+        filters.hue += 8;
         break;
-
-      // ===================================================
-      // Asustado
-      // ===================================================
 
       case MascotEmotion.SCARED:
         global.scale -= 0.04;
         global.rotation += 5;
         break;
-
-      // ===================================================
-      // Movimiento
-      // ===================================================
 
       case MascotEmotion.WALKING:
         break;
@@ -175,10 +129,6 @@ export class EmotionLayer {
       case MascotEmotion.DANCING:
         global.rotation += 10;
         break;
-
-      // ===================================================
-      // Sociales
-      // ===================================================
 
       case MascotEmotion.GREETING:
         global.rotation -= 4;
@@ -201,9 +151,12 @@ export class EmotionLayer {
       ...renderState,
 
       transform: {
-        ...renderState.transform,
-
+        ...(renderState.transform ?? {}),
         global,
+
+        parts: {
+          ...(renderState.transform?.parts ?? {}),
+        },
       },
 
       filters,

@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthContext } from "@/context/AuthProvider";
-import MascotAvatar, { IMAGE_MASCOTS } from "@/components/MascotAvatar";
+import { useMascotContext } from "@/context/MascotProvider";
+import MascotAvatar from "@/components/MascotAvatar";
 import { usePathname } from "next/navigation";
 import { MASCOTS } from "@/lib/mascotCatalog";
+import { MascotEmotion } from "@/lib/mascot/MascotEmotion";
 
 const MESSAGES_MID = [
   "¡Ya vas por la mitad! Sigue bajando 🚀",
@@ -33,6 +35,22 @@ const ENCOURAGE_MESSAGES = [
   "¡Descubre productos que no sabías que necesitabas! 🔍",
 ];
 
+const EMOTION_VISUAL = {
+  [MascotEmotion.HAPPY]: { scale: "scale-110", filter: "brightness(1.1)", emoji: "😊" },
+  [MascotEmotion.EXCITED]: { scale: "scale-125", filter: "brightness(1.2) saturate(1.3)", emoji: "🤩" },
+  [MascotEmotion.PROUD]: { scale: "scale-115", filter: "brightness(1.1)", emoji: "🏆" },
+  [MascotEmotion.CELEBRATING]: { scale: "scale-120", filter: "brightness(1.15) saturate(1.2)", emoji: "🎉" },
+  [MascotEmotion.LOVE]: { scale: "scale-110", filter: "brightness(1.1) hue-rotate(-10deg)", emoji: "💖" },
+  [MascotEmotion.GREETING]: { scale: "scale-105", filter: "brightness(1.05)", emoji: "👋" },
+  [MascotEmotion.CURIOUS]: { scale: "scale-105", filter: "brightness(1.05)", emoji: "🤔" },
+  [MascotEmotion.THINKING]: { scale: "scale-100", filter: "brightness(0.95)", emoji: "💭" },
+  [MascotEmotion.SURPRISED]: { scale: "scale-130", filter: "brightness(1.2) saturate(1.4)", emoji: "😲" },
+  [MascotEmotion.SLEEPY]: { scale: "scale-95", filter: "brightness(0.85) saturate(0.8)", emoji: "😴" },
+  [MascotEmotion.SAD]: { scale: "scale-95", filter: "brightness(0.8) saturate(0.7)", emoji: "😢" },
+  [MascotEmotion.ANGRY]: { scale: "scale-105", filter: "brightness(0.9) saturate(1.3) hue-rotate(10deg)", emoji: "😠" },
+  [MascotEmotion.IDLE]: { scale: "scale-100", filter: "none", emoji: "" },
+};
+
 function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -43,16 +61,17 @@ function findScrollContainer() {
   const all = document.querySelectorAll("div");
   for (const d of all) {
     const style = window.getComputedStyle(d);
-    if ((style.overflow === "auto" || style.overflow === "scroll" ||
-         style.overflowY === "auto" || style.overflowY === "scroll") &&
-        d.scrollHeight > d.clientHeight) {
+    if (
+      (style.overflow === "auto" || style.overflow === "scroll" ||
+        style.overflowY === "auto" || style.overflowY === "scroll") &&
+      d.scrollHeight > d.clientHeight
+    ) {
       return d;
     }
   }
   return null;
 }
 
-// Confetti particles
 function ConfettiParticle({ delay, color }) {
   const left = Math.random() * 100;
   const duration = 1.5 + Math.random() * 1.5;
@@ -74,7 +93,6 @@ function ConfettiParticle({ delay, color }) {
   );
 }
 
-// Balloon
 function Balloon({ delay, color, left }) {
   return (
     <div
@@ -107,6 +125,7 @@ const CONFETTI_COLORS = ["#F87171", "#60A5FA", "#34D399", "#FBBF24", "#A78BFA", 
 
 export default function ScrollMascot({ onClick }) {
   const { user } = useAuthContext() || {};
+  const { emotion, lastMessage: emotionMsg, emotionMessageKey, triggerInteraction } = useMascotContext() || {};
   const pathname = usePathname();
   const [progress, setProgress] = useState(0);
   const [viewH, setViewH] = useState(800);
@@ -123,6 +142,8 @@ export default function ScrollMascot({ onClick }) {
   const [showBalloons, setShowBalloons] = useState(false);
   const [mascotType, setMascotType] = useState("box");
   const [mascotName, setMascotName] = useState("");
+  const [breathPhase, setBreathPhase] = useState(0);
+  const [blinkState, setBlinkState] = useState(false);
   const mascotNameResolved = useRef(false);
   const gridRightRef = useRef(0);
   const lastMessageZone = useRef("");
@@ -130,8 +151,10 @@ export default function ScrollMascot({ onClick }) {
   const hasGreeted = useRef(false);
   const idleTimer = useRef(null);
   const scrollElRef = useRef(null);
+  const breathRef = useRef(null);
+  const blinkRef = useRef(null);
 
-  // Instant read from localStorage on mount (no API delay)
+  // Instant read from localStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem("selectedMascot");
@@ -141,7 +164,7 @@ export default function ScrollMascot({ onClick }) {
     } catch {}
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch from API on mount and route change (overwrites localStorage if newer)
+  // Fetch from API on mount and route change
   useEffect(() => {
     let cancelled = false;
     fetch("/api/user/mascot", { credentials: "include", cache: "no-store" })
@@ -159,7 +182,7 @@ export default function ScrollMascot({ onClick }) {
     return () => { cancelled = true; };
   }, [pathname]);
 
-  // Also update from user context when it loads (instant, no fetch needed)
+  // Update from user context
   useEffect(() => {
     if (user?.selectedMascot && user.selectedMascot !== mascotType) {
       setMascotType(user.selectedMascot);
@@ -167,7 +190,7 @@ export default function ScrollMascot({ onClick }) {
     }
   }, [user?.selectedMascot]);
 
-  // Fetch custom mascot names and compute display name
+  // Fetch custom mascot names
   useEffect(() => {
     let cancelled = false;
     fetch("/api/user/mascot-names", { credentials: "include", cache: "no-store" })
@@ -188,7 +211,7 @@ export default function ScrollMascot({ onClick }) {
     return () => { cancelled = true; };
   }, [mascotType]);
 
-  // Also update name from localStorage custom names (instant)
+  // Also update name from localStorage custom names
   useEffect(() => {
     try {
       const raw = localStorage.getItem("mascotNames");
@@ -198,16 +221,14 @@ export default function ScrollMascot({ onClick }) {
         const defaultName = MASCOTS[mascotType]?.name || "Shopito";
         setMascotName(customName || defaultName);
       } else {
-        const defaultName = MASCOTS[mascotType]?.name || "Shopito";
-        setMascotName(defaultName);
+        setMascotName(MASCOTS[mascotType]?.name || "Shopito");
       }
     } catch {
-      const defaultName = MASCOTS[mascotType]?.name || "Shopito";
-      setMascotName(defaultName);
+      setMascotName(MASCOTS[mascotType]?.name || "Shopito");
     }
   }, [mascotType]);
 
-  // Listen for mascot-changed custom events (dispatched by MascotGallery)
+  // Listen for mascot-changed custom events
   useEffect(() => {
     const handleMascotChanged = (e) => {
       const newType = e?.detail?.mascotId;
@@ -220,7 +241,7 @@ export default function ScrollMascot({ onClick }) {
     return () => window.removeEventListener("mascot-changed", handleMascotChanged);
   }, []);
 
-  // Listen for localStorage changes (cross-tab support)
+  // Listen for localStorage changes (cross-tab)
   useEffect(() => {
     const handleStorage = (e) => {
       if (e.key === "selectedMascot" && e.newValue) {
@@ -300,7 +321,7 @@ export default function ScrollMascot({ onClick }) {
     idleTimer.current = setTimeout(() => setIsIdle(true), 800);
   }, []);
 
-  // Mouse eyes
+  // Mouse eyes — smooth tracking
   useEffect(() => {
     const handleMouse = (e) => {
       const centerX = window.innerWidth - 50;
@@ -313,14 +334,50 @@ export default function ScrollMascot({ onClick }) {
     return () => window.removeEventListener("mousemove", handleMouse);
   }, []);
 
-  // Idle animation
+  // Idle animation frame
   useEffect(() => {
     if (!isIdle) return;
     const t = setInterval(() => setIdleFrame((f) => f + 1), 600);
     return () => clearInterval(t);
   }, [isIdle]);
 
-  // Welcome messages — wait for user and mascotName to be resolved
+  // Breathing animation
+  useEffect(() => {
+    let frame;
+    const animate = () => {
+      setBreathPhase((p) => (p + 0.03) % (Math.PI * 2));
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  // Blinking animation
+  useEffect(() => {
+    const blink = () => {
+      setBlinkState(true);
+      setTimeout(() => setBlinkState(false), 150);
+    };
+    const scheduleNext = () => {
+      const delay = 2500 + Math.random() * 4000;
+      blinkRef.current = setTimeout(() => {
+        blink();
+        scheduleNext();
+      }, delay);
+    };
+    scheduleNext();
+    return () => clearTimeout(blinkRef.current);
+  }, []);
+
+  // Show emotion message from context
+  useEffect(() => {
+    if (emotionMsg) {
+      setMessage(emotionMsg);
+      setMsgKey((k) => k + 1);
+    }
+  }, [emotionMsg, emotionMessageKey]);
+
+  // Welcome messages
   useEffect(() => {
     if (hasGreeted.current) return;
     if (!user) return;
@@ -328,7 +385,9 @@ export default function ScrollMascot({ onClick }) {
     if (!mascotName) return;
     hasGreeted.current = true;
     const userName = user?.name || "";
-    const greet = userName ? `¡Hola ${userName}, bienvenido! Soy ${mascotName} 🛍️` : `¡Hola, bienvenido! Soy ${mascotName} 🛍️`;
+    const greet = userName
+      ? `¡Hola ${userName}, bienvenido! Soy ${mascotName} 🛍️`
+      : `¡Hola, bienvenido! Soy ${mascotName} 🛍️`;
     setMessage(greet);
     setMsgKey((k) => k + 1);
     const t1 = setTimeout(() => { setMessage("Sigue bajando, ¡hay más productos para ti! 👇"); setMsgKey((k) => k + 1); }, 6000);
@@ -394,7 +453,7 @@ export default function ScrollMascot({ onClick }) {
 
   const atBottom = progress > 0.95;
 
-  // Measure product grid right edge for walk limit
+  // Measure product grid right edge
   useEffect(() => {
     const measure = () => {
       const grid = document.querySelector(".grid.gap-4");
@@ -409,15 +468,13 @@ export default function ScrollMascot({ onClick }) {
     return () => { clearInterval(t); window.removeEventListener("resize", measure); };
   }, []);
 
-  // Calculate walkX directly from progress (no state, no infinite loop)
-  // Desktop only: mascot walks between progress bar and product grid edge
+  // Calculate walkX
   const walkX = (() => {
     const gr = gridRightRef.current;
     if (!gr) return 0;
     const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
-    if (isMobile) return 0; // no horizontal walk on mobile
+    if (isMobile) return 0;
     const rightEdge = window.innerWidth;
-    // Desktop: mascot base at ~60px from right, walks up to 40px left
     const mascotBaseFromRight = 60;
     const walkableSpace = rightEdge - mascotBaseFromRight - gr;
     if (walkableSpace <= 0) return 0;
@@ -425,33 +482,57 @@ export default function ScrollMascot({ onClick }) {
     return Math.abs(Math.sin(progress * Math.PI * 6)) * maxOffset;
   })();
 
-  // Determine bubble position based on mascot horizontal location (desktop only)
+  // Bubble position
   const bubblePosition = (() => {
-    if (typeof window === "undefined" || window.innerWidth < 640) return "above"; // mobile: always above
-    if (walkX > 25) return "left";   // mascot far left → bubble on right
-    if (walkX < 10) return "right";  // mascot near right edge → bubble on left
-    return "above";                   // mascot in center → bubble above
+    if (typeof window === "undefined" || window.innerWidth < 640) return "above";
+    if (walkX > 25) return "left";
+    if (walkX < 10) return "right";
+    return "above";
   })();
 
   // Arms
-  const armL = celebrating ? (idleFrame % 2 === 0 ? -30 : 15) : isIdle ? (idleFrame % 2 === 0 ? -12 : 5) : isWaving ? (idleFrame % 2 === 0 ? -20 : 10) : 0;
-  const armR = celebrating ? (idleFrame % 2 === 0 ? 15 : -30) : isIdle ? (idleFrame % 2 === 0 ? 5 : -12) : isWaving ? (idleFrame % 2 === 0 ? 10 : -20) : 0;
-  const legL = celebrating ? (idleFrame % 2 === 0 ? 0 : 6) : isIdle ? (idleFrame % 2 === 0 ? 0 : 3) : 0;
-  const legR = celebrating ? (idleFrame % 2 === 0 ? 6 : 0) : isIdle ? (idleFrame % 2 === 0 ? 3 : 0) : 0;
+  const armL = celebrating
+    ? (idleFrame % 2 === 0 ? -30 : 15)
+    : isIdle
+      ? (idleFrame % 2 === 0 ? -12 : 5)
+      : isWaving
+        ? (idleFrame % 2 === 0 ? -20 : 10)
+        : 0;
+  const armR = celebrating
+    ? (idleFrame % 2 === 0 ? 15 : -30)
+    : isIdle
+      ? (idleFrame % 2 === 0 ? 5 : -12)
+      : isWaving
+        ? (idleFrame % 2 === 0 ? 10 : -20)
+        : 0;
+  const legL = celebrating
+    ? (idleFrame % 2 === 0 ? 0 : 6)
+    : isIdle
+      ? (idleFrame % 2 === 0 ? 0 : 3)
+      : 0;
+  const legR = celebrating
+    ? (idleFrame % 2 === 0 ? 6 : 0)
+    : isIdle
+      ? (idleFrame % 2 === 0 ? 3 : 0)
+      : 0;
 
   const startY = navH + 10;
   const endY = viewH - 70;
   const mascotTop = atBottom ? endY - 40 : startY + progress * (endY - startY);
   const displayPct = Math.round(progress * 100);
 
-  // Confetti array
+  // Breathing transform
+  const breathScale = 1 + Math.sin(breathPhase) * 0.015;
+
+  // Emotion visual state
+  const emotionVisual = EMOTION_VISUAL[emotion] || EMOTION_VISUAL[MascotEmotion.IDLE];
+
   const confetti = Array.from({ length: 20 }, (_, i) => ({
     id: i,
     delay: Math.random() * 1.5,
     color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
   }));
 
-  // Balloons array
   const balloons = Array.from({ length: 6 }, (_, i) => ({
     id: i,
     delay: i * 0.3,
@@ -491,19 +572,18 @@ export default function ScrollMascot({ onClick }) {
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 rounded-full border border-white bg-green-200 z-10" />
       </div>
 
-        {/* Mascot */}
-        <div
-          className="absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group"
-          style={{ top: `${mascotTop}px`, transition: "top 0.1s linear", transform: `translateX(-${walkX}px)` }}
-          onClick={onClick}
-          role="button"
-          tabIndex={0}
-          aria-label="Abrir ayuda"
-        >
-        {/* Speech bubble — position depends on mascot location */}
+      {/* Mascot */}
+      <div
+        className="absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group"
+        style={{ top: `${mascotTop}px`, transition: "top 0.1s linear", transform: `translateX(-${walkX}px)` }}
+        onClick={() => { onClick?.(); triggerInteraction(); }}
+        role="button"
+        tabIndex={0}
+        aria-label="Abrir ayuda"
+      >
+        {/* Speech bubble */}
         {message && (
           <>
-            {/* Above (mobile default + desktop center) */}
             {bubblePosition === "above" && (
               <div key={msgKey + "-above"} className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
                 <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
@@ -512,7 +592,6 @@ export default function ScrollMascot({ onClick }) {
                 </div>
               </div>
             )}
-            {/* Left of mascot (mascot near right edge) */}
             {bubblePosition === "right" && (
               <div key={msgKey + "-right"} className="absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
                 <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
@@ -521,7 +600,6 @@ export default function ScrollMascot({ onClick }) {
                 </div>
               </div>
             )}
-            {/* Right of mascot (mascot far left) */}
             {bubblePosition === "left" && (
               <div key={msgKey + "-left"} className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
                 <div className="bg-white text-gray-700 text-[11px] font-medium px-3 py-2 rounded-xl shadow-xl border border-gray-100 relative max-w-[220px] whitespace-normal leading-relaxed">
@@ -533,9 +611,29 @@ export default function ScrollMascot({ onClick }) {
           </>
         )}
 
-        {/* Mascot Avatar */}
-        <div className={`transition-transform duration-200 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}>
+        {/* Mascot Avatar with emotion effects */}
+        <div
+          className={`transition-all duration-300 ${isJumping ? "animate-[celebrateJump_0.5s_ease-in-out_infinite]" : "group-hover:scale-110"}`}
+          style={{
+            transform: `scale(${breathScale * (parseFloat(emotionVisual.scale?.replace("scale-", "") || 1))})`,
+            filter: emotionVisual.filter === "none" ? undefined : emotionVisual.filter,
+          }}
+        >
           <MascotAvatar type={mascotType} size={96} animate={!celebrating} view="front" />
+
+          {/* Blink overlay */}
+          {blinkState && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-12 h-1 bg-gray-800/20 rounded-full" style={{ top: "40%", position: "absolute" }} />
+            </div>
+          )}
+
+          {/* Emotion emoji badge */}
+          {emotionVisual.emoji && (
+            <div className="absolute -top-2 -right-2 text-lg animate-[fadeInScale_0.3s_ease-out]">
+              {emotionVisual.emoji}
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,11 +1,15 @@
 // =========================================================
-// MASCOT ENGINE v2.2
+// MASCOT ENGINE v2.3
 // Module: EyeLayer
 // ---------------------------------------------------------
-// Aplica el movimiento de los ojos siguiendo el cursor.
-// No dibuja nada.
-// Solamente modifica renderState.transform.parts.eyes.
+// Controla el movimiento de los ojos.
+//
+// • Sigue el cursor
+// • Reacciona a emociones
+// • Aplica suavizado
 // =========================================================
+
+import { MascotEmotion } from "../../MascotEmotion";
 
 export class EyeLayer {
   constructor() {
@@ -16,17 +20,8 @@ export class EyeLayer {
     this.currentY = 0;
   }
 
-  /**
-   * Aplica el movimiento de los ojos.
-   *
-   * @param {Object} renderState
-   * @param {Object} mascotState
-   * @returns {Object}
-   */
-  apply(renderState, mascotState) {
-    if (!renderState.transform) {
-      return renderState;
-    }
+  apply(renderState = {}, mascotState = {}) {
+    const parts = renderState.transform?.parts ?? {};
 
     const cursor = mascotState.cursor ?? {
       x: 0,
@@ -43,18 +38,48 @@ export class EyeLayer {
         ? window.innerHeight
         : 1;
 
-    // Cursor normalizado (-1 → 1)
-
-    const normalizedX =
+    let normalizedX =
       (cursor.x / viewportWidth) * 2 - 1;
 
-    const normalizedY =
+    let normalizedY =
       (cursor.y / viewportHeight) * 2 - 1;
 
-    const targetX = normalizedX * this.maxOffset;
-    const targetY = normalizedY * this.maxOffset;
+    normalizedX = Math.max(-1, Math.min(1, normalizedX));
+    normalizedY = Math.max(-1, Math.min(1, normalizedY));
 
-    // Movimiento suavizado
+    let targetX = normalizedX * this.maxOffset;
+    let targetY = normalizedY * this.maxOffset;
+
+    switch (mascotState.emotion) {
+      case MascotEmotion.THINKING:
+        targetX *= 0.5;
+        targetY -= 1;
+        break;
+
+      case MascotEmotion.CURIOUS:
+        targetX *= 1.25;
+        break;
+
+      case MascotEmotion.CONFUSED:
+        targetX *= -0.5;
+        break;
+
+      case MascotEmotion.SLEEPY:
+        targetX = 0;
+        targetY = 1;
+        break;
+
+      case MascotEmotion.TIRED:
+        targetY = 1;
+        break;
+
+      case MascotEmotion.SAD:
+        targetY = 1.5;
+        break;
+
+      default:
+        break;
+    }
 
     this.currentX +=
       (targetX - this.currentX) *
@@ -68,38 +93,35 @@ export class EyeLayer {
       ...renderState,
 
       transform: {
-        ...renderState.transform,
+        ...(renderState.transform ?? {}),
 
         parts: {
-          ...renderState.transform.parts,
+          ...parts,
 
           eyes: {
             translateX: this.currentX,
             translateY: this.currentY,
+            rotation: 0,
+            scale: 1,
+            scaleX: 1,
+            scaleY: 1,
+            skewX: 0,
+            skewY: 0,
           },
         },
       },
     };
   }
 
-  /**
-   * Reinicia el estado interno.
-   */
   reset() {
     this.currentX = 0;
     this.currentY = 0;
   }
 
-  /**
-   * Permite cambiar la intensidad del seguimiento.
-   */
   setMaxOffset(value) {
     this.maxOffset = value;
   }
 
-  /**
-   * Permite cambiar el suavizado.
-   */
   setSmoothing(value) {
     this.smoothing = value;
   }

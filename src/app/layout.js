@@ -10,6 +10,7 @@ import { Toaster } from "react-hot-toast";
 
 // Nuevo: AuthProvider y RootLayoutClientInit
 import { AuthProvider } from "@/context/AuthProvider";
+import MascotProvider from "@/context/MascotProvider";
 import RootLayoutClientInit from "@/components/RootLayoutClientInit";
 import ScrollWrapper from "@/components/ScrollWrapper";
 
@@ -57,7 +58,8 @@ export default function RootLayout({ children }) {
         <Providers>
           {/* AuthProvider envuelve la app para exponer user/refresh/logout */}
           <AuthProvider>
-            <CartProvider>
+            <MascotProvider>
+              <CartProvider>
               {/* Inicializador cliente que intenta refresh controlado */}
               <RootLayoutClientInit />
 
@@ -81,6 +83,7 @@ export default function RootLayout({ children }) {
               />
 
             </CartProvider>
+            </MascotProvider>
           </AuthProvider>
         </Providers>
       </body>

@@ -1,25 +1,15 @@
 // =========================================================
-// MASCOT ENGINE v2
+// MASCOT ENGINE v2.7
 // Module: AnimationClock
-// Responsibility:
-// Provides a shared animation time source for the mascot
-// engine. All animation layers should use this clock.
+// ---------------------------------------------------------
+// Reloj global utilizado por todo el Mascot Engine.
 // =========================================================
 
 class AnimationClock {
   constructor() {
-    this.startTime = performance.now();
-    this.lastTime = this.startTime;
-
-    this.deltaTime = 0;
-
-    this.paused = false;
-    this.pauseTime = null;
+    this.reset();
   }
 
-  /**
-   * Returns the elapsed time in seconds.
-   */
   getTime() {
     if (this.paused) {
       return (this.pauseTime - this.startTime) / 1000;
@@ -28,37 +18,43 @@ class AnimationClock {
     return (performance.now() - this.startTime) / 1000;
   }
 
-  /**
-   * Updates the internal clock.
-   * Should be called once per frame.
-   *
-   * @returns {number} Delta time in seconds.
-   */
   update() {
     if (this.paused) {
       this.deltaTime = 0;
-      return this.deltaTime;
+      return 0;
     }
 
     const now = performance.now();
 
-    this.deltaTime = (now - this.lastTime) / 1000;
+    this.deltaTime = Math.min(
+      (now - this.lastTime) / 1000,
+      0.05
+    );
 
     this.lastTime = now;
+
+    this.frame++;
+
+    this.fps =
+      this.deltaTime > 0
+        ? Math.round(1 / this.deltaTime)
+        : 0;
 
     return this.deltaTime;
   }
 
-  /**
-   * Returns the last computed delta time.
-   */
   getDeltaTime() {
     return this.deltaTime;
   }
 
-  /**
-   * Pauses the animation clock.
-   */
+  getFPS() {
+    return this.fps;
+  }
+
+  getFrame() {
+    return this.frame;
+  }
+
   pause() {
     if (this.paused) return;
 
@@ -66,9 +62,6 @@ class AnimationClock {
     this.pauseTime = performance.now();
   }
 
-  /**
-   * Resumes the animation clock.
-   */
   resume() {
     if (!this.paused) return;
 
@@ -82,22 +75,21 @@ class AnimationClock {
     this.paused = false;
   }
 
-  /**
-   * Resets the clock.
-   */
   reset() {
-    this.startTime = performance.now();
-    this.lastTime = this.startTime;
+    const now = performance.now();
+
+    this.startTime = now;
+    this.lastTime = now;
 
     this.deltaTime = 0;
 
+    this.frame = 0;
+    this.fps = 0;
+
     this.paused = false;
-    this.pauseTime = null;
+    this.pauseTime = 0;
   }
 
-  /**
-   * Returns whether the clock is currently paused.
-   */
   isPaused() {
     return this.paused;
   }

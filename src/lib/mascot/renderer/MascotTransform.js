@@ -2,16 +2,26 @@
 
 import { useMemo } from "react";
 
+/**
+ * =========================================================
+ * MASCOT ENGINE v2.8
+ * Module: MascotTransform
+ * ---------------------------------------------------------
+ * Aplica las transformaciones calculadas por el
+ * RenderPipeline sobre cualquier grupo del SVG.
+ * =========================================================
+ */
+
 export default function MascotTransform({
   transform = {},
   origin = "center",
-  children
+  opacity = 1,
+  visible = true,
+  children,
 }) {
-
   const style = useMemo(() => {
-
-    const tx = transform.translateX ?? 0;
-    const ty = transform.translateY ?? 0;
+    const translateX = transform.translateX ?? 0;
+    const translateY = transform.translateY ?? 0;
 
     const rotation = transform.rotation ?? 0;
 
@@ -23,34 +33,34 @@ export default function MascotTransform({
     const skewX = transform.skewX ?? 0;
     const skewY = transform.skewY ?? 0;
 
+    const brightness = transform.brightness ?? 1;
+    const saturation = transform.saturation ?? 1;
+    const blur = transform.blur ?? 0;
+
     return {
-
       transformBox: "fill-box",
-
       transformOrigin: origin,
 
-      transform: `
-translate(${tx}px,${ty}px)
-rotate(${rotation}deg)
-scale(${scaleX},${scaleY})
-skew(${skewX}deg,${skewY}deg)
-`
-        .replace(/\s+/g, " ")
-        .trim(),
+      transform: [
+        `translate(${translateX}px, ${translateY}px)`,
+        `rotate(${rotation}deg)`,
+        `scale(${scaleX}, ${scaleY})`,
+        `skew(${skewX}deg, ${skewY}deg)`,
+      ].join(" "),
 
-      willChange: "transform"
+      filter: [
+        `brightness(${brightness})`,
+        `saturate(${saturation})`,
+        `blur(${blur}px)`,
+      ].join(" "),
+
+      opacity,
+
+      visibility: visible ? "visible" : "hidden",
+
+      willChange: "transform, opacity, filter",
     };
+  }, [transform, origin, opacity, visible]);
 
-  }, [transform, origin]);
-
-  return (
-
-    <g style={style}>
-
-      {children}
-
-    </g>
-
-  );
-
+  return <g style={style}>{children}</g>;
 }

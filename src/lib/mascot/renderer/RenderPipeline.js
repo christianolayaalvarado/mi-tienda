@@ -1,6 +1,9 @@
 // =========================================================
-// MASCOT ENGINE v2.6
+// MASCOT ENGINE v2.7
 // Module: RenderPipeline
+// Responsibility:
+// Executes every render layer and generates the final
+// RenderState consumed by MascotAnimationController.
 // =========================================================
 
 import { BaseLayer } from "./layers/BaseLayer";
@@ -25,26 +28,20 @@ import { PhysicsLayer } from "./layers/PhysicsLayer";
 export class RenderPipeline {
   constructor() {
     this.layers = [];
-
     this.registerDefaultLayers();
   }
 
   registerDefaultLayers() {
     this.layers = [
-      // Base
       new BaseLayer(),
 
-      // Estado emocional
       new EmotionLayer(),
 
-      // Movimiento natural
       new BreathingLayer(),
       new IdleLayer(),
 
-      // Física
       new PhysicsLayer(),
 
-      // Partes del personaje
       new BodyLayer(),
       new HeadLayer(),
       new EarLayer(),
@@ -52,7 +49,6 @@ export class RenderPipeline {
       new ArmLayer(),
       new LegLayer(),
 
-      // Cara
       new BlinkLayer(),
       new EyeLayer(),
     ];
@@ -62,31 +58,68 @@ export class RenderPipeline {
     let renderState = {};
 
     for (const layer of this.layers) {
-      if (typeof layer.apply !== "function") continue;
+      if (typeof layer.apply !== "function") {
+        continue;
+      }
 
       renderState = layer.apply(renderState, mascotState);
     }
 
+    // -----------------------------------------------------
+    // Global Transform
+    // -----------------------------------------------------
+
     const global = renderState.transform?.global ?? {};
 
-    renderState.transformCSS = `
-      translate(${global.translateX ?? 0}px, ${global.translateY ?? 0}px)
-      rotate(${global.rotation ?? 0}deg)
-      scale(${global.scale ?? 1})
-    `
-      .replace(/\s+/g, " ")
-      .trim();
+    renderState.transformCSS = [
+      `translate(${global.translateX ?? 0}px, ${global.translateY ?? 0}px)`,
+      `rotate(${global.rotation ?? 0}deg)`,
+      `scale(${global.scale ?? 1})`,
+    ].join(" ");
+
+    // -----------------------------------------------------
+    // Filters
+    // -----------------------------------------------------
 
     const filters = renderState.filters ?? {};
 
-    renderState.filterCSS = `
-      brightness(${filters.brightness ?? 1})
-      saturate(${filters.saturation ?? 1})
-      blur(${filters.blur ?? 0}px)
-      hue-rotate(${filters.hue ?? 0}deg)
-    `
-      .replace(/\s+/g, " ")
-      .trim();
+    renderState.filterCSS = [
+      `brightness(${filters.brightness ?? 1})`,
+      `saturate(${filters.saturation ?? 1})`,
+      `blur(${filters.blur ?? 0}px)`,
+      `hue-rotate(${filters.hue ?? 0}deg)`,
+    ].join(" ");
+
+    // -----------------------------------------------------
+    // Defaults
+    // -----------------------------------------------------
+
+    renderState.opacity ??= 1;
+
+    renderState.visible ??= true;
+
+    renderState.transform ??= {};
+
+    renderState.transform.global ??= {
+      translateX: 0,
+      translateY: 0,
+      rotation: 0,
+      scale: 1,
+    };
+
+    renderState.transform.parts ??= {
+      body: {},
+      head: {},
+      eyes: {},
+      leftEar: {},
+      rightEar: {},
+      leftArm: {},
+      rightArm: {},
+      leftLeg: {},
+      rightLeg: {},
+      tail: {},
+      accessory: {},
+    };
 
     return renderState;
   }
@@ -131,7 +164,6 @@ export class RenderPipeline {
 
   reset() {
     this.layers = [];
-
     this.registerDefaultLayers();
   }
 

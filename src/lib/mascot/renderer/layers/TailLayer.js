@@ -1,46 +1,32 @@
 // =========================================================
-// MASCOT ENGINE v2.5
+// MASCOT ENGINE v2.6
 // Module: TailLayer
 // ---------------------------------------------------------
-// Genera el movimiento de la cola.
-//
-// Esta capa únicamente modifica el RenderState.
-// No modifica el MascotState.
+// Controla el movimiento dinámico de la cola.
 // =========================================================
 
 import { animationClock } from "../../core/AnimationClock";
 import { MascotEmotion } from "../../MascotEmotion";
 
 export class TailLayer {
-  /**
-   * @param {Object} renderState
-   * @param {Object} mascotState
-   * @returns {Object}
-   */
-  apply(renderState, mascotState) {
+  apply(renderState = {}, mascotState = {}) {
     const time = animationClock.getTime();
 
     const tail = {
-      rotation: 0,
       translateX: 0,
       translateY: 0,
+      rotation: 0,
       scale: 1,
+      scaleX: 1,
+      scaleY: 1,
+      skewX: 0,
+      skewY: 0,
     };
-
-    const emotion = mascotState.emotion;
-
-    // ================================================
-    // Movimiento base
-    // ================================================
 
     let amplitude = 6;
     let speed = 2;
 
-    // ================================================
-    // Emociones
-    // ================================================
-
-    switch (emotion) {
+    switch (mascotState.emotion) {
       case MascotEmotion.HAPPY:
         amplitude = 14;
         speed = 5;
@@ -49,11 +35,13 @@ export class TailLayer {
       case MascotEmotion.EXCITED:
         amplitude = 20;
         speed = 7;
+        tail.scale = 1.03;
         break;
 
       case MascotEmotion.CELEBRATING:
         amplitude = 26;
         speed = 9;
+        tail.scale = 1.05;
         break;
 
       case MascotEmotion.LOVE:
@@ -66,19 +54,14 @@ export class TailLayer {
         speed = 3;
         break;
 
-      case MascotEmotion.SLEEPY:
-        amplitude = 2;
-        speed = 0.8;
+      case MascotEmotion.PROUD:
+        amplitude = 12;
+        speed = 4;
         break;
 
-      case MascotEmotion.TIRED:
-        amplitude = 1;
-        speed = 0.5;
-        break;
-
-      case MascotEmotion.SAD:
-        amplitude = 0;
-        speed = 0;
+      case MascotEmotion.SCARED:
+        amplitude = 30;
+        speed = 12;
         break;
 
       case MascotEmotion.ANGRY:
@@ -86,23 +69,33 @@ export class TailLayer {
         speed = 8;
         break;
 
+      case MascotEmotion.SLEEPY:
+        amplitude = 2;
+        speed = 0.8;
+        tail.translateY = 1;
+        break;
+
+      case MascotEmotion.TIRED:
+        amplitude = 1;
+        speed = 0.5;
+        tail.translateY = 2;
+        break;
+
+      case MascotEmotion.SAD:
+        amplitude = 0;
+        speed = 0;
+        tail.translateY = 3;
+        break;
+
       default:
         break;
     }
-
-    // ================================================
-    // Movimiento por velocidad
-    // ================================================
 
     const velocity =
       Math.abs(mascotState.velocity?.x ?? 0) +
       Math.abs(mascotState.velocity?.y ?? 0);
 
     amplitude += velocity * 0.35;
-
-    // ================================================
-    // Dirección
-    // ================================================
 
     const direction =
       mascotState.direction === "left" ? -1 : 1;
@@ -116,10 +109,10 @@ export class TailLayer {
       ...renderState,
 
       transform: {
-        ...renderState.transform,
+        ...(renderState.transform ?? {}),
 
         parts: {
-          ...renderState.transform.parts,
+          ...(renderState.transform?.parts ?? {}),
 
           tail,
         },

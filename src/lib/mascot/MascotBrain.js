@@ -8,48 +8,19 @@ import mascotEvents, {
   MascotEventTypes,
 } from "./MascotEvents";
 
-/**
- * ==========================================================
- * MASCOT ENGINE v2.4
- * Module: MascotBrain
- * ----------------------------------------------------------
- * Cerebro principal de la mascota.
- *
- * Responsabilidades:
- *
- * • Decidir la emoción actual
- * • Gestionar el tiempo de inactividad
- * • Reaccionar a eventos
- * • Cambiar de dirección
- * • Preparar la IA futura
- * ==========================================================
- */
-
 export default class MascotBrain {
   constructor(state) {
     this.state = state;
-
     this.eventUnsubscribers = [];
 
     this.registerEvents();
   }
-
-  // =====================================================
-  // Eventos
-  // =====================================================
 
   registerEvents() {
     this.eventUnsubscribers.push(
       mascotEvents.on(
         MascotEventTypes.USER_INTERACTION,
         () => this.onUserInteraction()
-      )
-    );
-
-    this.eventUnsubscribers.push(
-      mascotEvents.on(
-        MascotEventTypes.CURSOR_MOVE,
-        (cursor) => this.onCursorMove(cursor)
       )
     );
 
@@ -76,19 +47,14 @@ export default class MascotBrain {
   }
 
   destroy() {
-    this.eventUnsubscribers.forEach((unsubscribe) => unsubscribe());
-
+    this.eventUnsubscribers.forEach((fn) => fn());
     this.eventUnsubscribers = [];
   }
-
-  // =====================================================
-  // Emociones
-  // =====================================================
 
   setEmotion(emotion) {
     if (!isValidEmotion(emotion)) return;
 
-    if (this.state.emotion === emotion) return;
+    if (emotion === this.state.emotion) return;
 
     this.state.emotion = emotion;
 
@@ -106,13 +72,11 @@ export default class MascotBrain {
     return this.state.emotion;
   }
 
-  // =====================================================
-  // Interacción
-  // =====================================================
-
   interact() {
     this.state.lastInteraction = Date.now();
     this.state.idleTime = 0;
+
+    this.state.lookingAtCursor = true;
   }
 
   onUserInteraction() {
@@ -121,27 +85,8 @@ export default class MascotBrain {
     this.setEmotion(MascotEmotion.HAPPY);
   }
 
-  onCursorMove(cursor = {}) {
-    this.state.cursor.x = cursor.x ?? 0;
-    this.state.cursor.y = cursor.y ?? 0;
-
-    this.state.lookingAtCursor = true;
-
-    if (this.state.emotion === MascotEmotion.IDLE) {
-      this.setEmotion(MascotEmotion.LOOKING);
-    }
-  }
-
-  // =====================================================
-  // IA
-  // =====================================================
-
   update(deltaTime = 0) {
     this.state.idleTime += deltaTime;
-
-    // ---------------------------------
-    // 5 segundos
-    // ---------------------------------
 
     if (
       this.state.idleTime > 5 &&
@@ -150,20 +95,12 @@ export default class MascotBrain {
       this.setEmotion(MascotEmotion.IDLE);
     }
 
-    // ---------------------------------
-    // 10 segundos
-    // ---------------------------------
-
     if (
       this.state.idleTime > 10 &&
       this.state.emotion === MascotEmotion.IDLE
     ) {
       this.setEmotion(MascotEmotion.LOOKING);
     }
-
-    // ---------------------------------
-    // 20 segundos
-    // ---------------------------------
 
     if (
       this.state.idleTime > 20 &&
@@ -172,10 +109,6 @@ export default class MascotBrain {
       this.setEmotion(MascotEmotion.THINKING);
     }
 
-    // ---------------------------------
-    // 35 segundos
-    // ---------------------------------
-
     if (
       this.state.idleTime > 35 &&
       this.state.emotion === MascotEmotion.THINKING
@@ -183,11 +116,14 @@ export default class MascotBrain {
       this.setEmotion(MascotEmotion.SLEEPY);
     }
 
-    // ---------------------------------
-    // Dirección automática
-    // ---------------------------------
+    if (
+      this.state.idleTime > 60 &&
+      this.state.emotion === MascotEmotion.SLEEPY
+    ) {
+      this.setEmotion(MascotEmotion.TIRED);
+    }
 
-    const vx = this.state.velocity.x;
+    const vx = this.state.velocity?.x ?? 0;
 
     if (vx > 2) {
       this.state.direction = "right";
@@ -196,5 +132,7 @@ export default class MascotBrain {
     } else {
       this.state.direction = "front";
     }
+
+    this.state.lookingAtCursor = false;
   }
 }

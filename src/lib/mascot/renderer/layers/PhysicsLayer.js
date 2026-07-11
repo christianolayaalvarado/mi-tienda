@@ -1,79 +1,96 @@
 // =========================================================
-// MASCOT ENGINE v2.6
+// MASCOT ENGINE v2.7
 // Module: PhysicsLayer
 // ---------------------------------------------------------
-// Aplica las transformaciones físicas del personaje.
-//
-// No modifica MascotState.
-// Solo interpreta los datos físicos para generar el
-// RenderState.
-//
-// Controla:
-//
-// • Posición
-// • Velocidad
-// • Inercia
-// • Gravedad
-// • Salto
-// • Rebote
+// Interpreta el estado físico del personaje y aplica
+// transformaciones globales al RenderState.
 // =========================================================
 
 export class PhysicsLayer {
-  apply(renderState, mascotState) {
+  apply(renderState = {}, mascotState = {}) {
+    const transform = renderState.transform ?? {};
+
     const global = {
-      ...(renderState.transform?.global ?? {}),
+      translateX: 0,
+      translateY: 0,
+      rotation: 0,
+      scale: 1,
+      scaleX: 1,
+      scaleY: 1,
+      ...(transform.global ?? {}),
     };
 
     const physics = mascotState.physics ?? {};
-
     const position = mascotState.position ?? {};
-
     const velocity = mascotState.velocity ?? {};
+
+    // =====================================================
+    // Posición
+    // =====================================================
 
     global.translateX += position.x ?? 0;
     global.translateY += position.y ?? 0;
 
-    // Inclinación por movimiento horizontal
-    global.rotation += (velocity.x ?? 0) * 0.8;
+    // =====================================================
+    // Inclinación horizontal
+    // =====================================================
 
-    // Compresión al caer
-    if (physics.falling) {
-      global.scaleX = 1.04;
-      global.scaleY = 0.96;
-    }
+    const vx = velocity.x ?? 0;
+    const vy = velocity.y ?? 0;
 
-    // Estiramiento al saltar
+    global.rotation += Math.max(
+      -12,
+      Math.min(12, vx * 0.8)
+    );
+
+    // =====================================================
+    // Compresión y estiramiento
+    // =====================================================
+
     if (physics.jumping) {
-      global.scaleX = 0.97;
-      global.scaleY = 1.05;
+      global.scaleX *= 0.97;
+      global.scaleY *= 1.05;
     }
 
-    // Compresión al aterrizar
-    if (physics.grounded && Math.abs(velocity.y ?? 0) > 2) {
-      global.scaleX = 1.05;
-      global.scaleY = 0.95;
+    if (physics.falling) {
+      global.scaleX *= 1.04;
+      global.scaleY *= 0.96;
+    }
+
+    if (physics.grounded && Math.abs(vy) > 2) {
+      global.scaleX *= 1.05;
+      global.scaleY *= 0.95;
+    }
+
+    // =====================================================
+    // Rebote
+    // =====================================================
+
+    if (physics.bouncing) {
+      const bounce =
+        Math.sin((physics.bounceTime ?? 0) * 18) * 2;
+
+      global.translateY -= bounce;
+    }
+
+    // =====================================================
+    // Inercia
+    // =====================================================
+
+    if (physics.inertia) {
+      global.translateX += vx * 0.15;
     }
 
     return {
       ...renderState,
 
       transform: {
-        ...(renderState.transform ?? {}),
+        ...transform,
 
-        global: {
-          translateX: global.translateX ?? 0,
-          translateY: global.translateY ?? 0,
-
-          rotation: global.rotation ?? 0,
-
-          scale: global.scale ?? 1,
-
-          scaleX: global.scaleX ?? 1,
-          scaleY: global.scaleY ?? 1,
-        },
+        global,
 
         parts: {
-          ...(renderState.transform?.parts ?? {}),
+          ...(transform.parts ?? {}),
         },
       },
     };

@@ -1,55 +1,91 @@
 // =========================================================
-// MASCOT ENGINE v2
+// MASCOT ENGINE v2.7
 // Module: IdleLayer
-// Responsibility:
-// Adds subtle idle motion to make the mascot feel alive.
-// This layer never controls behaviour.
-// It only applies small render transformations.
+// ---------------------------------------------------------
+// Movimiento natural cuando la mascota está en reposo.
 // =========================================================
 
 import { animationClock } from "@/lib/mascot/core/AnimationClock";
-
-const IDLE_SWAY_SPEED = 0.8;
-const IDLE_SWAY_AMOUNT = 2;
-
-const IDLE_FLOAT_SPEED = 0.6;
-const IDLE_FLOAT_AMOUNT = 1.5;
+import { MascotEmotion } from "../../MascotEmotion";
 
 export class IdleLayer {
-  /**
-   * Applies subtle idle movement.
-   *
-   * @param {Object} renderState
-   * @param {Object} mascotState
-   * @returns {Object}
-   */
-  apply(renderState, mascotState) {
+  apply(renderState = {}, mascotState = {}) {
     const time = animationClock.getTime();
 
+    let swaySpeed = 0.8;
+    let swayAmount = 2;
+
+    let floatSpeed = 0.6;
+    let floatAmount = 1.5;
+
+    switch (mascotState.emotion) {
+      case MascotEmotion.SLEEPY:
+        swaySpeed = 0.25;
+        swayAmount = 4;
+        floatSpeed = 0.25;
+        floatAmount = 2;
+        break;
+
+      case MascotEmotion.TIRED:
+        swaySpeed = 0.4;
+        swayAmount = 3;
+        floatSpeed = 0.4;
+        floatAmount = 1.8;
+        break;
+
+      case MascotEmotion.HAPPY:
+        swaySpeed = 1.2;
+        swayAmount = 2.5;
+        floatSpeed = 1;
+        floatAmount = 2;
+        break;
+
+      case MascotEmotion.EXCITED:
+        swaySpeed = 2;
+        swayAmount = 3;
+        floatSpeed = 2;
+        floatAmount = 2.5;
+        break;
+
+      case MascotEmotion.CELEBRATING:
+        swaySpeed = 3;
+        swayAmount = 5;
+        floatSpeed = 3;
+        floatAmount = 4;
+        break;
+
+      default:
+        break;
+    }
+
     const sway =
-      Math.sin(time * IDLE_SWAY_SPEED) *
-      IDLE_SWAY_AMOUNT;
+      Math.sin(time * swaySpeed) *
+      swayAmount;
 
     const floatY =
-      Math.sin(time * IDLE_FLOAT_SPEED) *
-      IDLE_FLOAT_AMOUNT;
+      Math.sin(time * floatSpeed) *
+      floatAmount;
+
+    const global = {
+      ...(renderState.transform?.global ?? {}),
+    };
+
+    global.rotation =
+      (global.rotation ?? 0) + sway;
+
+    global.translateY =
+      (global.translateY ?? 0) + floatY;
 
     return {
       ...renderState,
 
       transform: {
-        ...renderState.transform,
+        ...(renderState.transform ?? {}),
 
-        global: {
-          ...renderState.transform.global,
+        global,
 
-          rotation:
-            renderState.transform.global.rotation +
-            sway,
-
-          translateY:
-            renderState.transform.global.translateY +
-            floatY,
+        parts: {
+          ...(renderState.transform?.parts ?? {}),
         },
       },
     };

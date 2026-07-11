@@ -2,11 +2,17 @@
 
 import { useEffect, useState } from "react";
 
-import mascotEngine from "../MascotEngine";
-import mascotLoop from "../core/MascotLoop";
+import mascotEngine from "@/lib/mascot/MascotEngine";
+import mascotLoop from "@/lib/mascot/core/MascotLoop";
 
 export default function useRenderState() {
-  const [, forceUpdate] = useState(0);
+  const [renderState, setRenderState] = useState(() => {
+    if (!mascotEngine.isInitialized()) {
+      mascotEngine.initialize();
+    }
+
+    return mascotEngine.getRenderState();
+  });
 
   useEffect(() => {
     if (!mascotEngine.isInitialized()) {
@@ -15,8 +21,8 @@ export default function useRenderState() {
 
     mascotLoop.start();
 
-    const unsubscribe = mascotLoop.subscribe(() => {
-      forceUpdate((v) => v + 1);
+    const unsubscribe = mascotLoop.subscribe((state) => {
+      setRenderState(state);
     });
 
     return () => {
@@ -24,5 +30,5 @@ export default function useRenderState() {
     };
   }, []);
 
-  return mascotEngine.getRenderState();
+  return renderState;
 }
