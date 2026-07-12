@@ -7,6 +7,7 @@ import { useCart } from "@/context/CartContext";
 import AuthRequiredModal from "@/components/AuthRequiredModal";
 import { fetchSession } from "@/lib/useSessionCheck";
 import toast from "react-hot-toast";
+import DiscountBadge from "@/components/DiscountBadge";
 
 const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
 
@@ -262,7 +263,19 @@ export default function ProductInfo({ product }) {
     <div className="flex flex-col justify-start mt-6 md:mt-10 md:pl-10 px-2 md:px-0">
       <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center md:text-left">{product.title}</h1>
 
-      <p className="text-green-600 text-xl sm:text-2xl md:text-3xl mt-4 font-semibold text-center md:text-left">
+      {/* Badge de descuento */}
+      {product.originalPrice && product.originalPrice > product.price && (
+        <div className="mt-3">
+          <DiscountBadge
+            originalPrice={product.originalPrice}
+            discountPct={product.discountPct}
+            price={product.price}
+            size="lg"
+          />
+        </div>
+      )}
+
+      <p className="text-green-600 text-xl sm:text-2xl md:text-3xl mt-2 font-semibold text-center md:text-left">
         S/ {Number(product.price || 0).toFixed(2)}
       </p>
 

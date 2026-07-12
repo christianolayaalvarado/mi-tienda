@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import useCategories from "@/hooks/useCategories";
+import PriceInput from "@/components/PriceInput";
 
 const CLOUDINARY_CLOUD_NAME = "dqx8wx5fj";
 const UPLOAD_PRESET = "mi_tienda_unsigned";
@@ -16,6 +17,8 @@ export default function AddProductForm() {
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [originalPrice, setOriginalPrice] = useState("");
+  const [discountPct, setDiscountPct] = useState("");
   const [stock, setStock] = useState(1);
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
@@ -114,6 +117,8 @@ export default function AddProductForm() {
       const payload = {
         title: title.trim(),
         price: Number(price),
+        originalPrice: originalPrice ? Number(originalPrice) : null,
+        discountPct: discountPct ? Number(discountPct) : null,
         stock: Number(stock),
         description: description || "",
         categoryId,
@@ -139,6 +144,8 @@ export default function AddProductForm() {
 
       setTitle("");
       setPrice("");
+      setOriginalPrice("");
+      setDiscountPct("");
       setStock(1);
       setDescription("");
       setFiles([]);
@@ -177,39 +184,33 @@ export default function AddProductForm() {
           {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
         </div>
 
-        {/* Precio y Stock */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="prod-price" className="block text-sm font-medium text-gray-700 mb-1">
-              Precio (S/) *
-            </label>
-            <input
-              id="prod-price"
-              type="number"
-              value={price}
-              onChange={(e) => { setPrice(e.target.value); if (fieldErrors.price) setFieldErrors((p) => ({ ...p, price: "" })); }}
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition ${
-                fieldErrors.price ? "border-red-400" : "border-gray-300"
-              }`}
-            />
-            {fieldErrors.price && <p className="text-red-500 text-xs mt-1">{fieldErrors.price}</p>}
-          </div>
-          <div>
-            <label htmlFor="prod-stock" className="block text-sm font-medium text-gray-700 mb-1">
-              Stock *
-            </label>
-            <input
-              id="prod-stock"
-              type="number"
-              value={stock}
-              onChange={(e) => setStock(e.target.value)}
-              min="0"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
-            />
-          </div>
+        {/* Precios */}
+        <PriceInput
+          originalPrice={originalPrice}
+          discountPct={discountPct}
+          price={price}
+          onChange={({ originalPrice: op, discountPct: dp, price: p }) => {
+            setOriginalPrice(op || "");
+            setDiscountPct(dp || "");
+            setPrice(p || "");
+            if (fieldErrors.price) setFieldErrors((prev) => ({ ...prev, price: "" }));
+          }}
+        />
+        {fieldErrors.price && <p className="text-red-500 text-xs mt-1">{fieldErrors.price}</p>}
+
+        {/* Stock */}
+        <div>
+          <label htmlFor="prod-stock" className="block text-sm font-medium text-gray-700 mb-1">
+            Stock *
+          </label>
+          <input
+            id="prod-stock"
+            type="number"
+            value={stock}
+            onChange={(e) => setStock(e.target.value)}
+            min="0"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
+          />
         </div>
 
         {/* Categoría */}

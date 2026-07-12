@@ -49,6 +49,8 @@ export async function PUT(req, { params }) {
     const title = typeof body.title === "string" ? body.title.trim() : null;
     const description = typeof body.description === "string" ? body.description.trim() : "";
     const price = Number(body.price);
+    const originalPrice = body.originalPrice ? Number(body.originalPrice) : null;
+    const discountPct = body.discountPct ? Number(body.discountPct) : null;
     const stockRaw = body.stock;
     const categoryId = body.categoryId || null;
 
@@ -99,12 +101,29 @@ export async function PUT(req, { params }) {
     // Construir lista final de imágenes (mantener existentes + nuevas)
     const allImages = [...(existing.images || []), ...uploadedImages];
 
+    // Registrar cambio de precio en historial
+    if (price !== existing.price) {
+      try {
+        await prisma.priceHistory.create({
+          data: {
+            productId: id,
+            oldPrice: existing.price,
+            newPrice: price,
+          },
+        });
+      } catch (e) {
+        console.error("Error saving price history:", e);
+      }
+    }
+
     // Actualizar producto (validado)
     const updated = await prisma.product.update({
       where: { id },
       data: {
         title,
         price,
+        originalPrice,
+        discountPct,
         stock: parsedStock,
         description,
         categoryId,

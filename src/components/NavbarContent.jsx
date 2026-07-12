@@ -173,7 +173,7 @@ export default function NavbarContent() {
 
   return (
     <>
-    <nav className="w-full bg-white shadow-md sticky top-0 z-50">
+    <nav className="w-full navbar-theme shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
         {/* Single flex row with wrap: search goes to line 2 on mobile */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-6">

@@ -13,6 +13,8 @@ import { AuthProvider } from "@/context/AuthProvider";
 import MascotProvider from "@/context/MascotProvider";
 import RootLayoutClientInit from "@/components/RootLayoutClientInit";
 import ScrollWrapper from "@/components/ScrollWrapper";
+import { ThemeProvider } from "@/context/ThemeContext";
+import PriceDropNotification from "@/components/PriceDropNotification";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,11 +55,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 flex flex-col h-screen overflow-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-theme-primary flex flex-col h-screen overflow-hidden`}
       >
         <Providers>
           {/* AuthProvider envuelve la app para exponer user/refresh/logout */}
           <AuthProvider>
+            <ThemeProvider>
             <MascotProvider>
               <CartProvider>
               {/* Inicializador cliente que intenta refresh controlado */}
@@ -65,6 +68,7 @@ export default function RootLayout({ children }) {
 
               <Navbar />
               <ThemeInitializer />
+              <PriceDropNotification />
 
               <div className="flex-1 overflow-auto min-h-0">
                 <ScrollWrapper>{children}</ScrollWrapper>
@@ -84,6 +88,7 @@ export default function RootLayout({ children }) {
 
             </CartProvider>
             </MascotProvider>
+            </ThemeProvider>
           </AuthProvider>
         </Providers>
       </body>

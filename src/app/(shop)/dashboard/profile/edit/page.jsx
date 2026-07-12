@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import ThemeSelector from "@/components/ThemeSelector";
 
 export default function EditProfilePage() {
   const { data: session, update: updateSession } = useSession();
@@ -249,6 +250,11 @@ export default function EditProfilePage() {
             />
             <p className="text-xs text-gray-400 mt-1">Se usará como dirección predeterminada en tus pedidos</p>
           </div>
+        </div>
+
+        {/* Sección: Tema de colores */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <ThemeSelector />
         </div>
 
         {/* Sección: Seguridad */}

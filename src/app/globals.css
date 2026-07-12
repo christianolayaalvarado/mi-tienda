@@ -30,40 +30,180 @@
 
 :root {
   --logo-filter: none;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-card: #ffffff;
+  --text-primary: #171717;
+  --text-secondary: #6b7280;
+  --accent: #16a34a;
+  --accent-hover: #15803d;
+  --accent-light: #dcfce7;
+  --border: #e5e7eb;
+  --navbar-bg: #ffffff;
+  --navbar-border: #e5e7eb;
+  --sidebar-bg: #f3f4f6;
 }
 
 [data-theme="dark"] {
   --logo-filter: brightness(0) invert(1);
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111827;
+  --bg-card: #1f2937;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --accent: #22c55e;
+  --accent-hover: #16a34a;
+  --accent-light: #052e16;
+  --border: #374151;
+  --navbar-bg: #111827;
+  --navbar-border: #374151;
+  --sidebar-bg: #1f2937;
 }
 
-.navbar-logo {
-  filter: var(--logo-filter);
+[data-color-theme="pastel"] {
+  --bg-primary: #fdf4ff;
+  --bg-secondary: #faf5ff;
+  --bg-card: #ffffff;
+  --text-primary: #581c87;
+  --text-secondary: #7c3aed;
+  --accent: #c084fc;
+  --accent-hover: #a855f7;
+  --accent-light: #f3e8ff;
+  --border: #e9d5ff;
+  --navbar-bg: #fdf4ff;
+  --navbar-border: #e9d5ff;
+  --sidebar-bg: #faf5ff;
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+[data-color-theme="grayscale"] {
+  --bg-primary: #fafafa;
+  --bg-secondary: #f5f5f5;
+  --bg-card: #ffffff;
+  --text-primary: #171717;
+  --text-secondary: #525252;
+  --accent: #525252;
+  --accent-hover: #404040;
+  --accent-light: #f5f5f5;
+  --border: #e5e5e5;
+  --navbar-bg: #fafafa;
+  --navbar-border: #e5e5e5;
+  --sidebar-bg: #f5f5f5;
+}
+
+[data-color-theme="vibrant"] {
+  --bg-primary: #fffbeb;
+  --bg-secondary: #fef3c7;
+  --bg-card: #ffffff;
+  --text-primary: #1c1917;
+  --text-secondary: #78716c;
+  --accent: #f43f5e;
+  --accent-hover: #e11d48;
+  --accent-light: #ffe4e6;
+  --border: #fecdd3;
+  --navbar-bg: #fffbeb;
+  --navbar-border: #fecdd3;
+  --sidebar-bg: #fef3c7;
+}
+
+[data-color-theme="dark"] {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111827;
+  --bg-card: #1f2937;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --accent: #22c55e;
+  --accent-hover: #16a34a;
+  --accent-light: #052e16;
+  --border: #374151;
+  --navbar-bg: #111827;
+  --navbar-border: #374151;
+  --sidebar-bg: #1f2937;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 /* Estilos globales */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Aplicar temas a elementos comunes */
+.navbar-theme {
+  background: var(--navbar-bg) !important;
+  border-color: var(--navbar-border) !important;
+}
+
+.card-theme {
+  background: var(--bg-card) !important;
+  border-color: var(--border) !important;
+}
+
+.text-theme-primary {
+  color: var(--text-primary) !important;
+}
+
+.text-theme-secondary {
+  color: var(--text-secondary) !important;
+}
+
+.bg-theme-primary {
+  background-color: var(--bg-primary) !important;
+}
+
+.bg-theme-secondary {
+  background-color: var(--bg-secondary) !important;
+}
+
+.bg-theme-card {
+  background-color: var(--bg-card) !important;
+}
+
+.border-theme {
+  border-color: var(--border) !important;
+}
+
+.accent-theme {
+  background-color: var(--accent) !important;
+  color: white !important;
+}
+
+.accent-theme-hover:hover {
+  background-color: var(--accent-hover) !important;
+}
+
+/* Sidebar */
+.sidebar-theme {
+  background: var(--sidebar-bg) !important;
+}
+
+/* Botones primarios */
+.btn-primary {
+  background-color: var(--accent) !important;
+  color: white !important;
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-hover) !important;
+}
+
+/* Inputs */
+.input-theme {
+  border-color: var(--border) !important;
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+.input-theme:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px var(--accent-light) !important;
 }
 
 .scrollbar-none::-webkit-scrollbar {

@@ -15,6 +15,14 @@ async function main() {
     if (existingAdmin) {
       console.log("Usuario admin ya existe:", existingAdmin.email);
       adminId = existingAdmin.id;
+      // Asegurar que el role sea admin
+      if (existingAdmin.role !== "admin" && existingAdmin.role !== "ADMIN") {
+        await prisma.user.update({
+          where: { email: "admin@demo.com" },
+          data: { role: "admin" },
+        });
+        console.log("Role de admin actualizado a 'admin'");
+      }
     } else {
       const password = await bcrypt.hash("123456", 10);
       const admin = await prisma.user.create({
@@ -22,6 +30,7 @@ async function main() {
           email: "admin@demo.com",
           name: "Admin",
           password,
+          role: "admin",
         },
       });
       console.log("Usuario admin creado:", admin.email);
@@ -46,8 +55,8 @@ async function main() {
       console.log("Tienda del admin ya existe:", store.name);
     }
 
-    // 🧹 Limpiar productos existentes
-    await prisma.product.deleteMany();
+    // 🧹 NO borrar productos existentes — solo crear los que falten
+    // (Eliminado deleteMany para preservar productos creados por usuarios)
 
     for (const product of products) {
       // 🔎 Crear o buscar categoría
@@ -66,6 +75,16 @@ async function main() {
         product.images && product.images.length > 0
           ? product.images.filter((img) => img && img.trim() !== "")
           : ["/images/placeholder.png"];
+
+      // Verificar si el producto ya existe por título
+      const existingProduct = await prisma.product.findFirst({
+        where: { title: product.title },
+      });
+
+      if (existingProduct) {
+        console.log(`Producto ya existe: ${product.title}`);
+        continue;
+      }
 
       // 🚀 Crear producto
       await prisma.product.create({

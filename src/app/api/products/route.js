@@ -82,7 +82,7 @@ export async function POST(req) {
     const body = await req.json().catch(() => null);
     if (!body) return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
 
-    const { title, price, stock, description, categoryId, images } = body;
+    const { title, price, stock, description, categoryId, images, originalPrice, discountPct } = body;
     if (!title || price === undefined || stock === undefined || !categoryId) {
       return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
     }
@@ -116,6 +116,8 @@ export async function POST(req) {
       data: {
         title,
         price: Number(price),
+        originalPrice: originalPrice ? Number(originalPrice) : null,
+        discountPct: discountPct ? Number(discountPct) : null,
         stock: Number(stock),
         description: description || "",
         images: uploadedImages,
@@ -202,6 +204,8 @@ export async function PUT(req) {
     const dataToUpdate = {};
     if (body.title !== undefined) dataToUpdate.title = body.title;
     if (body.price !== undefined) dataToUpdate.price = Number(body.price);
+    if (body.originalPrice !== undefined) dataToUpdate.originalPrice = body.originalPrice ? Number(body.originalPrice) : null;
+    if (body.discountPct !== undefined) dataToUpdate.discountPct = body.discountPct ? Number(body.discountPct) : null;
     if (body.stock !== undefined) dataToUpdate.stock = Number(body.stock);
     if (body.description !== undefined) dataToUpdate.description = body.description;
     if (body.categoryId !== undefined) dataToUpdate.categoryId = body.categoryId;
@@ -209,6 +213,21 @@ export async function PUT(req) {
 
     if (Object.keys(dataToUpdate).length === 0) {
       return NextResponse.json({ error: "No hay campos para actualizar" }, { status: 400 });
+    }
+
+    // Registrar cambio de precio en historial
+    if (body.price !== undefined && Number(body.price) !== existing.price) {
+      try {
+        await prisma.priceHistory.create({
+          data: {
+            productId: productId,
+            oldPrice: existing.price,
+            newPrice: Number(body.price),
+          },
+        });
+      } catch (e) {
+        console.error("Error saving price history:", e);
+      }
     }
 
     // Ejecutar update y asegurar await

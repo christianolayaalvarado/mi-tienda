@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import useCategories from "@/hooks/useCategories";
+import PriceInput from "@/components/PriceInput";
 
 const CLOUDINARY_CLOUD_NAME = "dqx8wx5fj";
 const UPLOAD_PRESET = "mi_tienda_unsigned";
@@ -18,6 +19,8 @@ export default function EditProductForm({ productId }) {
   const [form, setForm] = useState({
     title: "",
     price: "",
+    originalPrice: "",
+    discountPct: "",
     categoryId: "",
     stock: 0,
     description: "",
@@ -69,6 +72,8 @@ export default function EditProductForm({ productId }) {
         setForm({
           title: data.title ?? "",
           price: data.price ?? "",
+          originalPrice: data.originalPrice ?? "",
+          discountPct: data.discountPct ?? "",
           categoryId: data.category?.id ?? "",
           stock: data.stock ?? 0,
           description: data.description ?? "",
@@ -177,6 +182,8 @@ export default function EditProductForm({ productId }) {
         id: productId,
         title: form.title,
         price: form.price === "" ? undefined : Number(form.price),
+        originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
+        discountPct: form.discountPct ? Number(form.discountPct) : null,
         categoryId: form.categoryId || undefined,
         stock: form.stock === "" ? undefined : Number(form.stock),
         description: form.description,
@@ -214,6 +221,8 @@ export default function EditProductForm({ productId }) {
       setForm({
         title: data.title ?? "",
         price: data.price ?? "",
+        originalPrice: data.originalPrice ?? "",
+        discountPct: data.discountPct ?? "",
         categoryId: data.category?.id ?? "",
         stock: data.stock ?? 0,
         description: data.description ?? "",
@@ -304,32 +313,33 @@ export default function EditProductForm({ productId }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="edit-price" className={labelClass}>Precio (S/)</label>
-          <input
-            id="edit-price"
-            type="number"
-            name="price"
-            value={form.price}
-            onChange={handleChange}
-            className={inputClass}
-            disabled={!isOwner}
-            step="0.01"
-          />
-        </div>
-        <div>
-          <label htmlFor="edit-stock" className={labelClass}>Stock</label>
-          <input
-            id="edit-stock"
-            type="number"
-            name="stock"
-            value={form.stock}
-            onChange={handleChange}
-            className={inputClass}
-            disabled={!isOwner}
-          />
-        </div>
+      {/* Precios */}
+      <PriceInput
+        originalPrice={form.originalPrice}
+        discountPct={form.discountPct}
+        price={form.price}
+        onChange={({ originalPrice: op, discountPct: dp, price: p }) => {
+          setForm((prev) => ({
+            ...prev,
+            originalPrice: op || "",
+            discountPct: dp || "",
+            price: p || "",
+          }));
+        }}
+      />
+
+      {/* Stock */}
+      <div>
+        <label htmlFor="edit-stock" className={labelClass}>Stock</label>
+        <input
+          id="edit-stock"
+          type="number"
+          name="stock"
+          value={form.stock}
+          onChange={handleChange}
+          className={inputClass}
+          disabled={!isOwner}
+        />
       </div>
 
       <div>
