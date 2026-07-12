@@ -10,6 +10,8 @@ import AccessoryShop from "@/components/AccessoryShop";
 import useMascotBehavior from "@/hooks/useMascotBehavior";
 import useMascotPersonality from "@/hooks/useMascotPersonality";
 import useMascotCoins from "@/hooks/useMascotCoins";
+import useMascotChat from "@/hooks/useMascotChat";
+import MascotChat from "@/components/MascotChat";
 import { usePathname } from "next/navigation";
 import { MASCOTS } from "@/lib/mascotCatalog";
 import { MascotEmotion } from "@/lib/mascot/MascotEmotion";
@@ -95,6 +97,7 @@ export default function ScrollMascot({ onClick }) {
   const [mascotType, setMascotType] = useState("box");
   const [mascotName, setMascotName] = useState("");
   const [showShop, setShowShop] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
@@ -118,6 +121,7 @@ export default function ScrollMascot({ onClick }) {
 
   const { mood, moodEmoji, lastDialogue, dialogueKey, speak } = useMascotPersonality();
   const { coins, newCoinAnimation, lastBonusMsg, addScrollCoins, getEquippedDisplay, getScrollSpeed, getWalkSpeed, equipped } = useMascotCoins();
+  const { messages, isTyping, sendMessage, clearMessages, quickActions } = useMascotChat({ mood, mascotName, coins });
 
   // --- PERSISTENCE ---
   useEffect(() => {
@@ -377,6 +381,23 @@ export default function ScrollMascot({ onClick }) {
         {moodEmoji}
       </div>
 
+      {/* Chat toggle button */}
+      <button
+        className="absolute right-0 top-44 w-9 h-9 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center pointer-events-auto hover:bg-green-600 transition-all hover:scale-110 z-30"
+        onClick={() => { setShowChat((v) => !v); setShowShop(false); }}
+        title={showChat ? "Cerrar chat" : "Hablar con " + mascotName}
+      >
+        {showChat ? (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        )}
+      </button>
+
       {/* Mascot */}
       <div
         ref={mascotRef}
@@ -444,6 +465,23 @@ export default function ScrollMascot({ onClick }) {
       {/* Shop rendered via portal to document body (outside pointer-events-none) */}
       {showShop && createPortal(
         <AccessoryShop onClose={() => setShowShop(false)} />,
+        document.body
+      )}
+
+      {/* Chat rendered via portal to document body */}
+      {showChat && createPortal(
+        <div className="fixed bottom-20 right-4 z-[9999]" style={{ maxHeight: "60vh" }}>
+          <MascotChat
+            messages={messages}
+            isTyping={isTyping}
+            onSend={(text) => sendMessage(text)}
+            onClear={clearMessages}
+            quickActions={quickActions}
+            mascotName={mascotName}
+            moodEmoji={moodEmoji}
+            onClose={() => setShowChat(false)}
+          />
+        </div>,
         document.body
       )}
     </div>

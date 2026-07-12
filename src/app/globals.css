@@ -163,3 +163,8 @@ body {
   20% { opacity: 1; }
   100% { opacity: 0; transform: translateY(-30px) translateX(15px) scale(1.2); }
 }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
