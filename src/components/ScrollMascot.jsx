@@ -448,12 +448,28 @@ export default function ScrollMascot({ onClick }) {
             <MascotAvatar type={mascotType} size={96} animate={!celebrating && !isSleeping} view="front" />
           </Mascot3D>
 
-          {/* Equipped accessories */}
-          {equippedAccessories.map((acc) => (
-            <div key={acc.id} className="absolute -top-3 left-1/2 -translate-x-1/2 text-xl pointer-events-none" title={acc.name}>
-              {acc.emoji}
-            </div>
-          ))}
+          {/* Equipped accessories — sized to match mascot */}
+          {equippedAccessories.map((acc) => {
+            // Position based on accessory category
+            const posStyles = {
+              hat: { top: "-18px", left: "50%", transform: "translateX(-50%)", fontSize: "40px" },
+              glasses: { top: "28px", left: "50%", transform: "translateX(-50%)", fontSize: "36px" },
+              scarf: { bottom: "-6px", left: "50%", transform: "translateX(-50%)", fontSize: "38px" },
+              wings: { top: "10px", left: "50%", transform: "translateX(-50%)", fontSize: "44px" },
+              effect: { top: "50%", left: "50%", transform: "translate(-50%, -50%)", fontSize: "52px", filter: "drop-shadow(0 0 8px rgba(255,215,0,0.6))" },
+            };
+            const style = posStyles[acc.category] || posStyles.effect;
+            return (
+              <div
+                key={acc.id}
+                className="absolute pointer-events-none select-none"
+                style={{ ...style, lineHeight: 1, zIndex: 10 }}
+                title={acc.name}
+              >
+                {acc.emoji}
+              </div>
+            );
+          })}
         </div>
       </div>
 
