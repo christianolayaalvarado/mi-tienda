@@ -8,7 +8,7 @@ export async function GET(req) {
   try {
     const user = await getServerAuthUser(req);
     if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+      return NextResponse.json({ names: {} });
     }
 
     const dbUser = await prisma.user.findUnique({

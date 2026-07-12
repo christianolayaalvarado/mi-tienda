@@ -8,7 +8,7 @@ import SearchBox from "./navbar/SearchBox";
 import CartPreview from "./navbar/CartPreview";
 import UserMenu from "./navbar/UserMenu";
 import CategoryScroller from "./navbar/CategoryScroller";
-import HelpModal from "@/components/HelpModal";
+
 import {
   buildURL,
   safeParseLocalCart,
@@ -230,7 +230,7 @@ export default function NavbarContent() {
         }}
       />
       </nav>
-      <HelpModal />
+
     </>
   );
 }

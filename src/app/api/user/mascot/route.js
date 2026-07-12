@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await getAuthUserFromCookie();
   if (!user?.email) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    return NextResponse.json({ mascot: "box" });
   }
 
   const dbUser = await prisma.user.findUnique({

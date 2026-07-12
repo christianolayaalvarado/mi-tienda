@@ -120,7 +120,7 @@ export default function ScrollMascot({ onClick }) {
   });
 
   const { mood, moodEmoji, lastDialogue, dialogueKey, speak } = useMascotPersonality();
-  const { coins, newCoinAnimation, lastBonusMsg, addScrollCoins, getEquippedDisplay, getScrollSpeed, getWalkSpeed, equipped } = useMascotCoins();
+  const { coins, newCoinAnimation, addScrollCoins, getEquippedDisplay, getScrollSpeed, getWalkSpeed, equipped } = useMascotCoins();
   const { messages, isTyping, sendMessage, clearMessages, quickActions } = useMascotChat({ mood, mascotName, coins });
 
   // --- PERSISTENCE ---
@@ -358,41 +358,28 @@ export default function ScrollMascot({ onClick }) {
 
       {/* Coins display */}
       <div
-        className={`absolute right-0 top-24 flex flex-col items-center gap-1 pointer-events-none transition-all ${newCoinAnimation ? "scale-125" : ""}`}
+        className={`absolute right-0 top-24 pointer-events-auto transition-all ${newCoinAnimation ? "scale-110" : ""}`}
+        onClick={() => setShowShop(true)}
+        title="Tienda de accesorios"
       >
-        <div
-          className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg border border-yellow-200 cursor-pointer pointer-events-auto"
-          onClick={() => setShowShop(true)}
-          title="Abrir tienda de accesorios"
-        >
+        <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg border border-yellow-200 cursor-pointer">
           <span className="text-sm">🪙</span>
           <span className="text-xs font-bold text-yellow-600">{coins}</span>
         </div>
-        {/* Bonus message */}
-        {lastBonusMsg && (
-          <div className="bg-green-500 text-white text-[9px] font-medium px-2 py-0.5 rounded-full animate-[fadeInScale_0.2s_ease-out] whitespace-nowrap">
-            {lastBonusMsg}
-          </div>
-        )}
-      </div>
-
-      {/* Mood emoji */}
-      <div className="absolute right-0 top-36 text-lg pointer-events-none select-none" title={`Mood: ${mood}`}>
-        {moodEmoji}
       </div>
 
       {/* Chat toggle button */}
       <button
-        className="absolute right-0 top-44 w-9 h-9 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center pointer-events-auto hover:bg-green-600 transition-all hover:scale-110 z-30"
+        className="absolute right-0 top-32 w-8 h-8 rounded-full bg-green-500 text-white shadow-md flex items-center justify-center pointer-events-auto hover:bg-green-600 transition-all hover:scale-110 z-30"
         onClick={() => { setShowChat((v) => !v); setShowShop(false); }}
         title={showChat ? "Cerrar chat" : "Hablar con " + mascotName}
       >
         {showChat ? (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         ) : (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         )}

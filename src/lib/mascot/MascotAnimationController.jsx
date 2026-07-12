@@ -13,6 +13,7 @@ export default function MascotAnimationController({
 
   return (
     <div
+      suppressHydrationWarning
       style={{
         display: "inline-flex",
         alignItems: "center",
