@@ -5,6 +5,7 @@ import useMascotCoins from "@/hooks/useMascotCoins";
 
 const CATEGORIES = [
   { id: "all", label: "Todos", emoji: "🎨" },
+  { id: "my", label: "Mis Accesorios", emoji: "🎒" },
   { id: "hat", label: "Sombreros", emoji: "🎩" },
   { id: "glasses", label: "Lentes", emoji: "👓" },
   { id: "scarf", label: "Bufandas", emoji: "🧣" },
@@ -28,7 +29,9 @@ export default function AccessoryShop({ onClose }) {
 
   const filtered = activeCategory === "all"
     ? accessories
-    : accessories.filter((a) => a.category === activeCategory);
+    : activeCategory === "my"
+      ? accessories.filter((a) => owned.includes(a.id))
+      : accessories.filter((a) => a.category === activeCategory);
 
   const handleBuy = (id) => {
     setBuyingId(id);
@@ -109,20 +112,28 @@ export default function AccessoryShop({ onClose }) {
 
         {/* Categories */}
         <div className="flex gap-1 p-2 border-b overflow-x-auto shrink-0">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={(e) => { e.stopPropagation(); setActiveCategory(cat.id); }}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-                activeCategory === cat.id
-                  ? "bg-purple-100 text-purple-700"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              <span>{cat.emoji}</span>
-              <span>{cat.label}</span>
-            </button>
-          ))}
+          {CATEGORIES.map((cat) => {
+            const count = cat.id === "my" ? owned.length : cat.id === "all" ? accessories.length : accessories.filter((a) => a.category === cat.id).length;
+            return (
+              <button
+                key={cat.id}
+                onClick={(e) => { e.stopPropagation(); setActiveCategory(cat.id); }}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                  activeCategory === cat.id
+                    ? "bg-purple-100 text-purple-700"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <span>{cat.emoji}</span>
+                <span>{cat.label}</span>
+                {count > 0 && (
+                  <span className="ml-0.5 bg-purple-200 text-purple-700 text-[9px] font-bold px-1.5 rounded-full">
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Items */}
