@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import DiscountBadge from "@/components/DiscountBadge";
 import { useState } from "react";
 
 const imageSizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
@@ -53,23 +52,9 @@ export default function ProductCard({ product, priority }) {
             {product.title || "Producto sin título"}
           </h2>
 
-          {product.originalPrice && product.originalPrice > product.price ? (
-            <div className="mt-1">
-              <DiscountBadge
-                originalPrice={product.originalPrice}
-                discountPct={product.discountPct}
-                price={product.price}
-                size="sm"
-              />
-              <p className="text-green-600 font-bold text-lg">
-                S/ {product.price ?? 0}
-              </p>
-            </div>
-          ) : (
-            <p className="text-green-600 font-bold text-lg mt-1">
-              S/ {product.price ?? 0}
-            </p>
-          )}
+          <p className="text-green-600 font-bold text-lg mt-1">
+            S/ {product.price ?? 0}
+          </p>
 
           {product.stock === 1 && (
             <p className="text-red-600 text-xs font-semibold mt-1">🔥 Última unidad</p>
