@@ -168,34 +168,34 @@ export default function HomeClient() {
       {/* Modal de bienvenida de mascotas */}
       <MascotWelcomeModal />
 
-      {/* Carrusel de productos destacados + Promo de mascotas */}
-      {/* Mobile: stacked vertically, banner slides down */}
-      {/* Desktop: side by side, banner slides in from right */}
-      <div className="flex flex-col lg:flex-row gap-2 lg:gap-3">
-        <div className="h-[166px] lg:h-[180px] w-full min-w-0">
-          <FeaturedCarousel />
-        </div>
-        <div
-          className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 overflow-hidden"
-          style={
-            isDesktop
-              ? {
-                  maxWidth: promoVisible ? "300px" : "0",
-                  opacity: promoVisible ? 1 : 0,
-                  width: promoVisible ? "300px" : "0",
-                }
-              : {
-                  maxHeight: promoVisible ? "162px" : "0",
-                  opacity: promoVisible ? 1 : 0,
-                  width: "100%",
-                }
-          }
-        >
-          <div className="h-[162px] lg:h-[180px] w-full">
-            <MascotPromoBanner />
+      {/* Carrusel de productos destacados + Promo de mascotas (solo en vista general) */}
+      {!currentSearch && !currentCategory && (
+        <div className="flex flex-col lg:flex-row gap-2 lg:gap-3">
+          <div className="h-[166px] lg:h-[180px] w-full min-w-0">
+            <FeaturedCarousel />
+          </div>
+          <div
+            className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 overflow-hidden"
+            style={
+              isDesktop
+                ? {
+                    maxWidth: promoVisible ? "300px" : "0",
+                    opacity: promoVisible ? 1 : 0,
+                    width: promoVisible ? "300px" : "0",
+                  }
+                : {
+                    maxHeight: promoVisible ? "162px" : "0",
+                    opacity: promoVisible ? 1 : 0,
+                    width: "100%",
+                  }
+            }
+          >
+            <div className="h-[162px] lg:h-[180px] w-full">
+              <MascotPromoBanner />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Título de sección */}
       {!currentSearch && !currentCategory && (
