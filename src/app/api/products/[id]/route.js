@@ -64,13 +64,16 @@ export async function PUT(req, { params }) {
 
     const existing = await prisma.product.findUnique({
       where: { id },
-      include: { store: { include: { user: { select: { id: true } } } } },
+      include: { store: { include: { user: { select: { id: true, email: true } } } }, user: { select: { id: true, email: true } } },
     });
     if (!existing) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
 
     const userId = session.id || null;
-    const isProductOwner = userId && String(existing.userId) === String(userId);
-    const isStoreOwner = existing.store?.user?.id ? String(existing.store.user.id) === String(userId) : false;
+    const userEmail = session.email || null;
+    const isProductOwner = (userId && String(existing.userId) === String(userId)) || (userEmail && existing.user?.email === userEmail);
+    const isStoreOwner = existing.store?.user?.id
+      ? (String(existing.store.user.id) === String(userId)) || (existing.store.user.email === userEmail)
+      : false;
     const isAdmin = session.role === "admin" || session.role === "ADMIN";
 
     if (!isProductOwner && !isStoreOwner && !isAdmin) {
