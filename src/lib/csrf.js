@@ -6,7 +6,6 @@ const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL,
   process.env.NEXTAUTH_URL,
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-  "http://localhost:3000",
 ].filter(Boolean);
 
 function extractOrigin(value) {
@@ -20,6 +19,10 @@ function extractOrigin(value) {
 function isAllowedOrigin(origin) {
   if (!origin) return false;
   const normalized = origin.toLowerCase().replace(/\/+$/, "");
+
+  // Allow any localhost port (development)
+  if (/^https?:\/\/localhost(:\d+)?$/.test(normalized)) return true;
+
   return ALLOWED_ORIGINS.some(
     (allowed) => allowed.toLowerCase().replace(/\/+$/, "") === normalized
   );
