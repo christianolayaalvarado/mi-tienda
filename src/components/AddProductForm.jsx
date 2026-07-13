@@ -9,7 +9,6 @@ import PriceInput from "@/components/PriceInput";
 const CLOUDINARY_CLOUD_NAME = "dqx8wx5fj";
 const UPLOAD_PRESET = "mi_tienda_unsigned";
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const MAX_FILES = 8;
 
 export default function AddProductForm() {
   const router = useRouter();
@@ -34,11 +33,6 @@ export default function AddProductForm() {
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files || []);
     if (selected.length === 0) return;
-
-    if (files.length + selected.length > MAX_FILES) {
-      toast.error(`Máximo ${MAX_FILES} imágenes por producto.`);
-      return;
-    }
 
     const filtered = selected.filter((f) => f.size <= MAX_FILE_SIZE);
     if (selected.length !== filtered.length) {
@@ -256,7 +250,7 @@ export default function AddProductForm() {
         {/* Imágenes */}
         <div>
           <label htmlFor="prod-images" className="block text-sm font-medium text-gray-700 mb-1">
-            Imágenes (máx {MAX_FILES}, 10MB cada una)
+            Imágenes (10MB cada una)
           </label>
           <input
             id="prod-images"
@@ -264,7 +258,6 @@ export default function AddProductForm() {
             multiple
             accept="image/*"
             onChange={handleFiles}
-            disabled={files.length >= MAX_FILES}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-green-50 file:text-green-700 file:font-medium file:cursor-pointer hover:file:bg-green-100"
           />
           {previews.length > 0 && (
