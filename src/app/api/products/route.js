@@ -28,18 +28,35 @@ export async function GET(req) {
     };
 
     // Para featured: necesitamos incluir reviews y orderItemProducts para calcular el score
-    const includeFeatured = sort === "featured"
+    const isFeatured = sort === "featured";
+    const includeFeatured = isFeatured
       ? { category: true, store: true, user: true, reviews: true, orderItemProducts: true }
       : { category: true, store: true, user: true };
 
     const total = await prisma.product.count({ where });
 
+    // Determinar orden
+    let orderBy;
+    if (isFeatured) {
+      orderBy = undefined;
+    } else if (sort === "price-asc") {
+      orderBy = { price: "asc" };
+    } else if (sort === "price-desc") {
+      orderBy = { price: "desc" };
+    } else if (sort === "name-asc") {
+      orderBy = { title: "asc" };
+    } else if (sort === "name-desc") {
+      orderBy = { title: "desc" };
+    } else {
+      orderBy = { createdAt: "desc" };
+    }
+
     let products = await prisma.product.findMany({
       where,
       include: includeFeatured,
-      skip: sort === "featured" ? 0 : skip,
-      take: sort === "featured" ? 50 : take, // traemos más para ordenar por score
-      orderBy: sort === "featured" ? undefined : { createdAt: "desc" },
+      skip: isFeatured ? 0 : skip,
+      take: isFeatured ? 50 : take,
+      orderBy,
     });
 
     // Para featured: calcular score y ordenar por popularidad

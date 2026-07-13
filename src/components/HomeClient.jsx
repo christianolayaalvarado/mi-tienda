@@ -197,11 +197,36 @@ export default function HomeClient() {
         </div>
       )}
 
-      {/* Título de sección */}
+      {/* Título de sección + selector de orden */}
       {!currentSearch && !currentCategory && (
-        <div className="mt-8 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Todos los productos</h2>
-          <p className="text-gray-500 text-sm mt-1">Explora nuestro catálogo completo</p>
+        <div className="mt-8 mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Todos los productos</h2>
+            <p className="text-gray-500 text-sm mt-1">Explora nuestro catálogo completo</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="sort-select" className="text-xs text-gray-500 whitespace-nowrap">Ordenar por:</label>
+            <select
+              id="sort-select"
+              value={currentSort}
+              onChange={(e) => {
+                const params = new URLSearchParams();
+                if (currentSearch) params.set("search", currentSearch);
+                if (currentCategory) params.set("category", currentCategory);
+                if (e.target.value) params.set("sort", e.target.value);
+                params.set("page", "1");
+                params.set("limit", "15");
+                router.push(`/?${params.toString()}`, { scroll: false });
+              }}
+              className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none cursor-pointer"
+            >
+              <option value="">Más recientes</option>
+              <option value="price-asc">Precio: menor a mayor</option>
+              <option value="price-desc">Precio: mayor a menor</option>
+              <option value="name-asc">A → Z</option>
+              <option value="name-desc">Z → A</option>
+            </select>
+          </div>
         </div>
       )}
 
