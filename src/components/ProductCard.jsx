@@ -8,12 +8,13 @@ import { useState } from "react";
 const imageSizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
 
 export default function ProductCard({ product, priority }) {
+  const [imgError, setImgError] = useState(false);
+
   if (!product) return null;
 
   const categoryName = product.category?.name || "Sin categoría";
   const storeName = product.store?.name || "Tienda";
   const storeCode = product.store?.code;
-  const [imgError, setImgError] = useState(false);
 
   const hasValidImage = product.images?.[0] && !imgError;
 
