@@ -64,7 +64,7 @@ export default function MarketingPage() {
         {/* Te extrañamos */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
           <div>
-            <h3 className="text-sm font-bold text-gray-900">💚 "Te extrañamos"</h3>
+            <h3 className="text-sm font-bold text-gray-900">💚 &ldquo;Te extrañamos&rdquo;</h3>
             <p className="text-xs text-gray-500 mt-1">Envía un email a usuarios que no se han logueado en más de 30 días</p>
           </div>
           <button
