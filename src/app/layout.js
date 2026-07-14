@@ -15,6 +15,7 @@ import RootLayoutClientInit from "@/components/RootLayoutClientInit";
 import ScrollWrapper from "@/components/ScrollWrapper";
 import { ThemeProvider } from "@/context/ThemeContext";
 import PriceDropNotification from "@/components/PriceDropNotification";
+import RegisterBenefitsModal from "@/components/RegisterBenefitsModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,6 +70,7 @@ export default function RootLayout({ children }) {
               <Navbar />
               <ThemeInitializer />
               <PriceDropNotification />
+              <RegisterBenefitsModal />
 
               <div className="flex-1 overflow-auto min-h-0">
                 <ScrollWrapper>{children}</ScrollWrapper>

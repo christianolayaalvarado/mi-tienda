@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/seller/reviews", label: "Reseñas", icon: "⭐" },
   { href: "/dashboard/seller/shipping", label: "Envíos", icon: "🚚" },
   { href: "/dashboard/payment-methods", label: "Formas de pago", icon: "📍" },
+  { href: "/dashboard/referrals", label: "Invitar amigos", icon: "🎁" },
   { href: "/dashboard/profile/edit", label: "Editar Perfil", icon: "👤" },
   { href: "/dashboard/mascotas", label: "Mascotas", icon: "🎭" },
 ];

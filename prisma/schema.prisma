@@ -35,6 +35,8 @@ model User {
   reviews         Review[]
   achievements   Achievement[]
   preferences    UserPreferences?
+  referrals      Referral[]
+  referredBy     Referral?  @relation("ReferredUser")
 }
 
 model Store {
@@ -338,4 +340,17 @@ model UserPreferences {
   customPalettes  Json     @default("[]")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model Referral {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  code            String   @unique
+  referrerId      String   @db.ObjectId
+  referrer        User     @relation(fields: [referrerId], references: [id])
+  referredId      String?  @unique @db.ObjectId
+  referred        User?    @relation("ReferredUser", fields: [referredId], references: [id])
+  rewardGiven     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([referrerId])
 }

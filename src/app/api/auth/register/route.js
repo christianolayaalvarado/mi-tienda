@@ -27,7 +27,7 @@ export async function POST(req) {
       );
     }
 
-    const { email, password, name, storeName } = body || {};
+    const { email, password, name, storeName, referralCode } = body || {};
 
     if (!email || !password || !storeName) {
       return new Response(
@@ -108,6 +108,24 @@ export async function POST(req) {
     } catch (emailErr) {
       emailSent = false;
       console.error("[/api/auth/register] sendVerificationCodeEmail failed:", emailErr?.message || emailErr);
+    }
+
+    // Procesar código de referido
+    if (referralCode && typeof referralCode === "string") {
+      try {
+        const referral = await prisma.referral.findUnique({
+          where: { code: referralCode.toUpperCase().trim() },
+        });
+        if (referral && referral.referrerId !== user.id) {
+          await prisma.referral.update({
+            where: { id: referral.id },
+            data: { referredId: user.id, rewardGiven: true },
+          });
+          console.log(`[Register] Referral processed: ${referral.code} -> user ${user.id}`);
+        }
+      } catch (refErr) {
+        console.error("[/api/auth/register] referral processing error:", refErr?.message || refErr);
+      }
     }
 
     return new Response(

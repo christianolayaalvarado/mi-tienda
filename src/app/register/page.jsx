@@ -1,22 +1,35 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const refCode = searchParams?.get("ref") || "";
+
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
     storeName: "",
   });
+  const [referralCode, setReferralCode] = useState("");
+  const [referralValid, setReferralValid] = useState(null);
+  const [referralName, setReferralName] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (refCode) {
+      setReferralCode(refCode);
+      validateReferral(refCode);
+    }
+  }, [refCode]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,6 +38,22 @@ export default function RegisterPage() {
       setFieldErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
+
+  async function validateReferral(code) {
+    if (!code) { setReferralValid(null); return; }
+    try {
+      const res = await fetch("/api/referral/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.toUpperCase().trim() }),
+      });
+      const data = await res.json();
+      setReferralValid(data.valid);
+      setReferralName(data.referrerName || "");
+    } catch {
+      setReferralValid(false);
+    }
+  }
 
   const validate = () => {
     const errors = {};
@@ -52,6 +81,7 @@ export default function RegisterPage() {
 
     try {
       const payload = { ...form, email: form.email.toLowerCase() };
+      if (referralCode) payload.referralCode = referralCode.toUpperCase().trim();
 
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -198,6 +228,34 @@ export default function RegisterPage() {
                 }`}
               />
               {fieldErrors.storeName && <p className="text-red-500 text-xs mt-1">{fieldErrors.storeName}</p>}
+            </div>
+
+            {/* Código de referido */}
+            <div>
+              <label htmlFor="reg-ref" className="block text-sm font-medium text-gray-700 mb-1">
+                Código de referido <span className="text-gray-400">(opcional)</span>
+              </label>
+              <input
+                id="reg-ref"
+                type="text"
+                value={referralCode}
+                onChange={(e) => {
+                  const val = e.target.value.toUpperCase().trim();
+                  setReferralCode(val);
+                  if (val.length >= 6) validateReferral(val);
+                  else { setReferralValid(null); setReferralName(""); }
+                }}
+                placeholder="Ej: ABC12345"
+                maxLength={8}
+                disabled={loading}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition disabled:bg-gray-50 uppercase tracking-wider font-mono"
+              />
+              {referralValid === true && (
+                <p className="text-green-600 text-xs mt-1">✓ Código válido — te invita <strong>{referralName}</strong></p>
+              )}
+              {referralValid === false && referralCode.length >= 6 && (
+                <p className="text-red-500 text-xs mt-1">Código no válido</p>
+              )}
             </div>
 
             <button
