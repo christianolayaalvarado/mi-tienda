@@ -18,9 +18,15 @@ const NAV_ITEMS = [
   { href: "/dashboard/mascotas", label: "Mascotas", icon: "🎭" },
 ];
 
-export default function DashboardShell({ children, userName, userEmail }) {
+const ADMIN_ITEMS = [
+  { href: "/dashboard/admin/orders", label: "Órdenes admin", icon: "🔧" },
+  { href: "/dashboard/admin/marketing", label: "Email Marketing", icon: "📧" },
+];
+
+export default function DashboardShell({ children, userName, userEmail, userRole }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const isAdmin = userRole === "admin" || userRole === "ADMIN";
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -73,6 +79,28 @@ export default function DashboardShell({ children, userName, userEmail }) {
                 <span>{item.label}</span>
               </Link>
             ))}
+
+            {isAdmin && (
+              <>
+                <div className="border-t border-gray-700 my-2" />
+                <p className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Admin</p>
+                {ADMIN_ITEMS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`px-3 py-2.5 rounded transition text-sm min-h-[44px] flex items-center gap-2 ${
+                      pathname === item.href
+                        ? "bg-gray-700 text-white font-medium"
+                        : "hover:bg-gray-700 text-gray-300"
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </Link>
+                ))}
+              </>
+            )}
 
             <div className="mt-auto pt-4 border-t border-gray-700">
               <LogoutButton />

@@ -13,6 +13,9 @@ import {
   orderStatusTemplate,
   orderCancelledBuyerTemplate,
   orderCancelledSellerTemplate,
+  weMissYouTemplate,
+  weeklyOffersTemplate,
+  seasonalTemplate,
 } from "./emailTemplates";
 
 const defaultFrom = `"${process.env.FROM_NAME || "Mi Tienda"}" <${process.env.FROM_EMAIL || process.env.EMAIL_USER}>`;
@@ -101,6 +104,19 @@ export const sendPasswordResetSuccessEmail = async ({ to }) =>
 export const sendOrderCancelledTemplate = async ({ to, html }) =>
   sendMail({ to, subject: "Orden cancelada - Mi Tienda", html });
 
+// ============================================================
+// EMAIL MARKETING
+// ============================================================
+
+export const sendWeMissYouEmail = async ({ to, userName }) =>
+  sendMail({ to, subject: "¡Te extrañamos! Vuelve a Mi Tienda 💚", html: weMissYouTemplate(userName) });
+
+export const sendWeeklyOffersEmail = async ({ to, userName, products }) =>
+  sendMail({ to, subject: "Ofertas de la semana 🔥 - Mi Tienda", html: weeklyOffersTemplate(userName, products) });
+
+export const sendSeasonalEmail = async ({ to, userName, season }) =>
+  sendMail({ to, subject: `¡${season.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())} ya está aquí! - Mi Tienda`, html: seasonalTemplate(userName, season) });
+
 export default {
   sendMail,
   sendVerificationCodeEmail,
@@ -114,4 +130,7 @@ export default {
   sendPasswordResetEmail,
   sendPasswordResetSuccessEmail,
   sendOrderCancelledTemplate,
+  sendWeMissYouEmail,
+  sendWeeklyOffersEmail,
+  sendSeasonalEmail,
 };

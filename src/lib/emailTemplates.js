@@ -384,6 +384,112 @@ export const orderStatusTemplate = (orderNumber, status, userName) => {
   `);
 };
 
+// ============================================================
+// EMAIL MARKETING TEMPLATES
+// ============================================================
+
+export const weMissYouTemplate = (userName) => baseTemplate(`
+  <h2 style="margin:0 0 8px;font-size:22px;color:#16a34a;">¡Te extrañamos, ${userName || "amigo"}! 💚</h2>
+  <p style="margin:0 0 16px;color:#555;">
+    Hace tiempo que no nos visitas. Tu tienda favorita tiene novedades que no te puedes perder.
+  </p>
+
+  <div style="background:#f0fdf4;border-radius:10px;padding:20px;margin:16px 0;">
+    <h3 style="margin:0 0 12px;font-size:16px;color:#166534;">Lo que te perdiste:</h3>
+    <ul style="margin:0;padding-left:20px;color:#555;">
+      <li style="margin-bottom:6px;">Nuevos productos agregados esta semana</li>
+      <li style="margin-bottom:6px;">Ofertas especiales solo para ti</li>
+      <li style="margin-bottom:6px;">Tu mascota extraña tus visitas 🐾</li>
+    </ul>
+  </div>
+
+  ${ctaButton("Volver a la tienda", appUrl)}
+`);
+
+export const weeklyOffersTemplate = (userName, products) => {
+  const productRows = (products || []).slice(0, 4).map(p => `
+    <div style="display:inline-block;width:48%;vertical-align:top;margin:1%;background:#f9fafb;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
+      ${p.images?.[0] ? `<img src="${p.images[0]}" alt="${p.title}" style="width:100%;height:120px;object-fit:cover;" />` : `<div style="width:100%;height:120px;background:#e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;">Sin imagen</div>`}
+      <div style="padding:10px;">
+        <p style="margin:0 0 4px;font-size:13px;font-weight:bold;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.title}</p>
+        <p style="margin:0;color:#16a34a;font-weight:bold;font-size:15px;">${formatCurrency(p.price)}</p>
+        ${p.originalPrice ? `<p style="margin:2px 0 0;font-size:11px;color:#999;text-decoration:line-through;">${formatCurrency(p.originalPrice)}</p>` : ""}
+      </div>
+    </div>
+  `).join("");
+
+  return baseTemplate(`
+    <h2 style="margin:0 0 8px;font-size:22px;color:#16a34a;">Ofertas de la semana 🔥</h2>
+    <p style="margin:0 0 16px;color:#555;">
+      ${userName ? `Hola ${userName},` : "Hola,"} seleccionamos estas ofertas imperdibles para ti.
+    </p>
+
+    <div style="margin:20px 0;">
+      ${productRows}
+    </div>
+
+    ${ctaButton("Ver todas las ofertas", `${appUrl}/?sort=price-asc`)}
+  `);
+};
+
+export const seasonalTemplate = (userName, season) => {
+  const themes = {
+    "black-friday": { emoji: "🖤", title: "Black Friday", color: "#000000", bg: "#1a1a1a", textColor: "#ffffff" },
+    "navidad": { emoji: "🎄", title: "Navidad", color: "#dc2626", bg: "#fef2f2", textColor: "#991b1b" },
+    "verano": { emoji: "☀️", title: "Ofertas de Verano", color: "#f59e0b", bg: "#fffbeb", textColor: "#92400e" },
+    "san-valentin": { emoji: "💕", title: "San Valentín", color: "#ec4899", bg: "#fdf2f8", textColor: "#9d174d" },
+    "dia-madre": { emoji: "💐", title: "Día de la Madre", color: "#a855f7", bg: "#faf5ff", textColor: "#6b21a8" },
+    "cyber-monday": { emoji: "💻", title: "Cyber Monday", color: "#2563eb", bg: "#eff6ff", textColor: "#1e40af" },
+    "inicio-ano": { emoji: "🎉", title: "Inicio de Año", color: "#16a34a", bg: "#f0fdf4", textColor: "#166534" },
+  };
+
+  const t = themes[season] || themes["inicio-ano"];
+
+  return `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+    <body style="margin:0;padding:0;background:${t.bg};font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:${t.bg};padding:24px 0;">
+        <tr><td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <tr>
+              <td style="background:${t.color};padding:32px;text-align:center;">
+                <p style="font-size:48px;margin:0;">${t.emoji}</p>
+                <h1 style="margin:12px 0 4px;font-size:28px;color:${t.textColor};">${t.title}</h1>
+                <p style="margin:0;color:${t.textColor};opacity:0.9;font-size:14px;">¡No te quedes sin estas ofertas!</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px;color:#333;font-size:15px;line-height:1.7;">
+                <h2 style="margin:0 0 12px;font-size:20px;">Hola ${userName || ""},</h2>
+                <p style="margin:0 0 16px;">
+                  Preparamos ofertas especiales por <strong>${t.title}</strong>. 
+                  Es el momento perfecto para encontrar lo que buscas a precios increíbles.
+                </p>
+                <div style="text-align:center;margin:24px 0;">
+                  <a href="${appUrl}" style="display:inline-block;background:${t.color};color:${t.textColor};padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">
+                    Ver ofertas ${t.title}
+                  </a>
+                </div>
+                <p style="margin:16px 0 0;color:#888;font-size:13px;text-align:center;">
+                  Ofertas por tiempo limitado. ¡No te lo pierdas!
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#f8faf9;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+                <p style="margin:0;color:#999;font-size:12px;">© ${new Date().getFullYear()} Mi Tienda. Todos los derechos reservados.</p>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+      </table>
+    </body>
+    </html>
+  `;
+};
+
 export default {
   verificationCodeTemplate,
   proofTemplate,
@@ -395,4 +501,7 @@ export default {
   passwordResetTemplate,
   passwordResetSuccessTemplate,
   orderStatusTemplate,
+  weMissYouTemplate,
+  weeklyOffersTemplate,
+  seasonalTemplate,
 };
