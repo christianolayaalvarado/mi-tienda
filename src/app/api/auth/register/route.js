@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import prisma from "@/lib/prisma";
 import { sendVerificationCodeEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { addCoins } from "@/lib/coins";
 
 /**
  * Registro de usuario + creación de tienda + envío de código de verificación.
@@ -121,6 +122,9 @@ export async function POST(req) {
             where: { id: referral.id },
             data: { referredId: user.id, rewardGiven: true },
           });
+          // Acreditar monedas: 100 al referenciador, 50 al referido
+          await addCoins(referral.referrerId, 100, "referral-inviter");
+          await addCoins(user.id, 50, "referral-invited");
           console.log(`[Register] Referral processed: ${referral.code} -> user ${user.id}`);
         }
       } catch (refErr) {

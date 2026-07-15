@@ -97,8 +97,8 @@ export default function ReferralsPage() {
           <p className="text-xs text-gray-500 mt-1">Amigos invitados</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-yellow-500">{data.referralCount * 100}</p>
-          <p className="text-xs text-gray-500 mt-1">Monedas ganadas</p>
+          <p className="text-3xl font-bold text-yellow-500">{data.coinBalance || 0}</p>
+          <p className="text-xs text-gray-500 mt-1">Monedas en tu cuenta</p>
         </div>
       </div>
 
@@ -112,7 +112,7 @@ export default function ReferralsPage() {
           </div>
           <div className="flex items-start gap-3">
             <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-            <p className="text-sm text-gray-600">Tu amigo se registra usando tu código y gana <strong>50 monedas + envío gratis</strong></p>
+            <p className="text-sm text-gray-600">Tu amigo se registra usando tu código y gana <strong>50 monedas</strong></p>
           </div>
           <div className="flex items-start gap-3">
             <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>

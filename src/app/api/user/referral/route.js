@@ -23,7 +23,7 @@ export async function GET() {
 
     const dbUser = await prisma.user.findUnique({
       where: { email: user.email },
-      select: { id: true, name: true, email: true },
+      select: { id: true, name: true, email: true, coinBalance: true },
     });
     if (!dbUser) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
 
@@ -62,6 +62,7 @@ export async function GET() {
     return NextResponse.json({
       code: referral.code,
       referralCount,
+      coinBalance: dbUser.coinBalance,
       referredUsers: referredUsers.map((r) => ({
         name: r.referred?.name || "Sin nombre",
         email: r.referred?.email || "",
