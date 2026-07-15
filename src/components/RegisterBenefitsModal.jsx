@@ -61,6 +61,7 @@ const CAROUSEL_IMAGES = [
 ];
 
 const DISMISS_KEY = "register-benefits-dismissed";
+const REAPPEAR_MS = 10000;
 
 export default function RegisterBenefitsModal() {
   const { user, loading } = useAuthContext();
@@ -72,8 +73,13 @@ export default function RegisterBenefitsModal() {
   useEffect(() => {
     if (loading || user) return;
 
-    const dismissed = sessionStorage.getItem(DISMISS_KEY);
-    if (dismissed) return;
+    const dismissedAt = Number(sessionStorage.getItem(DISMISS_KEY) || 0);
+    const elapsed = Date.now() - dismissedAt;
+    if (dismissedAt && elapsed < REAPPEAR_MS) {
+      const wait = REAPPEAR_MS - elapsed;
+      const timer = setTimeout(() => setShow(true), wait);
+      return () => clearTimeout(timer);
+    }
 
     const timer = setTimeout(() => setShow(true), 10000);
     return () => clearTimeout(timer);
@@ -99,7 +105,7 @@ export default function RegisterBenefitsModal() {
 
   function dismiss() {
     setShow(false);
-    sessionStorage.setItem(DISMISS_KEY, "1");
+    sessionStorage.setItem(DISMISS_KEY, String(Date.now()));
   }
 
   return (
