@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useAuthContext } from "@/context/AuthProvider";
 
 const BENEFITS = [
@@ -67,13 +68,16 @@ const REAPPEAR_MS = 10000;
 
 export default function RegisterBenefitsModal() {
   const { user, loading } = useAuthContext();
+  const { data: session, status: sessionStatus } = useSession();
   const pathname = usePathname();
   const [show, setShow] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentImage, setCurrentImage] = useState(0);
 
+  const isLoggedIn = user || session?.user;
+
   useEffect(() => {
-    if (loading || user || pathname === "/register" || pathname === "/login") return;
+    if (loading || sessionStatus === "loading" || isLoggedIn || pathname === "/register" || pathname === "/login") return;
 
     const dismissedAt = Number(sessionStorage.getItem(DISMISS_KEY) || 0);
     const elapsed = Date.now() - dismissedAt;
@@ -85,7 +89,7 @@ export default function RegisterBenefitsModal() {
 
     const timer = setTimeout(() => setShow(true), 10000);
     return () => clearTimeout(timer);
-  }, [user, loading, pathname]);
+  }, [isLoggedIn, loading, sessionStatus, pathname]);
 
   useEffect(() => {
     if (!show) return;
@@ -103,7 +107,7 @@ export default function RegisterBenefitsModal() {
     return () => clearInterval(interval);
   }, [show]);
 
-  if (loading || user || !show) return null;
+  if (loading || sessionStatus === "loading" || isLoggedIn || !show) return null;
 
   function dismiss() {
     setShow(false);
