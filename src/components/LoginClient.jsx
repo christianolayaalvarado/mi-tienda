@@ -151,22 +151,6 @@ export default function LoginClient() {
               </svg>
             </div>
           </div>
-
-          {/* Estadísticas */}
-          <div className="mt-12 grid grid-cols-3 gap-8 text-center">
-            <div>
-              <p className="text-3xl font-bold">100+</p>
-              <p className="text-blue-200 text-sm">Productos</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold">50+</p>
-              <p className="text-blue-200 text-sm">Vendedores</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold">500+</p>
-              <p className="text-blue-200 text-sm">Clientes</p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -249,7 +233,7 @@ export default function LoginClient() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-lg shadow-blue-300"
               >
                 {loading ? (
                   <>
@@ -263,7 +247,7 @@ export default function LoginClient() {
             </form>
 
             {/* Separador */}
-            <div className="relative my-6">
+            <div className="relative my-3">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200"></div>
               </div>
