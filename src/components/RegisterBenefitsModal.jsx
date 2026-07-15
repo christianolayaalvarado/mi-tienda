@@ -127,12 +127,12 @@ export default function RegisterBenefitsModal() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute bottom-3 left-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10 z-20">
+              <div className="absolute bottom-3 left-3 flex gap-2 z-20">
                 {CAROUSEL_IMAGES.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentImage(i)}
-                    className={`w-2 h-2 rounded-full transition-all inline-block ${
+                    className={`w-2 h-2 rounded-full transition-all ${
                       i === currentImage
                         ? "bg-white scale-125 shadow-md"
                         : "bg-white/50"
@@ -242,12 +242,12 @@ export default function RegisterBenefitsModal() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute bottom-4 left-4 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/10 z-20">
+              <div className="absolute bottom-4 left-4 flex gap-3 z-20">
                 {CAROUSEL_IMAGES.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentImage(i)}
-                    className={`w-2.5 h-2.5 rounded-full transition-all inline-block ${
+                    className={`w-2.5 h-2.5 rounded-full transition-all ${
                       i === currentImage
                         ? "bg-white scale-125 shadow-md"
                         : "bg-white/50 hover:bg-white/70"
