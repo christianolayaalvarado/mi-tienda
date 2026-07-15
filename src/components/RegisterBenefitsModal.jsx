@@ -13,7 +13,7 @@ const BENEFITS = [
   {
     icon: "📦",
     title: "Seguimiento de pedidos",
-    desc: "Rastrea todos tus pedidos en tiempo real.",
+    desc: "Consulta el estado de tus pedidos en tu panel de compras.",
   },
   {
     icon: "🐾",
