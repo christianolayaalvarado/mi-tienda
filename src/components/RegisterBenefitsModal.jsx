@@ -127,27 +127,27 @@ export default function RegisterBenefitsModal() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute bottom-3 left-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10">
+              <div className="absolute bottom-3 left-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10 z-10">
                 <span className="text-xs font-bold">{img.price}</span>
               </div>
-              <div className="absolute bottom-3 right-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10">
-                <span className="text-[10px] font-semibold">{img.alt}</span>
+              <div className="absolute bottom-3 right-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10 z-10 max-w-[55%]">
+                <span className="text-[10px] font-semibold line-clamp-1 block">{img.alt}</span>
+              </div>
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                {CAROUSEL_IMAGES.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentImage(i)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      i === currentImage
+                        ? "bg-white scale-125 shadow-md"
+                        : "bg-white/50"
+                    }`}
+                  />
+                ))}
               </div>
             </div>
           ))}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-            {CAROUSEL_IMAGES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentImage(i)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  i === currentImage
-                    ? "bg-white scale-125 shadow-md"
-                    : "bg-white/50"
-                }`}
-              />
-            ))}
-          </div>
           <button
             onClick={() => setCurrentImage((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
             className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-xs border border-white/10 z-10 transition"
@@ -189,7 +189,7 @@ export default function RegisterBenefitsModal() {
                 }`}
               >
                 {b.isImage ? (
-                  <img src={b.icon} alt={b.title} className="w-8 h-8 flex-shrink-0 object-contain" />
+                  <img src={b.icon} alt={b.title} className="w-10 h-10 flex-shrink-0 object-contain" />
                 ) : (
                   <span className="text-xl flex-shrink-0">{b.icon}</span>
                 )}
@@ -248,8 +248,8 @@ export default function RegisterBenefitsModal() {
               <div className="absolute bottom-4 left-4 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/10">
                 <span className="text-sm font-bold">{img.price}</span>
               </div>
-              <div className="absolute bottom-4 right-4 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/10">
-                <span className="text-xs font-semibold">{img.alt}</span>
+              <div className="absolute bottom-4 right-4 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/10 max-w-[60%]">
+                <span className="text-xs font-semibold line-clamp-1 block">{img.alt}</span>
               </div>
             </div>
           ))}
