@@ -103,16 +103,7 @@ export default function AuthRequiredModal({ open, onClose, callbackUrl = "/" }) 
             <p className="quick-label">Acceso rápido</p>
             <div className="quick-icons">
               <button onClick={() => signIn("google", { callbackUrl: redirect })} aria-label="Continuar con Google" className="icon-btn">
-                {/* icono Google inline SVG */}
                 <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.3-2H12v3.8h5.4c-.2 1.2-.9 2.2-1.9 2.9v2.4h3.1c1.8-1.7 2.7-4.1 2.7-6.9z"/><path fill="#34A853" d="M12 22c2.6 0 4.8-.9 6.4-2.5l-3.1-2.4c-.9.6-2.1 1-3.3 1-2.5 0-4.6-1.7-5.3-4.1H3.4v2.6C5 19.9 8.3 22 12 22z"/><path fill="#FBBC05" d="M6.7 13.9A6.6 6.6 0 0 1 6.4 12c0-.6.1-1.2.3-1.8V7.6H3.4A10 10 0 0 0 2 12c0 1.6.4 3.1 1.4 4.4l3.3-2.5z"/><path fill="#EA4335" d="M12 6.5c1.4 0 2.6.5 3.6 1.5l2.7-2.7C16.8 3.6 14.6 2.5 12 2.5 8.3 2.5 5 4.6 3.4 7.6l3 2.6C7.4 7.9 9.5 6.5 12 6.5z"/></svg>
-              </button>
-
-              <button onClick={() => signIn("facebook", { callbackUrl: redirect })} aria-label="Continuar con Facebook" className="icon-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path fill="#1877F2" d="M22 12.1C22 6.6 17.5 2 12 2S2 6.6 2 12.1c0 5 3.7 9.1 8.5 9.9v-7H8.1v-2.9h2.4V9.1c0-2.4 1.4-3.7 3.6-3.7 1 0 2 .1 2 .1v2.2h-1.1c-1.1 0-1.4.7-1.4 1.4v1.7h2.5l-.4 2.9h-2.1v7C18.3 21.2 22 17.1 22 12.1z"/></svg>
-              </button>
-
-              <button onClick={() => signIn("apple", { callbackUrl: redirect })} aria-label="Continuar con Apple" className="icon-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path fill="#000" d="M16.8 7.1c-.1-1.2.5-2.1 1.6-2.7-1-.6-2.2-.7-3.3-.4-1 .3-1.8 1-2.3 1.9-.5.9-.8 2-1 3.1-.2 1.1-.1 2.3.4 3.3.5 1 1.4 1.8 2.5 2.1.4.1.8.2 1.2.2.1-1.1.5-2.1 1.1-3 .6-.9 1.4-1.6 2.3-2.1-.9-.6-1.6-1.6-1.9-2.6z"/></svg>
               </button>
             </div>
           </div>

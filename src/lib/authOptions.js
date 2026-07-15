@@ -1,5 +1,6 @@
 // src/lib/authOptions.js
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import GoogleProvider from "next-auth/providers/google";
 import prisma from "./prisma";
 import bcrypt from "bcrypt";
 
@@ -53,6 +54,22 @@ export const authOptions = {
         }
       },
     },
+
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            authorization: {
+              params: {
+                prompt: "consent",
+                access_type: "offline",
+                response_type: "code",
+              },
+            },
+          }),
+        ]
+      : []),
   ],
 
   session: {
@@ -65,14 +82,72 @@ export const authOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        const email = user.email?.toLowerCase().trim();
+        if (!email) return false;
+
+        try {
+          const existingUser = await prisma.user.findUnique({
+            where: { email },
+            include: { stores: true },
+          });
+
+          if (existingUser) {
+            user.id = existingUser.id;
+            return true;
+          }
+
+          const storeCode = `STORE-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+          const newUser = await prisma.user.create({
+            data: {
+              email,
+              name: user.name || null,
+              image: user.image || null,
+              role: "SELLER",
+              emailVerified: true,
+              stores: {
+                create: {
+                  name: `${user.name || "Mi Tienda"} Store`,
+                  code: storeCode,
+                },
+              },
+            },
+            include: { stores: true },
+          });
+
+          user.id = newUser.id;
+          return true;
+        } catch (err) {
+          console.error("[auth][signIn] google error:", err);
+          return false;
+        }
+      }
+      return true;
+    },
+
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id ?? token.id;
         token.email = user.email ?? token.email;
         token.name = user.name ?? token.name;
-        token.store = user.store ?? token.store;
-        token.storeCode = user.storeCode ?? token.storeCode;
-        token.emailVerified = user.emailVerified ?? token.emailVerified;
+        token.picture = user.image ?? token.picture;
+      }
+      if (account?.provider === "google" && token.email) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email.toLowerCase() },
+            include: { stores: true },
+          });
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.store = dbUser.stores?.[0]?.name || "";
+            token.storeCode = dbUser.stores?.[0]?.code || "";
+            token.emailVerified = dbUser.emailVerified ?? false;
+          }
+        } catch (err) {
+          console.error("[auth][jwt] google lookup error:", err);
+        }
       }
       return token;
     },
@@ -84,6 +159,7 @@ export const authOptions = {
           id: token.id,
           email: token.email,
           name: token.name,
+          image: token.picture,
           store: token.store,
           storeCode: token.storeCode,
           emailVerified: token.emailVerified ?? false,
