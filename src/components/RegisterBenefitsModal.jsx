@@ -114,7 +114,7 @@ export default function RegisterBenefitsModal() {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[900px] overflow-hidden animate-[fadeInScale_0.3s_ease-out] flex flex-col md:flex-row max-h-[90vh]">
         {/* MOBILE: Product carousel - full width, attached to top of modal */}
-        <div className="md:hidden flex-shrink-0 relative h-52 bg-gray-100 overflow-hidden rounded-t-2xl">
+        <div className="md:hidden flex-shrink-0 relative h-40 bg-gray-100 overflow-hidden rounded-t-2xl">
           {CAROUSEL_IMAGES.map((img, i) => (
             <div
               key={i}
@@ -174,8 +174,8 @@ export default function RegisterBenefitsModal() {
             <p className="text-sm text-green-100 mt-0.5">Regístrate gratis y descubre todos los beneficios</p>
           </div>
 
-          {/* Benefits list - no scrollbar */}
-          <div className="px-5 py-4 space-y-2 flex-1 overflow-hidden">
+          {/* Benefits list - scrollable on mobile */}
+          <div className="px-5 py-4 space-y-2 flex-1 overflow-y-auto md:overflow-hidden">
             {BENEFITS.map((b, i) => (
               <div
                 key={i}

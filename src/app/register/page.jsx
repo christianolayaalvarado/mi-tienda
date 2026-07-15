@@ -140,8 +140,8 @@ function RegisterForm() {
 
       <div className="w-full max-w-md relative z-10">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 drop-shadow-sm">Crear cuenta</h1>
-          <p className="text-gray-600 mt-2 drop-shadow-sm">Registra tu tienda y empieza a vender</p>
+          <h1 className="text-3xl font-bold text-white drop-shadow-md">Crear cuenta</h1>
+          <p className="text-white/90 mt-2 drop-shadow-sm">Registra tu tienda y empieza a vender</p>
         </div>
 
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/50">
@@ -282,7 +282,7 @@ function RegisterForm() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 rounded-lg font-semibold text-white transition ${
+              className={`w-full py-3 rounded-lg font-semibold text-white transition shadow-lg shadow-green-300 ${
                 loading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
               }`}
             >
