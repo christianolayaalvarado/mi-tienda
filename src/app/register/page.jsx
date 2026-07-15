@@ -124,14 +124,29 @@ function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 relative overflow-hidden">
+      {/* Background images */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 grid grid-cols-5 gap-0 opacity-30">
+          <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783892235/mi_tienda/a1a1f3oj3lfpzrmv1jsb.jpg" alt="" className="w-full h-full object-cover" />
+          <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783956527/mi_tienda/bkjzbxrpij42fyzthshf.jpg" alt="" className="w-full h-full object-cover" />
+          <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783896606/mi_tienda/q9vn1s5jfgdzbuyi3wbt.jpg" alt="" className="w-full h-full object-cover" />
+          <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783896868/mi_tienda/lnb86rx7hkqnonbfd7gz.jpg" alt="" className="w-full h-full object-cover" />
+          <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783895702/mi_tienda/rdeylpspuzuaczod8r4y.jpg" alt="" className="w-full h-full object-cover hidden md:block" />
+        </div>
+        {/* Green fade overlay at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-green-600 via-green-500/40 to-transparent" />
+        {/* Slight top overlay for contrast */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-gray-50/80 to-transparent" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Crear cuenta</h1>
-          <p className="text-gray-500 mt-2">Registra tu tienda y empieza a vender</p>
+          <h1 className="text-3xl font-bold text-gray-900 drop-shadow-sm">Crear cuenta</h1>
+          <p className="text-gray-600 mt-2 drop-shadow-sm">Registra tu tienda y empieza a vender</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/50">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
