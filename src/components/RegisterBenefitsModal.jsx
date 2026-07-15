@@ -127,24 +127,21 @@ export default function RegisterBenefitsModal() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute bottom-3 left-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10 z-10">
-                <span className="text-xs font-bold">{img.price}</span>
-              </div>
-              <div className="absolute bottom-3 right-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10 z-10 max-w-[55%]">
-                <span className="text-[10px] font-semibold line-clamp-1 block">{img.alt}</span>
-              </div>
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+              <div className="absolute bottom-3 left-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10 z-20">
                 {CAROUSEL_IMAGES.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentImage(i)}
-                    className={`w-2 h-2 rounded-full transition-all ${
+                    className={`w-2 h-2 rounded-full transition-all inline-block ${
                       i === currentImage
                         ? "bg-white scale-125 shadow-md"
                         : "bg-white/50"
                     }`}
                   />
                 ))}
+              </div>
+              <div className="absolute bottom-3 right-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10 z-10 max-w-[55%]">
+                <span className="text-[10px] font-semibold line-clamp-1 block">{img.alt}</span>
               </div>
             </div>
           ))}
@@ -245,28 +242,24 @@ export default function RegisterBenefitsModal() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute bottom-4 left-4 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/10">
-                <span className="text-sm font-bold">{img.price}</span>
+              <div className="absolute bottom-4 left-4 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/10 z-20">
+                {CAROUSEL_IMAGES.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentImage(i)}
+                    className={`w-2.5 h-2.5 rounded-full transition-all inline-block ${
+                      i === currentImage
+                        ? "bg-white scale-125 shadow-md"
+                        : "bg-white/50 hover:bg-white/70"
+                    }`}
+                  />
+                ))}
               </div>
               <div className="absolute bottom-4 right-4 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/10 max-w-[60%]">
                 <span className="text-xs font-semibold line-clamp-1 block">{img.alt}</span>
               </div>
             </div>
           ))}
-
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-            {CAROUSEL_IMAGES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentImage(i)}
-                className={`w-2.5 h-2.5 rounded-full transition-all ${
-                  i === currentImage
-                    ? "bg-white scale-125 shadow-md"
-                    : "bg-white/50 hover:bg-white/70"
-                }`}
-              />
-            ))}
-          </div>
 
           {/* Desktop close button - top right corner of carousel */}
           <button
