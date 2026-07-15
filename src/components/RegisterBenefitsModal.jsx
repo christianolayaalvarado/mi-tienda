@@ -169,52 +169,52 @@ export default function RegisterBenefitsModal() {
         {/* LEFT: Benefits column */}
         <div className="flex-1 flex flex-col min-w-0 md:w-[55%]">
           {/* Header */}
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-4 text-white relative flex-shrink-0">
-            <h2 className="text-lg font-bold">¡Únete a Mi Tienda!</h2>
-            <p className="text-sm text-green-100 mt-0.5">Regístrate gratis y descubre todos los beneficios</p>
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-3 md:px-5 md:py-4 text-white relative flex-shrink-0">
+            <h2 className="text-base md:text-lg font-bold">¡Únete a Mi Tienda!</h2>
+            <p className="text-xs md:text-sm text-green-100 mt-0.5">Regístrate gratis y descubre todos los beneficios</p>
           </div>
 
           {/* Benefits list - scrollable on mobile */}
-          <div className="px-5 py-4 space-y-2 flex-1 overflow-y-auto md:overflow-hidden">
+          <div className="px-4 py-3 md:px-5 md:py-4 space-y-1.5 md:space-y-2 flex-1 overflow-y-auto md:overflow-hidden">
             {BENEFITS.map((b, i) => (
               <div
                 key={i}
-                className={`flex items-start gap-3 p-2.5 rounded-xl transition-all duration-300 ${
+                className={`flex items-start gap-2.5 md:gap-3 p-2 md:p-2.5 rounded-xl transition-all duration-300 ${
                   i === currentSlide
                     ? "bg-green-50 border border-green-200 shadow-sm scale-[1.02]"
                     : "bg-gray-50 border border-transparent"
                 }`}
               >
                 {b.isImage ? (
-                  <img src={b.icon} alt={b.title} className="w-10 h-10 flex-shrink-0 object-contain" />
+                  <img src={b.icon} alt={b.title} className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 object-contain" />
                 ) : (
-                  <span className="text-xl flex-shrink-0">{b.icon}</span>
+                  <span className="text-lg md:text-xl flex-shrink-0">{b.icon}</span>
                 )}
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900">{b.title}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{b.desc}</p>
+                  <h3 className="text-xs md:text-sm font-bold text-gray-900">{b.title}</h3>
+                  <p className="text-[10px] md:text-xs text-gray-500 mt-0.5">{b.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
           {/* CTA + Dots */}
-          <div className="px-5 pb-4 flex-shrink-0">
+          <div className="px-4 pb-3 md:px-5 md:pb-4 flex-shrink-0">
             <Link
               href="/register"
               onClick={dismiss}
-              className="block w-full py-3 bg-green-600 hover:bg-green-700 text-white text-center font-bold rounded-xl transition shadow-lg shadow-gray-400"
+              className="block w-full py-2.5 md:py-3 bg-green-600 hover:bg-green-700 text-white text-center font-bold rounded-xl transition shadow-lg shadow-gray-400 text-sm md:text-base"
             >
               Crear cuenta gratis
             </Link>
             <Link
               href="/login"
               onClick={dismiss}
-              className="block w-full py-2 text-gray-400 hover:text-gray-600 text-sm text-center transition"
+              className="block w-full py-1.5 md:py-2 text-gray-400 hover:text-gray-600 text-xs md:text-sm text-center transition"
             >
               Ya tengo cuenta, continuar al Login
             </Link>
-            <div className="flex justify-center gap-1.5 mt-3">
+            <div className="flex justify-center gap-1.5 mt-2 md:mt-3">
               {BENEFITS.map((_, i) => (
                 <button
                   key={i}
