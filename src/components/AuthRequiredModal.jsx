@@ -105,6 +105,9 @@ export default function AuthRequiredModal({ open, onClose, callbackUrl = "/" }) 
               <button onClick={() => signIn("google", { callbackUrl: redirect })} aria-label="Continuar con Google" className="icon-btn">
                 <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.3-2H12v3.8h5.4c-.2 1.2-.9 2.2-1.9 2.9v2.4h3.1c1.8-1.7 2.7-4.1 2.7-6.9z"/><path fill="#34A853" d="M12 22c2.6 0 4.8-.9 6.4-2.5l-3.1-2.4c-.9.6-2.1 1-3.3 1-2.5 0-4.6-1.7-5.3-4.1H3.4v2.6C5 19.9 8.3 22 12 22z"/><path fill="#FBBC05" d="M6.7 13.9A6.6 6.6 0 0 1 6.4 12c0-.6.1-1.2.3-1.8V7.6H3.4A10 10 0 0 0 2 12c0 1.6.4 3.1 1.4 4.4l3.3-2.5z"/><path fill="#EA4335" d="M12 6.5c1.4 0 2.6.5 3.6 1.5l2.7-2.7C16.8 3.6 14.6 2.5 12 2.5 8.3 2.5 5 4.6 3.4 7.6l3 2.6C7.4 7.9 9.5 6.5 12 6.5z"/></svg>
               </button>
+              <button onClick={() => signIn("facebook", { callbackUrl: redirect })} aria-label="Continuar con Facebook" className="icon-btn icon-btn-fb">
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path fill="#1877F2" d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 5.99 4.388 10.954 10.125 11.854V15.47H7.078V12h3.047V9.356c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.875V12h3.328l-.532 3.47h-2.796v8.385C19.612 22.954 24 17.99 24 12z"/></svg>
+              </button>
             </div>
           </div>
         </div>

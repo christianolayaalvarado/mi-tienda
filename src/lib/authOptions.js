@@ -14,6 +14,17 @@ const GoogleProvider = (() => {
   }
 })();
 
+// eslint-disable-next-line no-undef
+const FacebookProvider = (() => {
+  try {
+    // eslint-disable-next-line no-undef
+    const mod = __non_webpack_require__("next-auth/providers/facebook");
+    return mod.default || mod;
+  } catch {
+    return null;
+  }
+})();
+
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
 const COOKIE_SAMESITE = (process.env.COOKIE_SAMESITE || "lax").toLowerCase();
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -80,6 +91,15 @@ export const authOptions = {
           }),
         ]
       : []),
+
+    ...(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET
+      ? [
+          FacebookProvider({
+            clientId: process.env.FACEBOOK_APP_ID,
+            clientSecret: process.env.FACEBOOK_APP_SECRET,
+          }),
+        ]
+      : []),
   ],
 
   session: {
@@ -93,7 +113,7 @@ export const authOptions = {
 
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === "google") {
+      if (account?.provider === "google" || account?.provider === "facebook") {
         const email = user.email?.toLowerCase().trim();
         if (!email) return false;
 
@@ -129,7 +149,7 @@ export const authOptions = {
           user.id = newUser.id;
           return true;
         } catch (err) {
-          console.error("[auth][signIn] google error:", err);
+          console.error(`[auth][signIn] ${account.provider} error:`, err);
           return false;
         }
       }
@@ -143,7 +163,7 @@ export const authOptions = {
         token.name = user.name ?? token.name;
         token.picture = user.image ?? token.picture;
       }
-      if (account?.provider === "google" && token.email) {
+      if ((account?.provider === "google" || account?.provider === "facebook") && token.email) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { email: token.email.toLowerCase() },
@@ -156,7 +176,7 @@ export const authOptions = {
             token.emailVerified = dbUser.emailVerified ?? false;
           }
         } catch (err) {
-          console.error("[auth][jwt] google lookup error:", err);
+          console.error(`[auth][jwt] ${account?.provider} lookup error:`, err);
         }
       }
       return token;
