@@ -44,14 +44,14 @@ const CAROUSEL_IMAGES = [
     price: "S/. 89.90",
   },
   {
-    src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783956527/mi_tienda/bkjzbxrpij42fyzthshf.jpg",
-    alt: "Cortapelo Siegen",
+    src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1784062298/mi_tienda/lcii6cewvnq8f4fanipo.jpg",
+    alt: "Funda de almohada",
     price: "S/. 45.00",
   },
   {
-    src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783896606/mi_tienda/q9vn1s5jfgdzbuyi3wbt.jpg",
-    alt: "Estufa eléctrica",
-    price: "S/. 129.90",
+    src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783983627/mi_tienda/l6pk1xqhobmya1ttrsil.jpg",
+    alt: "Macetero colgante",
+    price: "S/. 30.00",
   },
   {
     src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783896868/mi_tienda/lnb86rx7hkqnonbfd7gz.jpg",
