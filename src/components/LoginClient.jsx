@@ -168,7 +168,7 @@ export default function LoginClient() {
           </div>
 
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-4">
             <h2 className="text-3xl font-bold text-gray-900">Bienvenido de vuelta</h2>
             <p className="text-gray-500 mt-2">Ingresa para continuar comprando</p>
           </div>
