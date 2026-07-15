@@ -1,8 +1,18 @@
 // src/lib/authOptions.js
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import GoogleProvider from "next-auth/providers/google";
 import prisma from "./prisma";
 import bcrypt from "bcrypt";
+
+// eslint-disable-next-line no-undef
+const GoogleProvider = (() => {
+  try {
+    // eslint-disable-next-line no-undef
+    const mod = __non_webpack_require__("next-auth/providers/google");
+    return mod.default || mod;
+  } catch {
+    return null;
+  }
+})();
 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
 const COOKIE_SAMESITE = (process.env.COOKIE_SAMESITE || "lax").toLowerCase();
