@@ -1,5 +1,4 @@
 // src/lib/authOptions.js
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "./prisma";
 import bcrypt from "bcrypt";
 
@@ -30,8 +29,6 @@ const COOKIE_SAMESITE = (process.env.COOKIE_SAMESITE || "lax").toLowerCase();
 const IS_PROD = process.env.NODE_ENV === "production";
 
 export const authOptions = {
-  adapter: PrismaAdapter(prisma),
-
   providers: [
     {
       id: "credentials",
@@ -120,11 +117,34 @@ export const authOptions = {
         try {
           const existingUser = await prisma.user.findUnique({
             where: { email },
-            include: { stores: true },
+            include: { stores: true, accounts: true },
           });
 
           if (existingUser) {
             user.id = existingUser.id;
+
+            const linkedAccount = existingUser.accounts.find(
+              (a) => a.provider === account.provider
+            );
+
+            if (!linkedAccount) {
+              await prisma.account.create({
+                data: {
+                  userId: existingUser.id,
+                  type: account.type,
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId,
+                  access_token: account.access_token,
+                  token_type: account.token_type,
+                  refresh_token: account.refresh_token,
+                  expires_at: account.expires_at,
+                  scope: account.scope,
+                  id_token: account.id_token,
+                  session_state: account.session_state,
+                },
+              });
+            }
+
             return true;
           }
 
@@ -136,6 +156,20 @@ export const authOptions = {
               image: user.image || null,
               role: "SELLER",
               emailVerified: true,
+              accounts: {
+                create: {
+                  type: account.type,
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId,
+                  access_token: account.access_token,
+                  token_type: account.token_type,
+                  refresh_token: account.refresh_token,
+                  expires_at: account.expires_at,
+                  scope: account.scope,
+                  id_token: account.id_token,
+                  session_state: account.session_state,
+                },
+              },
               stores: {
                 create: {
                   name: `${user.name || "Mi Tienda"} Store`,
