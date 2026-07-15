@@ -134,8 +134,6 @@ function RegisterForm() {
           <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783896868/mi_tienda/lnb86rx7hkqnonbfd7gz.jpg" alt="" className="w-full h-full object-cover" />
           <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783895702/mi_tienda/rdeylpspuzuaczod8r4y.jpg" alt="" className="w-full h-full object-cover hidden md:block" />
         </div>
-        {/* Green fade overlay at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-green-600 via-green-500/40 to-transparent" />
         {/* Slight top overlay for contrast */}
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-gray-50/80 to-transparent" />
       </div>

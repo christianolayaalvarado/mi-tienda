@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuthContext } from "@/context/AuthProvider";
 
 const BENEFITS = [
@@ -65,13 +66,14 @@ const REAPPEAR_MS = 10000;
 
 export default function RegisterBenefitsModal() {
   const { user, loading } = useAuthContext();
+  const pathname = usePathname();
   const [show, setShow] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentImage, setCurrentImage] = useState(0);
 
 
   useEffect(() => {
-    if (loading || user) return;
+    if (loading || user || pathname === "/register") return;
 
     const dismissedAt = Number(sessionStorage.getItem(DISMISS_KEY) || 0);
     const elapsed = Date.now() - dismissedAt;
@@ -83,7 +85,7 @@ export default function RegisterBenefitsModal() {
 
     const timer = setTimeout(() => setShow(true), 10000);
     return () => clearTimeout(timer);
-  }, [user, loading]);
+  }, [user, loading, pathname]);
 
   useEffect(() => {
     if (!show) return;
