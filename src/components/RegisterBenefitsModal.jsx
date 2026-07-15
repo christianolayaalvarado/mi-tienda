@@ -127,10 +127,10 @@ export default function RegisterBenefitsModal() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute bottom-3 left-3 bg-white/15 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/15">
+              <div className="absolute bottom-3 left-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10">
                 <span className="text-xs font-bold">{img.price}</span>
               </div>
-              <div className="absolute bottom-3 right-3 bg-white/15 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/15">
+              <div className="absolute bottom-3 right-3 bg-white/10 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/10">
                 <span className="text-[10px] font-semibold">{img.alt}</span>
               </div>
             </div>
@@ -150,20 +150,20 @@ export default function RegisterBenefitsModal() {
           </div>
           <button
             onClick={() => setCurrentImage((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/15 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-xs border border-white/15 z-10 transition"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-xs border border-white/10 z-10 transition"
           >
             ‹
           </button>
           <button
             onClick={() => setCurrentImage((prev) => (prev + 1) % CAROUSEL_IMAGES.length)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/15 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-xs border border-white/15 z-10 transition"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-xs border border-white/10 z-10 transition"
           >
             ›
           </button>
           {/* Mobile close button */}
           <button
             onClick={dismiss}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/15 backdrop-blur-md hover:bg-white/30 flex items-center justify-center text-white text-sm border border-white/15 z-20 transition"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 flex items-center justify-center text-white text-sm border border-white/10 z-20 transition"
           >
             ✕
           </button>
@@ -189,7 +189,7 @@ export default function RegisterBenefitsModal() {
                 }`}
               >
                 {b.isImage ? (
-                  <img src={b.icon} alt={b.title} className="w-7 h-7 flex-shrink-0 object-contain" />
+                  <img src={b.icon} alt={b.title} className="w-8 h-8 flex-shrink-0 object-contain" />
                 ) : (
                   <span className="text-xl flex-shrink-0">{b.icon}</span>
                 )}
@@ -245,10 +245,10 @@ export default function RegisterBenefitsModal() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute bottom-4 left-4 bg-white/15 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/15">
+              <div className="absolute bottom-4 left-4 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/10">
                 <span className="text-sm font-bold">{img.price}</span>
               </div>
-              <div className="absolute bottom-4 right-4 bg-white/15 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/15">
+              <div className="absolute bottom-4 right-4 bg-white/10 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/10">
                 <span className="text-xs font-semibold">{img.alt}</span>
               </div>
             </div>
@@ -271,20 +271,20 @@ export default function RegisterBenefitsModal() {
           {/* Desktop close button - top right corner of carousel */}
           <button
             onClick={dismiss}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/15 backdrop-blur-md hover:bg-white/30 flex items-center justify-center text-white text-sm border border-white/15 z-20 transition"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 flex items-center justify-center text-white text-sm border border-white/10 z-20 transition"
           >
             ✕
           </button>
 
           <button
             onClick={() => setCurrentImage((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/15 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-sm border border-white/15 z-10 transition"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-sm border border-white/10 z-10 transition"
           >
             ‹
           </button>
           <button
             onClick={() => setCurrentImage((prev) => (prev + 1) % CAROUSEL_IMAGES.length)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/15 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-sm border border-white/15 z-10 transition"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-sm border border-white/10 z-10 transition"
           >
             ›
           </button>
