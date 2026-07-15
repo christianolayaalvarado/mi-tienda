@@ -67,7 +67,7 @@ export default function RegisterBenefitsModal() {
   const [show, setShow] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentImage, setCurrentImage] = useState(0);
-  const [imageLoaded, setImageLoaded] = useState({});
+
 
   useEffect(() => {
     if (loading || user) return;
@@ -105,7 +105,56 @@ export default function RegisterBenefitsModal() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[900px] overflow-hidden animate-[fadeInScale_0.3s_ease-out] flex flex-col md:flex-row max-h-[90vh]">
-        {/* LEFT: Benefits - mobile shows full, desktop left column */}
+        {/* MOBILE: Product carousel - full width, attached to top of modal */}
+        <div className="md:hidden flex-shrink-0 relative h-52 bg-gray-100 overflow-hidden rounded-t-2xl">
+          {CAROUSEL_IMAGES.map((img, i) => (
+            <div
+              key={i}
+              className="absolute inset-0 transition-opacity duration-700 ease-in-out"
+              style={{ opacity: i === currentImage ? 1 : 0 }}
+            >
+              <img
+                src={img.src}
+                alt={img.alt}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2.5 py-1 rounded-md backdrop-blur-sm">
+                <span className="text-xs font-bold">{img.price}</span>
+              </div>
+              <div className="absolute bottom-3 right-3 bg-white/90 text-gray-900 px-2.5 py-1 rounded-md backdrop-blur-sm">
+                <span className="text-[10px] font-semibold">{img.alt}</span>
+              </div>
+            </div>
+          ))}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {CAROUSEL_IMAGES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentImage(i)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  i === currentImage
+                    ? "bg-white scale-125 shadow-md"
+                    : "bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={() => setCurrentImage((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-xs backdrop-blur-sm z-10 transition"
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => setCurrentImage((prev) => (prev + 1) % CAROUSEL_IMAGES.length)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-xs backdrop-blur-sm z-10 transition"
+          >
+            ›
+          </button>
+        </div>
+
+        {/* LEFT: Benefits column */}
         <div className="flex-1 flex flex-col min-w-0 md:w-[55%]">
           {/* Header */}
           <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-4 text-white relative flex-shrink-0">
@@ -168,7 +217,7 @@ export default function RegisterBenefitsModal() {
           </div>
         </div>
 
-        {/* RIGHT: Product Carousel - hidden on mobile, visible on md+ */}
+        {/* DESKTOP: Product Carousel - right side, full height */}
         <div className="hidden md:flex md:w-[45%] relative bg-gray-100 overflow-hidden flex-shrink-0">
           {CAROUSEL_IMAGES.map((img, i) => (
             <div
@@ -181,20 +230,16 @@ export default function RegisterBenefitsModal() {
                 alt={img.alt}
                 className="w-full h-full object-cover"
                 loading="lazy"
-                onLoad={() => setImageLoaded((prev) => ({ ...prev, [i]: true }))}
               />
-              {/* Price tag */}
               <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-1.5 rounded-lg backdrop-blur-sm">
                 <span className="text-sm font-bold">{img.price}</span>
               </div>
-              {/* Product name */}
               <div className="absolute bottom-4 right-4 bg-white/90 text-gray-900 px-3 py-1.5 rounded-lg backdrop-blur-sm">
                 <span className="text-xs font-semibold">{img.alt}</span>
               </div>
             </div>
           ))}
 
-          {/* Carousel dots */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
             {CAROUSEL_IMAGES.map((_, i) => (
               <button
@@ -209,7 +254,6 @@ export default function RegisterBenefitsModal() {
             ))}
           </div>
 
-          {/* Nav arrows */}
           <button
             onClick={() => setCurrentImage((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
             className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-sm backdrop-blur-sm z-10 transition"
@@ -219,55 +263,6 @@ export default function RegisterBenefitsModal() {
           <button
             onClick={() => setCurrentImage((prev) => (prev + 1) % CAROUSEL_IMAGES.length)}
             className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-sm backdrop-blur-sm z-10 transition"
-          >
-            ›
-          </button>
-        </div>
-
-        {/* MOBILE: Product carousel - visible on mobile only, stacked above */}
-        <div className="md:hidden flex-shrink-0 relative h-48 bg-gray-100 overflow-hidden">
-          {CAROUSEL_IMAGES.map((img, i) => (
-            <div
-              key={i}
-              className="absolute inset-0 transition-opacity duration-700 ease-in-out"
-              style={{ opacity: i === currentImage ? 1 : 0 }}
-            >
-              <img
-                src={img.src}
-                alt={img.alt}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded-md backdrop-blur-sm">
-                <span className="text-xs font-bold">{img.price}</span>
-              </div>
-              <div className="absolute bottom-2 right-2 bg-white/90 text-gray-900 px-2 py-1 rounded-md backdrop-blur-sm">
-                <span className="text-[10px] font-semibold">{img.alt}</span>
-              </div>
-            </div>
-          ))}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-            {CAROUSEL_IMAGES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentImage(i)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  i === currentImage
-                    ? "bg-white scale-125 shadow-md"
-                    : "bg-white/50"
-                }`}
-              />
-            ))}
-          </div>
-          <button
-            onClick={() => setCurrentImage((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
-            className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-xs backdrop-blur-sm z-10 transition"
-          >
-            ‹
-          </button>
-          <button
-            onClick={() => setCurrentImage((prev) => (prev + 1) % CAROUSEL_IMAGES.length)}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-xs backdrop-blur-sm z-10 transition"
           >
             ›
           </button>
