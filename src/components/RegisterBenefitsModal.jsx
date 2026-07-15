@@ -17,9 +17,10 @@ const BENEFITS = [
     desc: "Consulta el estado de tus pedidos en tu panel de compras.",
   },
   {
-    icon: "🐾",
+    icon: "/mascots/rooster_b/Gallo_front.png",
     title: "Mascota personalizada",
     desc: "Elige tu mascota, ponle nombre y gana monedas.",
+    isImage: true,
   },
   {
     icon: "💰",
@@ -71,9 +72,8 @@ export default function RegisterBenefitsModal() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentImage, setCurrentImage] = useState(0);
 
-
   useEffect(() => {
-    if (loading || user || pathname === "/register") return;
+    if (loading || user || pathname === "/register" || pathname === "/login") return;
 
     const dismissedAt = Number(sessionStorage.getItem(DISMISS_KEY) || 0);
     const elapsed = Date.now() - dismissedAt;
@@ -127,10 +127,10 @@ export default function RegisterBenefitsModal() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2.5 py-1 rounded-md backdrop-blur-sm">
+              <div className="absolute bottom-3 left-3 bg-white/30 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/20">
                 <span className="text-xs font-bold">{img.price}</span>
               </div>
-              <div className="absolute bottom-3 right-3 bg-white/90 text-gray-900 px-2.5 py-1 rounded-md backdrop-blur-sm">
+              <div className="absolute bottom-3 right-3 bg-white/30 backdrop-blur-md text-white px-2.5 py-1 rounded-md border border-white/20">
                 <span className="text-[10px] font-semibold">{img.alt}</span>
               </div>
             </div>
@@ -150,15 +150,22 @@ export default function RegisterBenefitsModal() {
           </div>
           <button
             onClick={() => setCurrentImage((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-xs backdrop-blur-sm z-10 transition"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/30 backdrop-blur-md hover:bg-white/50 text-white flex items-center justify-center text-xs border border-white/20 z-10 transition"
           >
             ‹
           </button>
           <button
             onClick={() => setCurrentImage((prev) => (prev + 1) % CAROUSEL_IMAGES.length)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-xs backdrop-blur-sm z-10 transition"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/30 backdrop-blur-md hover:bg-white/50 text-white flex items-center justify-center text-xs border border-white/20 z-10 transition"
           >
             ›
+          </button>
+          {/* Mobile close button */}
+          <button
+            onClick={dismiss}
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/30 backdrop-blur-md hover:bg-white/50 flex items-center justify-center text-white text-sm border border-white/20 z-20 transition"
+          >
+            ✕
           </button>
         </div>
 
@@ -166,18 +173,12 @@ export default function RegisterBenefitsModal() {
         <div className="flex-1 flex flex-col min-w-0 md:w-[55%]">
           {/* Header */}
           <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-4 text-white relative flex-shrink-0">
-            <button
-              onClick={dismiss}
-              className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-sm transition"
-            >
-              ✕
-            </button>
             <h2 className="text-lg font-bold">¡Únete a Mi Tienda!</h2>
             <p className="text-sm text-green-100 mt-0.5">Regístrate gratis y descubre todos los beneficios</p>
           </div>
 
-          {/* Benefits list */}
-          <div className="px-5 py-4 space-y-2 overflow-y-auto flex-1">
+          {/* Benefits list - no scrollbar */}
+          <div className="px-5 py-4 space-y-2 flex-1 overflow-hidden">
             {BENEFITS.map((b, i) => (
               <div
                 key={i}
@@ -187,7 +188,11 @@ export default function RegisterBenefitsModal() {
                     : "bg-gray-50 border border-transparent"
                 }`}
               >
-                <span className="text-xl flex-shrink-0">{b.icon}</span>
+                {b.isImage ? (
+                  <img src={b.icon} alt={b.title} className="w-6 h-6 flex-shrink-0 object-contain" />
+                ) : (
+                  <span className="text-xl flex-shrink-0">{b.icon}</span>
+                )}
                 <div>
                   <h3 className="text-sm font-bold text-gray-900">{b.title}</h3>
                   <p className="text-xs text-gray-500 mt-0.5">{b.desc}</p>
@@ -201,16 +206,17 @@ export default function RegisterBenefitsModal() {
             <Link
               href="/register"
               onClick={dismiss}
-              className="block w-full py-3 bg-green-600 hover:bg-green-700 text-white text-center font-bold rounded-xl transition shadow-lg shadow-green-200"
+              className="block w-full py-3 bg-green-600 hover:bg-green-700 text-white text-center font-bold rounded-xl transition shadow-lg shadow-gray-300/50"
             >
               Crear cuenta gratis
             </Link>
-            <button
+            <Link
+              href="/login"
               onClick={dismiss}
               className="block w-full py-2 text-gray-400 hover:text-gray-600 text-sm text-center transition"
             >
-              Ya tengo cuenta, continuar comprando
-            </button>
+              Ya tengo cuenta, continuar al Login
+            </Link>
             <div className="flex justify-center gap-1.5 mt-3">
               {BENEFITS.map((_, i) => (
                 <button
@@ -239,10 +245,10 @@ export default function RegisterBenefitsModal() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-1.5 rounded-lg backdrop-blur-sm">
+              <div className="absolute bottom-4 left-4 bg-white/25 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/20">
                 <span className="text-sm font-bold">{img.price}</span>
               </div>
-              <div className="absolute bottom-4 right-4 bg-white/90 text-gray-900 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+              <div className="absolute bottom-4 right-4 bg-white/25 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/20">
                 <span className="text-xs font-semibold">{img.alt}</span>
               </div>
             </div>
@@ -262,15 +268,23 @@ export default function RegisterBenefitsModal() {
             ))}
           </div>
 
+          {/* Desktop close button - top right corner of carousel */}
+          <button
+            onClick={dismiss}
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/25 backdrop-blur-md hover:bg-white/40 flex items-center justify-center text-white text-sm border border-white/20 z-20 transition"
+          >
+            ✕
+          </button>
+
           <button
             onClick={() => setCurrentImage((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-sm backdrop-blur-sm z-10 transition"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/25 backdrop-blur-md hover:bg-white/40 text-white flex items-center justify-center text-sm border border-white/20 z-10 transition"
           >
             ‹
           </button>
           <button
             onClick={() => setCurrentImage((prev) => (prev + 1) % CAROUSEL_IMAGES.length)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-sm backdrop-blur-sm z-10 transition"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/25 backdrop-blur-md hover:bg-white/40 text-white flex items-center justify-center text-sm border border-white/20 z-10 transition"
           >
             ›
           </button>
