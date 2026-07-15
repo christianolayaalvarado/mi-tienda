@@ -140,8 +140,8 @@ function RegisterForm() {
 
       <div className="w-full max-w-md relative z-10">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">Crear cuenta</h1>
-          <p className="text-white/90 mt-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]">Registra tu tienda y empieza a vender</p>
+          <h1 className="text-3xl font-bold text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">Crear cuenta</h1>
+          <p className="text-white/90 mt-2 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Registra tu tienda y empieza a vender</p>
         </div>
 
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/50">
