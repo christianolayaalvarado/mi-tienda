@@ -31,20 +31,24 @@ export async function middleware(req: NextRequest) {
 
       try {
         if (hasNextAuthCookie) {
-          const nextAuthToken = await getToken({
-            req,
-            secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
-          });
+          try {
+            const nextAuthToken = await getToken({
+              req,
+              secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
+            });
 
-          if (nextAuthToken?.email) {
-            if (!nextAuthToken.emailVerified) {
-              const confirmUrl = new URL(
-                `/auth/confirm-code?email=${encodeURIComponent(String(nextAuthToken.email))}`,
-                req.url
-              );
-              return NextResponse.redirect(confirmUrl);
+            if (nextAuthToken?.email) {
+              if (!nextAuthToken.emailVerified) {
+                const confirmUrl = new URL(
+                  `/auth/confirm-code?email=${encodeURIComponent(String(nextAuthToken.email))}`,
+                  req.url
+                );
+                return NextResponse.redirect(confirmUrl);
+              }
+              return NextResponse.next();
             }
-            return NextResponse.next();
+          } catch (tokenErr) {
+            console.error("[middleware] getToken error, falling back to custom token:", tokenErr);
           }
         }
 
