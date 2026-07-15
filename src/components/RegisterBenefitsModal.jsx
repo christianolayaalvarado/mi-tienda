@@ -49,7 +49,7 @@ const CAROUSEL_IMAGES = [
     price: "S/. 45.00",
   },
   {
-    src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783983627/mi_tienda/l6pk1xqhobmya1ttrsil.jpg",
+    src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/v1783983627/mi_tienda/cd40o43e8ndxoqihqf89.jpg",
     alt: "Macetero colgante",
     price: "S/. 30.00",
   },
