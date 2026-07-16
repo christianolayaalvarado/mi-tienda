@@ -155,7 +155,7 @@ export default function PaymentMethodSelector({ sellerId, onSelect }) {
               ✕
             </button>
             <h3 className="font-semibold text-center mb-4">Código QR para Yapear</h3>
-            <div className="relative w-64 h-64 mx-auto rounded-xl overflow-hidden border">
+            <div className="relative w-80 h-80 mx-auto rounded-xl overflow-hidden border">
               <Image src={qrModal} alt="Código QR Yape" fill style={{ objectFit: "contain" }} />
             </div>
             <p className="text-sm text-gray-500 text-center mt-4">
