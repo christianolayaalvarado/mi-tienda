@@ -94,6 +94,12 @@ export const authOptions = {
           FacebookProvider({
             clientId: process.env.FACEBOOK_APP_ID,
             clientSecret: process.env.FACEBOOK_APP_SECRET,
+            authorization: {
+              url: "https://www.facebook.com/v19.0/dialog/oauth",
+              params: {
+                scope: "email,public_profile",
+              },
+            },
           }),
         ]
       : []),
