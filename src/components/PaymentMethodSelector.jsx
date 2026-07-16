@@ -8,15 +8,22 @@ const PAYMENT_LABELS = {
   bank_transfer: "Transferencia bancaria",
 };
 
+function getMethodLabel(m) {
+  const base = PAYMENT_LABELS[m.type] || m.type;
+  if (m.type === "yape" && m.qrImageUrl) return `${base} (Código QR)`;
+  if (m.type === "yape" && m.phone) return `${base} (Número de teléfono)`;
+  if (m.type === "plin" && m.phone) return `${base} (Número de teléfono)`;
+  return base;
+}
+
 export default function PaymentMethodSelector({ sellerId, onSelect }) {
-  const [methods, setMethods] = useState([]); // ya vacío por defecto
+  const [methods, setMethods] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [qrModal, setQrModal] = useState(null);
 
   useEffect(() => {
-    // Si no hay sellerId, no ejecutamos el efecto de fetch.
-    // No llamamos setMethods([]) aquí para evitar setState sincrónico.
     if (!sellerId) {
       setLoading(false);
       return;
@@ -57,10 +64,8 @@ export default function PaymentMethodSelector({ sellerId, onSelect }) {
     };
   }, [sellerId, onSelect]);
 
-  // Si quieres limpiar methods cuando sellerId desaparece, hazlo fuera del efecto:
   useEffect(() => {
     if (!sellerId) {
-      // limpieza asíncrona para evitar el warning
       Promise.resolve().then(() => {
         setMethods([]);
         setSelected(null);
@@ -72,7 +77,7 @@ export default function PaymentMethodSelector({ sellerId, onSelect }) {
     return (
       <div className="space-y-2 animate-pulse">
         {[1, 2].map((i) => (
-          <div key={i} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+          <div key={i} className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
             <div className="w-5 h-5 bg-gray-200 rounded-full" />
             <div className="h-4 bg-gray-200 rounded w-1/3" />
           </div>
@@ -83,45 +88,82 @@ export default function PaymentMethodSelector({ sellerId, onSelect }) {
   if (error) return <p className="text-sm text-red-600">{error}</p>;
 
   return (
-    <div>
-      {methods.length === 0 ? (
-        <p className="text-sm text-gray-500">No hay métodos configurados</p>
-      ) : (
-        <ul className="space-y-3">
-          {methods.map((m) => (
-            <li key={m.id} className="flex items-center justify-between gap-4 p-2 border rounded">
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value={m.id}
-                    checked={selected === m.id}
-                    onChange={() => {
-                      setSelected(m.id);
-                      onSelect?.(m.id);
-                    }}
-                  />
-                  <span className="font-medium">{PAYMENT_LABELS[m.type] || m.type}</span>
-                </label>
+    <>
+      <div>
+        {methods.length === 0 ? (
+          <p className="text-sm text-gray-500">No hay métodos configurados</p>
+        ) : (
+          <ul className="space-y-3">
+            {methods.map((m) => {
+              const hasQR = m.type === "yape" && m.qrImageUrl;
+              return (
+                <li key={m.id} className="flex items-center justify-between gap-4 p-4 border rounded-lg hover:border-green-400 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <label className="flex items-center gap-3 cursor-pointer shrink-0">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={m.id}
+                        checked={selected === m.id}
+                        onChange={() => {
+                          setSelected(m.id);
+                          onSelect?.(m.id);
+                        }}
+                        className="w-4 h-4 text-green-600"
+                      />
+                      <span className="font-medium text-sm">{getMethodLabel(m)}</span>
+                    </label>
 
-                <div className="text-sm text-gray-600">
-                  {m.phone && <div>Tel: {m.phone}</div>}
-                  {m.account && <div>Cuenta: {m.account}</div>}
-                  {m.cci && <div>CCI: {m.cci}</div>}
-                </div>
-              </div>
+                    <div className="text-sm text-gray-600 min-w-0">
+                      {m.phone && <div>Tel: {m.phone}</div>}
+                      {m.account && <div className="truncate">Cuenta: {m.account}</div>}
+                      {m.cci && <div className="truncate">CCI: {m.cci}</div>}
+                    </div>
+                  </div>
 
-              {m.qrImageUrl && (
-                // Uso de next/image para mejor LCP y optimización
-                <div className="w-20 h-20 relative">
-                  <Image src={m.qrImageUrl} alt={`QR ${m.type}`} fill style={{ objectFit: "contain" }} />
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+                  {hasQR && (
+                    <button
+                      type="button"
+                      onClick={() => setQrModal(m.qrImageUrl)}
+                      className="shrink-0 w-20 h-20 relative rounded-lg overflow-hidden border border-gray-200 hover:border-green-500 transition-colors cursor-pointer"
+                      title="Ver código QR"
+                    >
+                      <Image src={m.qrImageUrl} alt={`QR ${m.type}`} fill style={{ objectFit: "contain" }} />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {qrModal && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setQrModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setQrModal(null)}
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-lg"
+            >
+              ✕
+            </button>
+            <h3 className="font-semibold text-center mb-4">Código QR para Yapear</h3>
+            <div className="relative w-64 h-64 mx-auto rounded-xl overflow-hidden border">
+              <Image src={qrModal} alt="Código QR Yape" fill style={{ objectFit: "contain" }} />
+            </div>
+            <p className="text-sm text-gray-500 text-center mt-4">
+              Abre tu app de Yape y escanea este código para pagar.
+            </p>
+          </div>
+        </div>
       )}
-    </div>
+    </>
   );
 }
