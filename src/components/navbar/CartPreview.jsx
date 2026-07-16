@@ -157,6 +157,8 @@ export default function CartPreview(props) {
     const optimistic = (previous || []).filter((it) => String(it.productId ?? it.id) !== idStr);
     setLocalRaw(optimistic);
 
+    const isOnCheckout = typeof window !== "undefined" && window.location.pathname.includes("/checkout");
+
     try {
       if (typeof onRemove === "function" && onRemove !== (() => {})) {
         const result = onRemove(id, storeId);
@@ -167,6 +169,9 @@ export default function CartPreview(props) {
         try { window.dispatchEvent(new Event("storage")); } catch {}
         toast.success("Producto eliminado del carrito");
         removingRef.current.delete(idStr);
+        if (isOnCheckout) {
+          setTimeout(() => router.push("/"), 300);
+        }
         return result;
       }
 
@@ -175,6 +180,9 @@ export default function CartPreview(props) {
       setLocalRaw(Array.isArray(snapshot) ? snapshot : []);
       toast.success("Producto eliminado del carrito");
       removingRef.current.delete(idStr);
+      if (isOnCheckout) {
+        setTimeout(() => router.push("/"), 300);
+      }
       return res;
     } catch (err) {
       console.error("Error en onRemove:", err);
