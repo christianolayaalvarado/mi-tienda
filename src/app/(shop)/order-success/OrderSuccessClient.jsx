@@ -163,7 +163,7 @@ export default function OrderSuccessClient({ orderId }) {
             ) : paymentMethodsByStore[store.id]?.length > 0 ? (
               paymentMethodsByStore[store.id].map(pm => (
                 <div key={pm.id} className="mb-4 border rounded p-3">
-                  <p className="text-sm mb-1"><strong>Tipo:</strong> {pm.type}</p>
+                  <p className="text-sm mb-1"><strong>Tipo:</strong> {{ yape: "Yape", plin: "Plin", bank_transfer: "Transferencia bancaria" }[pm.type] || pm.type}</p>
                   {pm.phone && <p className="text-sm"><strong>Teléfono:</strong> {pm.phone}</p>}
                   {pm.account && <p className="text-sm"><strong>Cuenta:</strong> {pm.account}</p>}
                   {pm.cci && <p className="text-sm"><strong>CCI:</strong> {pm.cci}</p>}

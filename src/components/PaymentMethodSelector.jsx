@@ -2,6 +2,12 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
+const PAYMENT_LABELS = {
+  yape: "Yape",
+  plin: "Plin",
+  bank_transfer: "Transferencia bancaria",
+};
+
 export default function PaymentMethodSelector({ sellerId, onSelect }) {
   const [methods, setMethods] = useState([]); // ya vacío por defecto
   const [selected, setSelected] = useState(null);
@@ -96,12 +102,13 @@ export default function PaymentMethodSelector({ sellerId, onSelect }) {
                       onSelect?.(m.id);
                     }}
                   />
-                  <span className="font-medium">{m.type}</span>
+                  <span className="font-medium">{PAYMENT_LABELS[m.type] || m.type}</span>
                 </label>
 
                 <div className="text-sm text-gray-600">
                   {m.phone && <div>Tel: {m.phone}</div>}
                   {m.account && <div>Cuenta: {m.account}</div>}
+                  {m.cci && <div>CCI: {m.cci}</div>}
                 </div>
               </div>
 

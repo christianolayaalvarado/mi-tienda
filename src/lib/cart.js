@@ -1,8 +1,10 @@
 "use client";
 // src/lib/cart.js
+const CART_KEY = "mi_tienda_cart";
+
 export function readCartRaw() {
   try {
-    const raw = localStorage.getItem("cart");
+    const raw = localStorage.getItem(CART_KEY);
     if (!raw) return null;
     try {
       return JSON.parse(raw);
@@ -17,9 +19,9 @@ export function readCartRaw() {
 export function writeCartRaw(value) {
   try {
     if (value == null) {
-      localStorage.removeItem("cart");
+      localStorage.removeItem(CART_KEY);
     } else {
-      localStorage.setItem("cart", JSON.stringify(value));
+      localStorage.setItem(CART_KEY, JSON.stringify(value));
     }
     // disparar evento storage local para otras pestañas
     window.dispatchEvent(new Event("storage"));

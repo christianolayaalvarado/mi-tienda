@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
 
+const VALID_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled", "pending_verification"];
+
 export async function PUT(req) {
   try {
     const authUser = await getServerAuthUser(req);
@@ -14,6 +16,13 @@ export async function PUT(req) {
     if (!orderId || !status) {
       return NextResponse.json(
         { error: "Datos inválidos" },
+        { status: 400 }
+      );
+    }
+
+    if (!VALID_STATUSES.includes(status)) {
+      return NextResponse.json(
+        { error: `Estado inválido. Valores permitidos: ${VALID_STATUSES.join(", ")}` },
         { status: 400 }
       );
     }

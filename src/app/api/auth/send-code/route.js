@@ -1,10 +1,11 @@
 // src/app/api/auth/send-code/route.js
+import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import { sendVerificationCodeEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 function generateCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(crypto.randomInt(100000, 999999));
 }
 
 export async function POST(req) {
@@ -16,8 +17,8 @@ export async function POST(req) {
     }
     const email = rawEmail.toLowerCase().trim();
 
-    const rl = checkRateLimit(`send-code:${email}`, 5, 15 * 60 * 1000);
-    if (!rl.ok) {
+    const rl = checkRateLimit(`send-code:${email}`);
+    if (!rl.allowed) {
       return new Response(JSON.stringify({ ok: false, message: "Demasiados intentos. Espera unos minutos." }), { status: 429, headers: { "Content-Type": "application/json" } });
     }
 

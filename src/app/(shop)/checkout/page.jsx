@@ -14,7 +14,7 @@ import EmptyState from "@/components/EmptyState";
    ------------------------- */
 function readCartRaw() {
   try {
-    const raw = localStorage.getItem("cart");
+    const raw = localStorage.getItem("mi_tienda_cart");
     if (!raw) return null;
     try {
       return JSON.parse(raw);
@@ -29,9 +29,9 @@ function readCartRaw() {
 function writeCartRaw(value) {
   try {
     if (value == null) {
-      localStorage.removeItem("cart");
+      localStorage.removeItem("mi_tienda_cart");
     } else {
-      localStorage.setItem("cart", JSON.stringify(value));
+      localStorage.setItem("mi_tienda_cart", JSON.stringify(value));
     }
     try {
       window.dispatchEvent(new Event("storage"));
@@ -221,7 +221,7 @@ export default function CheckoutPage({ params }) {
           }
         }
 
-        const raw = localStorage.getItem("cart");
+    const raw = localStorage.getItem("mi_tienda_cart");
         try {
           setRawCart(raw ? JSON.parse(raw) : raw);
         } catch {
@@ -282,7 +282,7 @@ export default function CheckoutPage({ params }) {
 
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key !== "cart") return;
+      if (e.key !== "mi_tienda_cart") return;
       try {
         setRawCart(e.newValue ? JSON.parse(e.newValue) : null);
       } catch {

@@ -87,10 +87,15 @@ async function main() {
       }
 
       // 🚀 Crear producto
+      const discountPct = product.discountPct || (product.id % 3 === 0 ? [15, 20, 25, 30, 40][product.id % 5] : null);
+      const originalPrice = discountPct ? Math.round((product.price ?? 0) / (1 - discountPct / 100)) : null;
+
       await prisma.product.create({
         data: {
           title: product.title,
           price: product.price ?? 0,
+          originalPrice,
+          discountPct,
           stock: product.stock ?? 0,
           categoryId: category.id,
           storeId: store.id,

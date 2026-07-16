@@ -16,6 +16,7 @@ export async function GET(req) {
     const search = url.searchParams.get("search") || "";
     const category = url.searchParams.get("category") || "";
     const sort = url.searchParams.get("sort") || "";
+    const onSale = url.searchParams.get("onSale") === "true";
     const page = parseInt(url.searchParams.get("page") || "1", 10) || 1;
     const limit = parseInt(url.searchParams.get("limit") || "15", 10) || 15;
 
@@ -25,6 +26,7 @@ export async function GET(req) {
     const where = {
       ...(search ? { title: { contains: search, mode: "insensitive" } } : {}),
       ...(category ? { category: { name: category } } : {}),
+      ...(onSale ? { discountPct: { not: null, gt: 0 } } : {}),
     };
 
     // Para featured: necesitamos incluir reviews y orderItemProducts para calcular el score
@@ -47,6 +49,8 @@ export async function GET(req) {
       orderBy = { title: "asc" };
     } else if (sort === "name-desc") {
       orderBy = { title: "desc" };
+    } else if (sort === "discount") {
+      orderBy = { discountPct: "desc" };
     } else {
       orderBy = { createdAt: "desc" };
     }

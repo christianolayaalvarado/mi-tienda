@@ -213,7 +213,7 @@ export async function POST(req) {
  */
 export async function DELETE(req) {
   try {
-    const userId = await resolveUserIdFromAuth();
+    const userId = await resolveUserIdFromAuth(req);
     if (!userId) {
       return NextResponse.json({ error: "auth_required" }, { status: 401 });
     }

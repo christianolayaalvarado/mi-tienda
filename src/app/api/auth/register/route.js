@@ -1,4 +1,5 @@
 // src/app/api/auth/register/route.js
+import crypto from "crypto";
 import bcrypt from "bcrypt";
 import prisma from "@/lib/prisma";
 import { sendVerificationCodeEmail } from "@/lib/email";
@@ -63,7 +64,7 @@ export async function POST(req) {
     const hashed = await bcrypt.hash(String(password), saltRounds);
 
     // Generar código de verificación (6 dígitos)
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = crypto.randomInt(100000, 999999).toString();
 
     // Generar código único para la tienda con sufijo aleatorio para reducir colisiones
     const storeCode = `STORE-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`;
@@ -117,7 +118,7 @@ export async function POST(req) {
         const referral = await prisma.referral.findUnique({
           where: { code: referralCode.toUpperCase().trim() },
         });
-        if (referral && referral.referrerId !== user.id) {
+        if (referral && referral.referrerId !== user.id && !referral.rewardGiven) {
           await prisma.referral.update({
             where: { id: referral.id },
             data: { referredId: user.id, rewardGiven: true },

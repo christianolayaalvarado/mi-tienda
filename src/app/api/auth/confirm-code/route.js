@@ -34,8 +34,8 @@ export async function POST(req) {
     const email = String(rawEmail).toLowerCase().trim();
     const code = String(rawCode).trim();
 
-    const rl = checkRateLimit(`confirm-code:${email}`, 5, 15 * 60 * 1000);
-    if (!rl.ok) {
+    const rl = checkRateLimit(`confirm-code:${email}`);
+    if (!rl.allowed) {
       return new Response(JSON.stringify({ ok: false, message: "Demasiados intentos. Espera unos minutos." }), {
         status: 429,
         headers: { "Content-Type": "application/json" },

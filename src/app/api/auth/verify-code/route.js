@@ -10,23 +10,43 @@ export async function POST(req) {
       return Response.json({ message: "Email y código son requeridos" }, { status: 400 });
     }
 
-    const rl = checkRateLimit(`verify-code:${email}`, 5, 15 * 60 * 1000);
-    if (!rl.ok) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const rl = checkRateLimit(`verify-code:${normalizedEmail}`);
+    if (!rl.allowed) {
       return Response.json({ message: "Demasiados intentos. Espera unos minutos." }, { status: 429 });
     }
 
-    const record = await prisma.verificationCode.findFirst({
-      where: { email: email.toLowerCase().trim() },
-      orderBy: { createdAt: "desc" },
-    });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
-    if (!record || record.code !== code || Date.now() > record.expires.getTime()) {
+    if (!user) {
       return Response.json({ message: "Código inválido o expirado" }, { status: 400 });
     }
 
+    if (!user.verificationCode) {
+      return Response.json({ message: "No hay código asociado a este email" }, { status: 400 });
+    }
+
+    // Check TTL expiration
+    if (user.verificationSentAt) {
+      const sent = new Date(user.verificationSentAt).getTime();
+      const now = Date.now();
+      const TTL_MS = (process.env.VERIFICATION_TTL_SECONDS ? Number(process.env.VERIFICATION_TTL_SECONDS) : 15 * 60) * 1000;
+      if (now - sent > TTL_MS) {
+        return Response.json({ message: "Código expirado. Solicita uno nuevo." }, { status: 410 });
+      }
+    }
+
+    if (String(user.verificationCode).trim() !== String(code).trim()) {
+      return Response.json({ message: "Código inválido" }, { status: 400 });
+    }
+
     await prisma.user.update({
-      where: { email: email.toLowerCase().trim() },
-      data: { emailVerified: true },
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        verificationCode: null,
+        verificationSentAt: null,
+      },
     });
 
     return Response.json({ message: "Verificación exitosa" });

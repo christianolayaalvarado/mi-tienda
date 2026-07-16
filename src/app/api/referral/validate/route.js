@@ -20,6 +20,11 @@ export async function POST(req) {
       return NextResponse.json({ valid: false, error: "Código no válido" });
     }
 
+    // Check if this referral was already used
+    if (referral.referredId) {
+      return NextResponse.json({ valid: false, error: "Este código ya fue utilizado" });
+    }
+
     return NextResponse.json({
       valid: true,
       referrerName: referral.referrer?.name || "Un amigo",
