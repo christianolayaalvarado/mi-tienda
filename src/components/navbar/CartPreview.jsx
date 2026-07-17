@@ -198,6 +198,19 @@ export default function CartPreview(props) {
     }
   };
 
+  const prevCountRef = useRef(0);
+
+  useEffect(() => {
+    const count = (resolvedItems || []).length;
+    if (prevCountRef.current > 0 && count === 0) {
+      const timer = setTimeout(() => {
+        onClose?.();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = count;
+  }, [resolvedItems, onClose]);
+
   if (!open) return null;
 
   const content = (
