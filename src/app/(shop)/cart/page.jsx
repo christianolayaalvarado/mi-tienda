@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { CartItemSkeleton } from "@/components/Skeletons";
 import EmptyState from "@/components/EmptyState";
+import ShippingCostModal from "@/components/ShippingCostModal";
 
 /* -------------------------
    ModalConfirm (reutilizable)
@@ -121,6 +122,9 @@ export default function CartPage() {
   // Estimaciones del servidor
   const [estimating, setEstimating] = useState(false);
   const [serverEstimates, setServerEstimates] = useState(null);
+
+  // Shipping info from modal
+  const [shippingInfo, setShippingInfo] = useState(null);
 
   // Stock map: { [productId]: stockNumber }
   const [stockMap, setStockMap] = useState({});
@@ -351,10 +355,17 @@ export default function CartPage() {
     0
   );
 
+  const firstStoreId = displayItems?.[0]?.storeId || null;
+
   const includedTaxesLocalFallback = subtotal > 0 ? (subtotal * TAX_RATE_FALLBACK) / (1 + TAX_RATE_FALLBACK) : 0;
   const taxEstimate = serverEstimates?.taxEstimate ?? includedTaxesLocalFallback;
-  const shippingEstimate = serverEstimates?.shippingEstimate ?? 0;
-  const shippingText = serverEstimates?.shippingEstimate !== undefined ? `S/ ${shippingEstimate.toFixed(2)}` : "Incluido";
+  const shippingCost = shippingInfo?.cost ?? 0;
+  const shippingIncluded = shippingInfo?.included ?? true;
+  const shippingText = shippingIncluded
+    ? "Incluido"
+    : shippingCost > 0
+      ? `S/ ${shippingCost.toFixed(2)} (pago en agencia)`
+      : "Seleccionar destino";
   const totalDisplayed = subtotal;
   const serverTotal = serverEstimates ? subtotal + (serverEstimates.shippingEstimate || 0) : null;
 
@@ -877,8 +888,18 @@ export default function CartPage() {
         </div>
 
         <div className="flex justify-between text-sm text-gray-700 mb-2">
-          <span>Envío</span>
-          <span className="text-gray-600">{shippingEstimate === 0 && !serverEstimates ? "Incluido" : shippingText}</span>
+          <span className="flex items-center gap-1">
+            Envío
+            {firstStoreId && (
+              <ShippingCostModal
+                storeId={firstStoreId}
+                onShippingChange={setShippingInfo}
+              />
+            )}
+          </span>
+          <span className={`font-medium ${shippingIncluded ? "text-green-600" : "text-orange-600"}`}>
+            {shippingText}
+          </span>
         </div>
 
         <div className="flex justify-between text-sm text-gray-700 mb-2">
