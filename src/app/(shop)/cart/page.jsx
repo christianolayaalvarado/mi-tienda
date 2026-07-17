@@ -362,11 +362,12 @@ export default function CartPage() {
   const shippingCost = shippingInfo?.cost ?? 0;
   const shippingIncluded = shippingInfo?.included ?? true;
   const shippingDestination = shippingInfo?.destination || "Trujillo";
+  const shippingOrigin = "Trujillo";
   const shippingText = shippingIncluded
-    ? `Incluido · Se enviará a ${shippingDestination}`
+    ? `${shippingOrigin} → ${shippingDestination} · Incluido`
     : shippingCost > 0
-      ? `S/ ${shippingCost.toFixed(2)} · Se enviará a ${shippingDestination}`
-      : "Seleccionar destino";
+      ? `${shippingOrigin} → ${shippingDestination} · S/ ${shippingCost.toFixed(2)}`
+      : `${shippingOrigin} → ${shippingDestination} · Pago en destino`;
   const totalDisplayed = subtotal;
   const serverTotal = serverEstimates ? subtotal + (serverEstimates.shippingEstimate || 0) : null;
 
@@ -894,6 +895,7 @@ export default function CartPage() {
             {firstStoreId && (
               <ShippingCostModal
                 storeId={firstStoreId}
+                storeCity="Trujillo"
                 onShippingChange={setShippingInfo}
               />
             )}
