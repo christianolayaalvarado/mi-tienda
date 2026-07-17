@@ -361,10 +361,11 @@ export default function CartPage() {
   const taxEstimate = serverEstimates?.taxEstimate ?? includedTaxesLocalFallback;
   const shippingCost = shippingInfo?.cost ?? 0;
   const shippingIncluded = shippingInfo?.included ?? true;
+  const shippingDestination = shippingInfo?.destination || "Trujillo";
   const shippingText = shippingIncluded
-    ? "Incluido"
+    ? `Incluido · Se enviará a ${shippingDestination}`
     : shippingCost > 0
-      ? `S/ ${shippingCost.toFixed(2)} (pago en agencia)`
+      ? `S/ ${shippingCost.toFixed(2)} · Se enviará a ${shippingDestination}`
       : "Seleccionar destino";
   const totalDisplayed = subtotal;
   const serverTotal = serverEstimates ? subtotal + (serverEstimates.shippingEstimate || 0) : null;
@@ -904,7 +905,7 @@ export default function CartPage() {
 
         <div className="flex justify-between text-sm text-gray-700 mb-2">
           <span>
-            Impuestos {serverEstimates ? "(estimado por servidor)" : "(estimado incluido)"}
+            Impuestos
           </span>
           <span>S/ {taxEstimate.toFixed(2)}</span>
         </div>

@@ -49,7 +49,7 @@ export default function ShippingCostModal({ storeId, onShippingChange }) {
       setSelectedDist(saved.district || "");
       if (saved.result) setResult(saved.result);
       if (saved.deliveryType === "local" && onShippingChange) {
-        onShippingChange({ cost: 0, included: true, label: "Incluido (Trujillo)" });
+        onShippingChange({ cost: 0, included: true, label: "Incluido (Trujillo)", destination: "Trujillo" });
       }
     }
   }, []);
@@ -68,11 +68,13 @@ export default function ShippingCostModal({ storeId, onShippingChange }) {
         }),
       });
       const data = await res.json();
+      const destName = getProvName(deptCode, provCode) || getDeptName(deptCode);
       const shippingResult = {
         cost: data.shippingCost || 0,
         included: false,
         estimatedDays: data.estimatedDays,
         message: data.message,
+        destination: destName,
         label: data.shippingCost > 0 ? `S/ ${data.shippingCost.toFixed(2)} (pago en agencia)` : "Incluido",
       };
       setResult(shippingResult);
@@ -99,7 +101,7 @@ export default function ShippingCostModal({ storeId, onShippingChange }) {
     setSelectedDist("");
 
     if (type === "local") {
-      const localResult = { cost: 0, included: true, label: "Incluido (Trujillo)" };
+      const localResult = { cost: 0, included: true, label: "Incluido (Trujillo)", destination: "Trujillo" };
       setResult(localResult);
       saveShipping({ deliveryType: "local", result: localResult });
       if (onShippingChange) onShippingChange(localResult);
@@ -125,11 +127,25 @@ export default function ShippingCostModal({ storeId, onShippingChange }) {
 
   const isTrujillo = deliveryType === "local" || (selectedDept === TRUJILLO_DEPT && selectedProv === TRUJILLO_PROV);
 
-  const summaryLabel = isTrujillo
-    ? "Incluido"
-    : result?.cost > 0
-      ? `S/ ${result.cost.toFixed(2)}`
-      : result?.message || "Seleccionar destino";
+  const getDeptName = (code) => ubigeo.find((d) => d.code === code)?.name || "";
+  const getProvName = (deptCode, provCode) => {
+    const dept = ubigeo.find((d) => d.code === deptCode);
+    return dept?.provinces.find((p) => p.code === provCode)?.name || "";
+  };
+
+  const destinationName = isTrujillo
+    ? "Trujillo"
+    : selectedProv
+      ? getProvName(selectedDept, selectedProv)
+      : selectedDept
+        ? getDeptName(selectedDept)
+        : "";
+
+  const buttonLabel = isTrujillo
+    ? "Ciudad de Trujillo"
+    : destinationName
+      ? `Ciudad de ${destinationName}`
+      : "Calcular envío";
 
   return (
     <>
@@ -138,7 +154,7 @@ export default function ShippingCostModal({ storeId, onShippingChange }) {
         onClick={() => setOpen(true)}
         className="text-xs text-green-600 hover:text-green-700 underline ml-1"
       >
-        Calcular envío
+        {buttonLabel}
       </button>
 
       {open && (
