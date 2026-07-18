@@ -9,6 +9,7 @@ import { fetchSession } from "@/lib/useSessionCheck";
 import toast from "react-hot-toast";
 import DiscountBadge from "@/components/DiscountBadge";
 import { useFavorites } from "@/hooks/useFavorites";
+import ShippingCostModal from "@/components/ShippingCostModal";
 
 const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
 
@@ -296,6 +297,27 @@ export default function ProductInfo({ product }) {
       {remainingStock === 1 && <p className="text-red-600 font-semibold mt-2">🔥 Última unidad disponible</p>}
       {remainingStock > 1 && remainingStock <= 3 && <p className="text-orange-600 font-semibold mt-2">🔥 Solo quedan {remainingStock} unidades</p>}
       {remainingStock === 0 && <p className="text-red-600 font-semibold mt-2">Producto agotado</p>}
+
+      {/* Shipping info */}
+      <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
+        <div className="flex items-center gap-2 text-sm text-gray-700">
+          <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+          <p>
+            <span className="font-medium">Envío gratis en Trujillo</span>
+            <span className="text-gray-500"> · Fuera de Trujillo, se paga en destino</span>
+          </p>
+        </div>
+        {product.storeId && (
+          <div className="mt-2">
+            <ShippingCostModal
+              storeId={product.storeId}
+              storeCity="Trujillo"
+            />
+          </div>
+        )}
+      </div>
 
       <div className="mt-6 space-y-1 text-sm text-gray-600 text-left">
         <p><span className="font-semibold text-gray-800">ID Producto:</span> {productIdStr}</p>
