@@ -6,6 +6,7 @@ import ProductCard from "@/components/ProductCard";
 import ProductCardSkeleton from "@/components/ProductCardSkeleton";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
 import MascotPromoBanner from "@/components/MascotPromoBanner";
+import LatestProductsBanner from "@/components/LatestProductsBanner";
 import MascotWelcomeModal from "@/components/MascotWelcomeModal";
 import ScrollMascot from "@/components/ScrollMascot";
 import EmptyState from "@/components/EmptyState";
@@ -194,6 +195,13 @@ export default function HomeClient() {
               <MascotPromoBanner />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Banner de productos nuevos */}
+      {!currentSearch && !currentCategory && (
+        <div className="mt-3">
+          <LatestProductsBanner />
         </div>
       )}
 

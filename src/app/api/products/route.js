@@ -51,6 +51,8 @@ export async function GET(req) {
       orderBy = { title: "desc" };
     } else if (sort === "discount") {
       orderBy = { discountPct: "desc" };
+    } else if (sort === "newest") {
+      orderBy = { createdAt: "desc" };
     } else {
       orderBy = { createdAt: "desc" };
     }
