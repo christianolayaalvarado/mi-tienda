@@ -315,7 +315,9 @@ export async function POST(req) {
             `Total: S/ ${sellerOrder.total.toFixed(2)}%0A%0A` +
             `Productos:%0A${itemsList}%0A%0A` +
             `Ver detalles: ${process.env.NEXT_PUBLIC_APP_URL || "https://mi-tienda-app-theta.vercel.app"}/dashboard/seller/orders/${createdOrder.id}`;
-          const cleanPhone = sellerPhone.replace(/[^0-9]/g, "");
+          let cleanPhone = sellerPhone.replace(/[^0-9]/g, "");
+          // Add Peru country code if missing
+          if (cleanPhone.length === 9) cleanPhone = "51" + cleanPhone;
           const waUrl = `https://wa.me/${cleanPhone}?text=${waMessage}`;
           promises.push(
             fetch(waUrl, { method: "HEAD", redirect: "follow" }).catch(() => {})

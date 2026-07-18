@@ -152,8 +152,8 @@ export default function EditProfilePage() {
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar tabs */}
-        <nav className="lg:w-56 shrink-0">
-          <div className="flex gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 scrollbar-none">
+        <nav className="lg:w-48 shrink-0">
+          <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 scrollbar-none">
             {SECTIONS.map((s) => (
               <button
                 key={s.id}
@@ -165,8 +165,7 @@ export default function EditProfilePage() {
                 }`}
               >
                 <span>{s.icon}</span>
-                <span className="hidden sm:inline">{s.label}</span>
-                <span className="sm:hidden">{s.label.split(" ")[0]}</span>
+                {s.label}
               </button>
             ))}
           </div>
@@ -212,9 +211,10 @@ export default function EditProfilePage() {
                   type="tel"
                   value={form.phone}
                   onChange={(e) => handleChange("phone", e.target.value)}
-                  placeholder="Ej: 999 123 456"
+                  placeholder="Ej: 51 999 123 456"
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
                 />
+                <p className="text-xs text-gray-400 mt-1">Incluye código de país (51 para Perú). Ej: 51999123456</p>
               </div>
             </div>
           )}
