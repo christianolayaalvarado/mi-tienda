@@ -330,15 +330,7 @@ export function CartProvider({ children }) {
         }
       }
 
-      const user = await fetchSession();
-      if (!user) {
-        saveLocal(items);
-        setCartItems(items);
-        setPersisting(false);
-        setIsSyncing(false);
-        return { success: false, status: 401, error: "auth_required" };
-      }
-
+      // Try server sync even if fetchSession fails — server checks cookies directly
       const res = await fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -349,18 +341,10 @@ export function CartProvider({ children }) {
       if (!res.ok) {
         const text = await res.text().catch(() => null);
         if (res.status === 401) {
-          try {
-            if (typeof window !== "undefined") {
-              sessionStorage.setItem(
-                "pendingAdd",
-                JSON.stringify({
-                  items: normalized,
-                  ts: Date.now(),
-                })
-              );
-            }
-          } catch (e) {}
-          triedOnceRef.current = true;
+          saveLocal(items);
+          setCartItems(items);
+          setPersisting(false);
+          setIsSyncing(false);
           return { success: false, status: 401, error: "auth_required" };
         }
         throw new Error(text || "Error persistiendo carrito");

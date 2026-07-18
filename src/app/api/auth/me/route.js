@@ -1,4 +1,3 @@
-// src/app/api/auth/me/route.js
 import jwt from "jsonwebtoken";
 import { getJwtSecret } from "@/lib/getJwtSecret";
 import prisma from "@/lib/prisma";
@@ -13,7 +12,15 @@ export async function GET(req) {
   try {
     const cookieHeader = req.headers.get("cookie") || "";
 
+    // Try custom 'token' cookie first, then NextAuth session token
     let tokenEncoded = getCookieValue(cookieHeader, "token");
+
+    if (!tokenEncoded) {
+      const nextAuthToken = getCookieValue(cookieHeader, "next-auth.session-token");
+      if (nextAuthToken) {
+        tokenEncoded = encodeURIComponent(nextAuthToken);
+      }
+    }
 
     if (!tokenEncoded) {
       const auth = req.headers.get("authorization");
