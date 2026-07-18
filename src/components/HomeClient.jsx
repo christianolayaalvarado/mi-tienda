@@ -27,6 +27,7 @@ export default function HomeClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [promoVisible, setPromoVisible] = useState(false);
+  const [latestVisible, setLatestVisible] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
 
   const fetchController = useRef(null);
@@ -40,17 +41,32 @@ export default function HomeClient() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Animate promo banner cycle: in 2s → out 60s → in 120s → repeat
+  // Animate banners cycle: mascots 60s → hide 3s → latest 60s → hide 3s → repeat
   useEffect(() => {
     let t;
-    const cycle = () => {
+    const MASCOT_DURATION = 60000;
+    const LATEST_DURATION = 60000;
+    const GAP = 3000;
+
+    const showMascots = () => {
       setPromoVisible(true);
+      setLatestVisible(false);
       t = setTimeout(() => {
         setPromoVisible(false);
-        t = setTimeout(cycle, 120000);
-      }, 60000);
+        t = setTimeout(showLatest, GAP);
+      }, MASCOT_DURATION);
     };
-    t = setTimeout(cycle, 2000);
+
+    const showLatest = () => {
+      setLatestVisible(true);
+      setPromoVisible(false);
+      t = setTimeout(() => {
+        setLatestVisible(false);
+        t = setTimeout(showMascots, GAP);
+      }, LATEST_DURATION);
+    };
+
+    t = setTimeout(showMascots, 2000);
     return () => clearTimeout(t);
   }, []);
 
@@ -169,39 +185,56 @@ export default function HomeClient() {
       {/* Modal de bienvenida de mascotas */}
       <MascotWelcomeModal />
 
-      {/* Carrusel de productos destacados + Promo de mascotas (solo en vista general) */}
+      {/* Carrusel de productos destacados + Banner lateral (mascotas o productos nuevos) */}
       {!currentSearch && !currentCategory && (
         <div className="flex flex-col lg:flex-row gap-2 lg:gap-3">
           <div className="h-[166px] lg:h-[180px] w-full min-w-0">
             <FeaturedCarousel />
           </div>
-          <div
-            className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] min-w-0 overflow-hidden"
-            style={
-              isDesktop
-                ? {
-                    maxWidth: promoVisible ? "300px" : "0",
-                    opacity: promoVisible ? 1 : 0,
-                    width: promoVisible ? "300px" : "0",
-                  }
-                : {
-                    maxHeight: promoVisible ? "162px" : "0",
-                    opacity: promoVisible ? 1 : 0,
-                    width: "100%",
-                  }
-            }
-          >
-            <div className="h-[162px] lg:h-[180px] w-full">
-              <MascotPromoBanner />
+          <div className="relative min-w-0 overflow-hidden">
+            {/* Mascot banner */}
+            <div
+              className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={
+                isDesktop
+                  ? {
+                      maxWidth: promoVisible ? "300px" : "0",
+                      opacity: promoVisible ? 1 : 0,
+                      width: promoVisible ? "300px" : "0",
+                    }
+                  : {
+                      maxHeight: promoVisible ? "162px" : "0",
+                      opacity: promoVisible ? 1 : 0,
+                      width: "100%",
+                    }
+              }
+            >
+              <div className="h-[162px] lg:h-[180px] w-full">
+                <MascotPromoBanner />
+              </div>
+            </div>
+            {/* Latest products banner */}
+            <div
+              className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={
+                isDesktop
+                  ? {
+                      maxWidth: latestVisible ? "300px" : "0",
+                      opacity: latestVisible ? 1 : 0,
+                      width: latestVisible ? "300px" : "0",
+                    }
+                  : {
+                      maxHeight: latestVisible ? "162px" : "0",
+                      opacity: latestVisible ? 1 : 0,
+                      width: "100%",
+                    }
+              }
+            >
+              <div className="h-[162px] lg:h-[180px] w-full">
+                <LatestProductsBanner />
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Banner de productos nuevos */}
-      {!currentSearch && !currentCategory && (
-        <div className="mt-3">
-          <LatestProductsBanner />
         </div>
       )}
 
