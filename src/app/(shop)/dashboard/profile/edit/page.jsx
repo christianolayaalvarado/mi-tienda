@@ -37,7 +37,7 @@ export default function EditProfilePage() {
   }, []);
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (!session?.user || initial) return;
     let cancelled = false;
     (async () => {
       try {
@@ -82,7 +82,7 @@ export default function EditProfilePage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [session]);
+  }, [session?.user]);
 
   const handleChange = (k, v) => setForm((s) => ({ ...s, [k]: v }));
 
