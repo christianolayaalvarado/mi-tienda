@@ -45,32 +45,34 @@ export default function DashboardShell({ children, userName, userEmail, userRole
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold">Dashboard</h2>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="md:hidden text-gray-400 hover:text-white p-1"
-              aria-label="Cerrar menú"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        <div className="flex flex-col h-full overflow-hidden">
+          <div className="shrink-0">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Dashboard</h2>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="md:hidden text-gray-400 hover:text-white p-1"
+                aria-label="Cerrar menú"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {userName ? (
+              <p className="text-sm mb-1 font-medium break-all">{userName}</p>
+            ) : null}
+            <p className="text-xs mb-3 text-gray-300 break-all">{userEmail}</p>
           </div>
 
-          {userName ? (
-            <p className="text-sm mb-1 font-medium break-all">{userName}</p>
-          ) : null}
-          <p className="text-xs mb-4 text-gray-300 break-all">{userEmail}</p>
-
-          <nav className="flex flex-col gap-1">
+          <nav className="flex-1 flex flex-col gap-1 overflow-y-auto min-h-0 pb-2">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`px-3 py-2.5 rounded transition text-sm min-h-[44px] flex items-center gap-2 ${
+                className={`px-3 py-2.5 rounded transition text-sm min-h-[40px] flex items-center gap-2 shrink-0 ${
                   pathname === item.href
                     ? "bg-gray-700 text-white font-medium"
                     : "hover:bg-gray-700 text-gray-300"
@@ -83,14 +85,14 @@ export default function DashboardShell({ children, userName, userEmail, userRole
 
             {isAdmin && (
               <>
-                <div className="border-t border-gray-700 my-2" />
-                <p className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Admin</p>
+                <div className="border-t border-gray-700 my-2 shrink-0" />
+                <p className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider shrink-0">Admin</p>
                 {ADMIN_ITEMS.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`px-3 py-2.5 rounded transition text-sm min-h-[44px] flex items-center gap-2 ${
+                    className={`px-3 py-2.5 rounded transition text-sm min-h-[40px] flex items-center gap-2 shrink-0 ${
                       pathname === item.href
                         ? "bg-gray-700 text-white font-medium"
                         : "hover:bg-gray-700 text-gray-300"
@@ -102,11 +104,11 @@ export default function DashboardShell({ children, userName, userEmail, userRole
                 ))}
               </>
             )}
-
-            <div className="mt-auto pt-4 border-t border-gray-700">
-              <LogoutButton />
-            </div>
           </nav>
+
+          <div className="shrink-0 pt-2 border-t border-gray-700">
+            <LogoutButton />
+          </div>
         </div>
       </aside>
 
