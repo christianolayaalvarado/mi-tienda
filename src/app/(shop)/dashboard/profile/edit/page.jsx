@@ -14,12 +14,11 @@ const SECTIONS = [
 ];
 
 export default function EditProfilePage() {
-  const { data: session, update: updateSession } = useSession();
+  const { update: updateSession } = useSession();
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState("personal");
   const [loading, setLoading] = useState(false);
-  const [initial, setInitial] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -30,16 +29,9 @@ export default function EditProfilePage() {
     address: "",
     phone: "",
   });
-
-  const mountedRef = useRef(true);
-  const fetchedRef = useRef(false);
-  useEffect(() => {
-    return () => { mountedRef.current = false; };
-  }, []);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
     let cancelled = false;
     (async () => {
       try {
@@ -47,24 +39,22 @@ export default function EditProfilePage() {
         if (!res.ok) throw new Error("No se pudo cargar el perfil");
         const data = await res.json();
         if (cancelled) return;
-        const initialData = {
+        setForm({
           name: data.name ?? "",
           email: data.email ?? "",
+          password: "",
+          confirmPassword: "",
           city: data.city ?? "",
           address: data.address ?? "",
           phone: data.phone ?? "",
-        };
-        setInitial(initialData);
-        setForm((f) => ({
-          ...f,
-          name: initialData.name,
-          email: initialData.email,
-          city: initialData.city,
-          address: initialData.address,
-          phone: initialData.phone,
-        }));
-      } catch {
-        if (cancelled) return;
+        });
+        setDataLoaded(true);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Error loading profile:", err);
+          toast.error("Error al cargar el perfil");
+          setDataLoaded(true);
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -72,22 +62,9 @@ export default function EditProfilePage() {
 
   const handleChange = (k, v) => setForm((s) => ({ ...s, [k]: v }));
 
-  const hasChanges = () => {
-    if (!initial) return false;
-    if (form.name !== initial.name) return true;
-    if (form.city !== initial.city) return true;
-    if (form.address !== initial.address) return true;
-    if (form.phone !== initial.phone) return true;
-    if (form.password && form.password.length > 0) return true;
-    return false;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!hasChanges()) {
-      toast("No hay cambios para guardar");
-      return;
-    }
+
     if (form.password && form.password !== form.confirmPassword) {
       toast.error("Las contraseñas no coinciden");
       return;
@@ -95,17 +72,13 @@ export default function EditProfilePage() {
 
     setLoading(true);
     try {
-      const payload = {};
-      if (initial?.name !== form.name) payload.name = form.name;
-      if (initial?.city !== form.city) payload.city = form.city;
-      if (initial?.address !== form.address) payload.address = form.address;
-      if (initial?.phone !== form.phone) payload.phone = form.phone;
+      const payload = {
+        name: form.name,
+        city: form.city,
+        address: form.address,
+        phone: form.phone,
+      };
       if (form.password) payload.password = form.password;
-
-      if (Object.keys(payload).length === 0) {
-        toast("No hay cambios para guardar");
-        return;
-      }
 
       const res = await fetch("/api/users/me", {
         method: "PUT",
@@ -133,39 +106,27 @@ export default function EditProfilePage() {
       }
 
       toast.success(data?.message || "Perfil actualizado");
-      const newInitial = {
-        name: data?.name ?? initial?.name ?? form.name,
-        email: data?.email ?? initial?.email ?? form.email,
-        city: data?.city ?? initial?.city ?? form.city,
-        address: data?.address ?? initial?.address ?? form.address,
-        phone: data?.phone ?? initial?.phone ?? form.phone,
-      };
-      if (mountedRef.current) {
-        setInitial(newInitial);
-        setForm((f) => ({ ...f, password: "", confirmPassword: "" }));
-      }
+      setForm((f) => ({ ...f, password: "", confirmPassword: "" }));
 
       if (updateSession) {
-        updateSession({ user: { name: newInitial.name } });
+        updateSession({ user: { name: form.name } });
       }
     } catch (err) {
       console.error("handleSubmit error:", err);
       toast.error("Error inesperado al guardar");
     } finally {
-      if (mountedRef.current) setLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <div className="max-w-3xl mx-auto">
-      {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Mi Perfil</h2>
         <p className="text-sm text-gray-500 mt-1">Gestiona tu información personal y preferencias</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Sidebar tabs */}
         <nav className="lg:w-48 shrink-0">
           <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 scrollbar-none">
             {SECTIONS.map((s) => (
@@ -185,9 +146,7 @@ export default function EditProfilePage() {
           </div>
         </nav>
 
-        {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 min-w-0 space-y-6">
-          {/* Sección: Datos personales */}
           {activeTab === "personal" && (
             <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
               <div>
@@ -233,7 +192,6 @@ export default function EditProfilePage() {
             </div>
           )}
 
-          {/* Sección: Dirección */}
           {activeTab === "address" && (
             <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
               <div>
@@ -266,7 +224,6 @@ export default function EditProfilePage() {
             </div>
           )}
 
-          {/* Sección: Seguridad */}
           {activeTab === "security" && (
             <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
               <div>
@@ -313,7 +270,6 @@ export default function EditProfilePage() {
             </div>
           )}
 
-          {/* Sección: Apariencia */}
           {activeTab === "appearance" && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="mb-4">
@@ -324,11 +280,10 @@ export default function EditProfilePage() {
             </div>
           )}
 
-          {/* Botones */}
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={loading || !hasChanges()}
+              disabled={loading || !dataLoaded}
               className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
             >
               {loading ? (
