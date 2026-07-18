@@ -67,13 +67,15 @@ export default function ShippingCostModal({ storeId, storeCity, onShippingChange
     if (!storeId || !deptCode) return;
     setLoading(true);
     try {
+      const deptName = getDeptName(deptCode);
+      const provName = getProvName(deptCode, provCode);
       const res = await fetch("/api/shipping", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storeId,
-          department: deptCode,
-          province: provCode || undefined,
+          department: deptName,
+          province: provName || undefined,
         }),
       });
       const data = await res.json();

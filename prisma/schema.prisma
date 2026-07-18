@@ -315,6 +315,25 @@ model ShippingZone {
   @@index([storeId])
 }
 
+model ShippingRate {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  originCity     String   @default("Trujillo")
+  department     String
+  province       String
+  rateType       String   @default("fixed") // fixed | per_kg | per_package
+  baseCost       Float    @default(0)
+  costPerKg      Float    @default(0)
+  costPerPackage Float    @default(0)
+  minCost        Float    @default(0)
+  estimatedDays  Int      @default(3)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([originCity, department, province])
+  @@index([department])
+}
+
 model Achievement {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   userId      String   @db.ObjectId
