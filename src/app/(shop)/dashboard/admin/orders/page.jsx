@@ -169,6 +169,24 @@ export default function AdminOrdersPage() {
                     Cancelar
                   </button>
                 )}
+                {(() => {
+                  const sellerPhone = order.orderItems?.[0]?.store?.user?.phone;
+                  if (!sellerPhone) return null;
+                  const cleanPhone = sellerPhone.replace(/[^0-9]/g, "");
+                  const items = order.orderItems?.flatMap((oi) => oi.items || []) || [];
+                  const itemsText = items.map((it) => `• ${it.product?.name || "Producto"} x${it.quantity}`).join("%0A");
+                  const msg = encodeURIComponent(`🔔 Nueva orden ${order.orderNumber || order.id}%0A%0ACliente: ${order.user?.name || "N/A"}%0ATotal: S/ ${Number(order.total).toFixed(2)}%0A%0AProductos:%0A${itemsText}`);
+                  return (
+                    <a
+                      href={`https://wa.me/${cleanPhone}?text=${msg}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-green-500 text-white px-3 py-1.5 rounded-lg hover:bg-green-600 transition inline-flex items-center gap-1"
+                    >
+                      📱 WhatsApp
+                    </a>
+                  );
+                })()}
               </div>
             </div>
           ))}

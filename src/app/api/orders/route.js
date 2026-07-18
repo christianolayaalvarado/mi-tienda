@@ -272,14 +272,14 @@ export async function POST(req) {
       const storeIds = Array.from(new Set(createdOrder.orderItems.map((oi) => String(oi.storeId))));
       const stores = await prisma.store.findMany({
         where: { id: { in: storeIds } },
-        include: { owner: { select: { email: true, name: true } } },
+        include: { owner: { select: { email: true, name: true, phone: true } } },
       });
       const storeMap = new Map(stores.map((s) => [String(s.id), s]));
 
       const sellerPromises = createdOrder.orderItems.map((oi) => {
         const store = storeMap.get(String(oi.storeId));
         const sellerEmail = store?.email || store?.owner?.email;
-        if (!sellerEmail) return Promise.resolve(null); // no hay email para notificar
+        const sellerPhone = store?.owner?.phone;
         const sellerOrder = {
           id: createdOrder.id,
           orderNumber: createdOrder.orderNumber,
@@ -293,9 +293,36 @@ export async function POST(req) {
           sellerName: store?.name || store?.owner?.name || "Vendedor",
           sellerEmail,
         };
-        return sendOrderNotificationToSeller({ to: sellerEmail, order: sellerOrder }).catch((e) =>
-          console.error(`Error notificando seller (${sellerEmail}):`, e)
-        );
+
+        const promises = [];
+
+        // Email notification
+        if (sellerEmail) {
+          promises.push(
+            sendOrderNotificationToSeller({ to: sellerEmail, order: sellerOrder }).catch((e) =>
+              console.error(`Error notificando seller por email (${sellerEmail}):`, e)
+            )
+          );
+        }
+
+        // WhatsApp notification (if seller has phone)
+        if (sellerPhone) {
+          const itemsList = sellerOrder.items
+            .map((it) => `• ${it.productName} x${it.quantity} = S/ ${(it.price * it.quantity).toFixed(2)}`)
+            .join("%0A");
+          const waMessage = `🔔 *Nueva orden ${sellerOrder.orderNumber}*%0A%0A` +
+            `Cliente: ${createdOrder.customerName || "N/A"}%0A` +
+            `Total: S/ ${sellerOrder.total.toFixed(2)}%0A%0A` +
+            `Productos:%0A${itemsList}%0A%0A` +
+            `Ver detalles: ${process.env.NEXT_PUBLIC_APP_URL || "https://mi-tienda-app-theta.vercel.app"}/dashboard/seller/orders/${createdOrder.id}`;
+          const cleanPhone = sellerPhone.replace(/[^0-9]/g, "");
+          const waUrl = `https://wa.me/${cleanPhone}?text=${waMessage}`;
+          promises.push(
+            fetch(waUrl, { method: "HEAD", redirect: "follow" }).catch(() => {})
+          );
+        }
+
+        return Promise.allSettled(promises);
       });
 
       // Ejecutar envíos en paralelo y no bloquear la respuesta
