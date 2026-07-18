@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import LogoutButton from "@/components/LogoutButton";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Inicio", icon: "🏠" },
@@ -88,9 +87,6 @@ export default function DashboardShell({ children, userName, userEmail, userRole
           )}
         </nav>
 
-        <div className="pt-3 border-t border-gray-700">
-          <LogoutButton />
-        </div>
       </aside>
 
       {/* Mobile sidebar */}
@@ -157,9 +153,6 @@ export default function DashboardShell({ children, userName, userEmail, userRole
           )}
         </nav>
 
-        <div className="shrink-0 pt-3 border-t border-gray-700">
-          <LogoutButton />
-        </div>
       </aside>
 
       {/* Main content */}
