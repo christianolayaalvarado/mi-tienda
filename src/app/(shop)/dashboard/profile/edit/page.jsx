@@ -32,12 +32,14 @@ export default function EditProfilePage() {
   });
 
   const mountedRef = useRef(true);
+  const fetchedRef = useRef(false);
   useEffect(() => {
     return () => { mountedRef.current = false; };
   }, []);
 
   useEffect(() => {
-    if (!session?.user || initial) return;
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
     let cancelled = false;
     (async () => {
       try {
@@ -46,8 +48,8 @@ export default function EditProfilePage() {
         const data = await res.json();
         if (cancelled) return;
         const initialData = {
-          name: data.name ?? session.user.name ?? "",
-          email: data.email ?? session.user.email ?? "",
+          name: data.name ?? "",
+          email: data.email ?? "",
           city: data.city ?? "",
           address: data.address ?? "",
           phone: data.phone ?? "",
@@ -63,26 +65,10 @@ export default function EditProfilePage() {
         }));
       } catch {
         if (cancelled) return;
-        const initialData = {
-          name: session.user.name ?? "",
-          email: session.user.email ?? "",
-          city: "",
-          address: "",
-          phone: "",
-        };
-        setInitial(initialData);
-        setForm((f) => ({
-          ...f,
-          name: initialData.name,
-          email: initialData.email,
-          city: initialData.city,
-          address: initialData.address,
-          phone: initialData.phone,
-        }));
       }
     })();
     return () => { cancelled = true; };
-  }, [session?.user]);
+  }, []);
 
   const handleChange = (k, v) => setForm((s) => ({ ...s, [k]: v }));
 
