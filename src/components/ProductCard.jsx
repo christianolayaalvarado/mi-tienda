@@ -3,13 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { useFavorites } from "@/hooks/useFavorites";
 
 const imageSizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
 
 export default function ProductCard({ product, priority }) {
   const [imgError, setImgError] = useState(false);
-  const { isFavorited, toggle, loaded } = useFavorites();
 
   if (!product) return null;
 
@@ -19,7 +17,6 @@ export default function ProductCard({ product, priority }) {
 
   const hasValidImage = product.images?.[0] && !imgError;
   const productId = product.id?.toString() || product.id;
-  const fav = loaded && isFavorited(productId);
 
   return (
     <div className="group card-theme rounded-xl shadow-md overflow-hidden transform transition duration-300 hover:-translate-y-1 hover:shadow-2xl">
@@ -71,7 +68,7 @@ export default function ProductCard({ product, priority }) {
       </Link>
 
       <div className="px-3 pb-3 flex items-center gap-2">
-        <p className="text-xs text-theme-secondary flex-1">
+        <p className="text-xs text-theme-secondary flex-1 min-w-0 truncate">
           por{" "}
           {storeCode ? (
             <Link href={`/store/${storeCode}`} className="font-medium hover:underline hover:text-green-600">
@@ -82,30 +79,10 @@ export default function ProductCard({ product, priority }) {
           )}
         </p>
 
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggle(productId);
-          }}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition flex-shrink-0"
-          aria-label={fav ? "Quitar de favoritos" : "Agregar a favoritos"}
-        >
-          <svg
-            className="w-5 h-5 transition-colors"
-            fill={fav ? "#ef4444" : "none"}
-            stroke={fav ? "#ef4444" : "#9ca3af"}
-            strokeWidth={2}
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </button>
-
-        <Link href={`/product/${productId}`}>
-          <button className="btn-primary py-1.5 px-3 rounded-lg text-sm font-medium transition">
+        <Link href={`/product/${productId}`} className="shrink-0">
+          <span className="btn-primary py-1.5 px-3 rounded-lg text-sm font-medium transition whitespace-nowrap">
             Ver detalle
-          </button>
+          </span>
         </Link>
       </div>
     </div>

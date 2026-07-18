@@ -153,19 +153,20 @@ export default function EditProfilePage() {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar tabs */}
         <nav className="lg:w-56 shrink-0">
-          <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
+          <div className="flex gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 scrollbar-none">
             {SECTIONS.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setActiveTab(s.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition shrink-0 ${
                   activeTab === s.id
                     ? "bg-green-50 text-green-700 border border-green-200"
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
                 <span>{s.icon}</span>
-                {s.label}
+                <span className="hidden sm:inline">{s.label}</span>
+                <span className="sm:hidden">{s.label.split(" ")[0]}</span>
               </button>
             ))}
           </div>

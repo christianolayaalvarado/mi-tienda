@@ -8,6 +8,7 @@ import AuthRequiredModal from "@/components/AuthRequiredModal";
 import { fetchSession } from "@/lib/useSessionCheck";
 import toast from "react-hot-toast";
 import DiscountBadge from "@/components/DiscountBadge";
+import { useFavorites } from "@/hooks/useFavorites";
 
 const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(id);
 
@@ -36,6 +37,8 @@ export default function ProductInfo({ product }) {
   const [adding, setAdding] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const { isFavorited, toggle, loaded } = useFavorites();
+  const fav = loaded && isFavorited(productIdStr);
 
   const handleChatWithSeller = async () => {
     const user = await fetchSession();
@@ -261,7 +264,18 @@ export default function ProductInfo({ product }) {
 
   return (
     <div className="flex flex-col justify-start mt-6 md:mt-10 md:pl-10 px-2 md:px-0">
-      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center md:text-left">{product.title}</h1>
+      <div className="flex items-start gap-3">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center md:text-left flex-1">{product.title}</h1>
+        <button
+          onClick={() => toggle(productIdStr)}
+          className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition border border-gray-200"
+          aria-label={fav ? "Quitar de favoritos" : "Agregar a favoritos"}
+        >
+          <svg className="w-5 h-5 transition-colors" fill={fav ? "#ef4444" : "none"} stroke={fav ? "#ef4444" : "#9ca3af"} strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
+      </div>
 
       {/* Badge de descuento */}
       {product.originalPrice && product.originalPrice > product.price && (
