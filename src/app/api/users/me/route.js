@@ -2,12 +2,44 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { getJwtSecret } from "@/lib/getJwtSecret";
 import prisma from "@/lib/prisma";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
 function jsonResponse(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: JSON_HEADERS });
+}
+
+function getCookieValue(cookieHeader, name) {
+  if (!cookieHeader) return undefined;
+  const match = cookieHeader.split("; ").find(c => c.startsWith(name + "="));
+  return match ? match.split("=").slice(1).join("=") : undefined;
+}
+
+async function resolveUserId(req) {
+  const session = await getServerSession(authOptions);
+  if (session?.user?.id) return session.user.id;
+
+  const cookieHeader = req.headers.get("cookie") || "";
+  let tokenStr = getCookieValue(cookieHeader, "token");
+  if (!tokenStr) {
+    const nextAuth = getCookieValue(cookieHeader, "next-auth.session-token");
+    if (nextAuth) tokenStr = nextAuth;
+  }
+  if (!tokenStr) {
+    const auth = req.headers.get("authorization");
+    if (auth?.startsWith("Bearer ")) tokenStr = auth.slice(7);
+  }
+  if (!tokenStr) return null;
+
+  try {
+    const payload = jwt.verify(tokenStr, getJwtSecret());
+    return payload.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function GET() {
@@ -33,11 +65,8 @@ export async function GET() {
 
 export async function PUT(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return jsonResponse({ error: "No autorizado" }, 401);
-
-    const userId = session.user?.id;
-    if (!userId) return jsonResponse({ error: "Usuario no identificado" }, 401);
+    const userId = await resolveUserId(req);
+    if (!userId) return jsonResponse({ error: "No autorizado" }, 401);
 
     let body;
     try {

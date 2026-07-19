@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -20,7 +20,7 @@ export default function EditProfilePage() {
   const [activeTab, setActiveTab] = useState("personal");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const initializedRef = useRef(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -32,7 +32,10 @@ export default function EditProfilePage() {
   });
 
   useEffect(() => {
+    if (initializedRef.current) return;
     if (!session?.user) return;
+    initializedRef.current = true;
+
     setForm({
       name: session.user.name ?? "",
       email: session.user.email ?? "",
@@ -42,7 +45,6 @@ export default function EditProfilePage() {
       address: "",
       phone: "",
     });
-    setDataLoaded(true);
 
     (async () => {
       try {
@@ -50,16 +52,17 @@ export default function EditProfilePage() {
         if (!res.ok) return;
         const data = await res.json();
         setForm((f) => ({
-          ...f,
           name: data.name ?? f.name,
           email: data.email ?? f.email,
-          city: data.city ?? "",
-          address: data.address ?? "",
-          phone: data.phone ?? "",
+          password: "",
+          confirmPassword: "",
+          city: data.city ?? f.city,
+          address: data.address ?? f.address,
+          phone: data.phone ?? f.phone,
         }));
       } catch {}
     })();
-  }, [session]);
+  }, [session?.user?.id]);
 
   const handleChange = (k, v) => setForm((s) => ({ ...s, [k]: v }));
 
@@ -110,7 +113,7 @@ export default function EditProfilePage() {
       setForm((f) => ({ ...f, password: "", confirmPassword: "" }));
 
       if (updateSession) {
-        updateSession({ user: { name: form.name } });
+        await updateSession({ user: { name: form.name } });
       }
     } catch (err) {
       console.error("handleSubmit error:", err);
@@ -284,7 +287,7 @@ export default function EditProfilePage() {
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={loading || !dataLoaded}
+              disabled={loading}
               className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
             >
               {loading ? (
