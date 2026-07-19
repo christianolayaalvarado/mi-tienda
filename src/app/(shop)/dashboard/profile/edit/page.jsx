@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -14,12 +14,13 @@ const SECTIONS = [
 ];
 
 export default function EditProfilePage() {
-  const { update: updateSession } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState("personal");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -29,36 +30,36 @@ export default function EditProfilePage() {
     address: "",
     phone: "",
   });
-  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!session?.user) return;
+    setForm({
+      name: session.user.name ?? "",
+      email: session.user.email ?? "",
+      password: "",
+      confirmPassword: "",
+      city: "",
+      address: "",
+      phone: "",
+    });
+    setDataLoaded(true);
+
     (async () => {
       try {
         const res = await fetch("/api/users/me", { credentials: "include" });
-        if (!res.ok) throw new Error("No se pudo cargar el perfil");
+        if (!res.ok) return;
         const data = await res.json();
-        if (cancelled) return;
-        setForm({
-          name: data.name ?? "",
-          email: data.email ?? "",
-          password: "",
-          confirmPassword: "",
+        setForm((f) => ({
+          ...f,
+          name: data.name ?? f.name,
+          email: data.email ?? f.email,
           city: data.city ?? "",
           address: data.address ?? "",
           phone: data.phone ?? "",
-        });
-        setDataLoaded(true);
-      } catch (err) {
-        if (!cancelled) {
-          console.error("Error loading profile:", err);
-          toast.error("Error al cargar el perfil");
-          setDataLoaded(true);
-        }
-      }
+        }));
+      } catch {}
     })();
-    return () => { cancelled = true; };
-  }, []);
+  }, [session]);
 
   const handleChange = (k, v) => setForm((s) => ({ ...s, [k]: v }));
 
@@ -97,7 +98,7 @@ export default function EditProfilePage() {
       }
 
       if (res.status === 401) {
-        toast.error("No autorizado. Inicia sesión.");
+        toast.error("Sesión expirada. Inicia sesión nuevamente.");
         return;
       }
       if (!res.ok) {
