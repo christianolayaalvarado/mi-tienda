@@ -183,26 +183,35 @@ export default function HomeClient() {
       {/* 3 banners: Featured + Mascots + Latest */}
       {!currentSearch && !currentCategory && (
         <>
-          {/* Mobile: one banner at a time, fixed height, smooth fade */}
+          {/* Mobile: one banner at a time, push from right */}
           <div className="relative w-full h-[200px] lg:hidden rounded-xl overflow-hidden">
-            {/* Featured */}
+            {/* Featured: at center when visible, slides left when hidden */}
             <div
-              className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
-              style={{ opacity: featuredHidden ? 0 : 1, pointerEvents: featuredHidden ? "none" : "auto" }}
+              className="absolute inset-0 transition-transform duration-1000 ease-in-out"
+              style={{
+                transform: featuredHidden ? "translateX(-100%)" : "translateX(0)",
+                pointerEvents: featuredHidden ? "none" : "auto",
+              }}
             >
               <FeaturedCarousel />
             </div>
-            {/* Mascots */}
+            {/* Mascots: slides in from right when visible, slides left when hidden */}
             <div
-              className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
-              style={{ opacity: promoVisible ? 1 : 0, pointerEvents: promoVisible ? "auto" : "none" }}
+              className="absolute inset-0 transition-transform duration-1000 ease-in-out"
+              style={{
+                transform: promoVisible ? "translateX(0)" : (latestVisible ? "translateX(-100%)" : "translateX(100%)"),
+                pointerEvents: promoVisible ? "auto" : "none",
+              }}
             >
               <MascotPromoBanner />
             </div>
-            {/* Latest */}
+            {/* Latest: slides in from right when visible, slides left when hidden */}
             <div
-              className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
-              style={{ opacity: latestVisible ? 1 : 0, pointerEvents: latestVisible ? "auto" : "none" }}
+              className="absolute inset-0 transition-transform duration-1000 ease-in-out"
+              style={{
+                transform: latestVisible ? "translateX(0)" : "translateX(100%)",
+                pointerEvents: latestVisible ? "auto" : "none",
+              }}
             >
               <LatestProductsBanner />
             </div>
