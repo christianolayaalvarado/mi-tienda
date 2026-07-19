@@ -28,20 +28,23 @@ export default function HomeClient() {
   const [error, setError] = useState(null);
   const [promoVisible, setPromoVisible] = useState(false);
   const [latestVisible, setLatestVisible] = useState(false);
+  const [featuredHidden, setFeaturedHidden] = useState(false);
 
   // Width percentages per state:
-  //   only featured:              Featured=100%
-  //   featured + mascots:         Featured=70%, Mascots=30%
-  //   featured + mascots + latest: Featured=60%, Mascots=20%, Latest=20%
-  const featuredWidth = latestVisible ? "60%" : promoVisible ? "70%" : "100%";
-  const mascotWidth = latestVisible ? "20%" : promoVisible ? "30%" : "0%";
-  const latestWidth = latestVisible ? "20%" : "0%";
+  //   0s:   Featured=100%, Mascots=0%,    Latest=0%
+  //   +10s: Featured=70%,  Mascots=30%,   Latest=0%
+  //   +20s: Featured=0%,   Mascots=30%,   Latest=70%
+  //   +34s: Featured=70%,  Mascots=30%,   Latest=0%
+  //   +44s: Featured=100%, Mascots=0%,    Latest=0%
+  const featuredWidth = featuredHidden ? "0%" : promoVisible ? "70%" : "100%";
+  const mascotWidth = promoVisible ? "30%" : "0%";
+  const latestWidth = latestVisible ? "70%" : "0%";
 
   const fetchController = useRef(null);
   const isFirstLoad = useRef(true);
   const mounted = useRef(false);
 
-  // Banner cycle: 10s → mascots 20s → latest 34s → hide latest 44s → hide mascots 45s → restart
+  // Banner cycle: 10s mascots → 20s latest+hide featured → 34s featured+hide latest → 44s hide mascots → 45s restart
   useEffect(() => {
     let timers = [];
     const clear = () => timers.forEach(clearTimeout);
@@ -50,9 +53,10 @@ export default function HomeClient() {
     const runCycle = () => {
       setPromoVisible(false);
       setLatestVisible(false);
+      setFeaturedHidden(false);
       delay(10000, () => setPromoVisible(true));
-      delay(20000, () => setLatestVisible(true));
-      delay(34000, () => setLatestVisible(false));
+      delay(20000, () => { setFeaturedHidden(true); setLatestVisible(true); });
+      delay(34000, () => { setFeaturedHidden(false); setLatestVisible(false); });
       delay(44000, () => setPromoVisible(false));
       delay(45000, runCycle);
     };
@@ -181,7 +185,10 @@ export default function HomeClient() {
         <>
           {/* Mobile: stack vertically */}
           <div className="flex flex-col gap-3 lg:hidden">
-            <div className="w-full rounded-xl overflow-hidden">
+            <div
+              className="w-full rounded-xl overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{ maxHeight: featuredHidden ? "0" : "200px", opacity: featuredHidden ? 0 : 1 }}
+            >
               <FeaturedCarousel />
             </div>
             <div
@@ -202,7 +209,7 @@ export default function HomeClient() {
           <div className="hidden lg:flex gap-3 w-full h-[200px]">
             <div
               className="h-full shrink-0 overflow-hidden rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{ width: featuredWidth }}
+              style={{ width: featuredWidth, opacity: featuredHidden ? 0 : 1 }}
             >
               <FeaturedCarousel />
             </div>
