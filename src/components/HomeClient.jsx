@@ -183,58 +183,47 @@ export default function HomeClient() {
       {/* 3 banners: Featured + Mascots + Latest */}
       {!currentSearch && !currentCategory && (
         <>
-          {/* Mobile: one banner at a time, fixed height, push from right */}
+          {/* Mobile: one banner at a time, fixed height, smooth fade */}
           <div className="relative w-full h-[200px] lg:hidden rounded-xl overflow-hidden">
             {/* Featured */}
             <div
-              className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{
-                opacity: featuredHidden ? 0 : 1,
-                transform: featuredHidden ? "translateX(-100%)" : "translateX(0)",
-              }}
+              className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
+              style={{ opacity: featuredHidden ? 0 : 1, pointerEvents: featuredHidden ? "none" : "auto" }}
             >
               <FeaturedCarousel />
             </div>
             {/* Mascots */}
             <div
-              className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{
-                opacity: promoVisible ? 1 : 0,
-                transform: promoVisible ? "translateX(0)" : "translateX(100%)",
-                pointerEvents: promoVisible ? "auto" : "none",
-              }}
+              className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
+              style={{ opacity: promoVisible ? 1 : 0, pointerEvents: promoVisible ? "auto" : "none" }}
             >
               <MascotPromoBanner />
             </div>
             {/* Latest */}
             <div
-              className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{
-                opacity: latestVisible ? 1 : 0,
-                transform: latestVisible ? "translateX(0)" : "translateX(100%)",
-                pointerEvents: latestVisible ? "auto" : "none",
-              }}
+              className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
+              style={{ opacity: latestVisible ? 1 : 0, pointerEvents: latestVisible ? "auto" : "none" }}
             >
               <LatestProductsBanner />
             </div>
           </div>
 
-          {/* Desktop: side by side */}
+          {/* Desktop: side by side, smooth fade + width */}
           <div className="hidden lg:flex gap-3 w-full h-[200px]">
             <div
-              className="h-full shrink-0 overflow-hidden rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="h-full shrink-0 overflow-hidden rounded-xl transition-all duration-1000 ease-in-out"
               style={{ width: featuredWidth, opacity: featuredHidden ? 0 : 1 }}
             >
               <FeaturedCarousel />
             </div>
             <div
-              className="h-full shrink-0 overflow-hidden rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="h-full shrink-0 overflow-hidden rounded-xl transition-all duration-1000 ease-in-out"
               style={{ width: mascotWidth, opacity: promoVisible ? 1 : 0 }}
             >
               <MascotPromoBanner />
             </div>
             <div
-              className="h-full shrink-0 overflow-hidden rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="h-full shrink-0 overflow-hidden rounded-xl transition-all duration-1000 ease-in-out"
               style={{ width: latestWidth, opacity: latestVisible ? 1 : 0 }}
             >
               <LatestProductsBanner />
