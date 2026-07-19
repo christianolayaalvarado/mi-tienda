@@ -183,14 +183,14 @@ export default function HomeClient() {
       {/* 3 banners: Featured + Mascots + Latest */}
       {!currentSearch && !currentCategory && (
         <>
-          {/* Mobile: one banner at a time, fixed height, push transitions */}
+          {/* Mobile: one banner at a time, fixed height, push from right */}
           <div className="relative w-full h-[200px] lg:hidden rounded-xl overflow-hidden">
             {/* Featured */}
             <div
               className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{
                 opacity: featuredHidden ? 0 : 1,
-                transform: featuredHidden ? "translateY(-100%)" : "translateY(0)",
+                transform: featuredHidden ? "translateX(-100%)" : "translateX(0)",
               }}
             >
               <FeaturedCarousel />
@@ -200,7 +200,7 @@ export default function HomeClient() {
               className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{
                 opacity: promoVisible ? 1 : 0,
-                transform: promoVisible ? "translateY(0)" : "translateY(100%)",
+                transform: promoVisible ? "translateX(0)" : "translateX(100%)",
                 pointerEvents: promoVisible ? "auto" : "none",
               }}
             >
@@ -211,7 +211,7 @@ export default function HomeClient() {
               className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{
                 opacity: latestVisible ? 1 : 0,
-                transform: latestVisible ? "translateY(0)" : "translateY(100%)",
+                transform: latestVisible ? "translateX(0)" : "translateX(100%)",
                 pointerEvents: latestVisible ? "auto" : "none",
               }}
             >
