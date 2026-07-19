@@ -41,7 +41,7 @@ export default function HomeClient() {
   const isFirstLoad = useRef(true);
   const mounted = useRef(false);
 
-  // Banner cycle: 10s → mascots 16s → latest 24s → hide latest 34s → hide mascots 35s → restart
+  // Banner cycle: 10s → mascots 20s → latest 34s → hide latest 44s → hide mascots 45s → restart
   useEffect(() => {
     let timers = [];
     const clear = () => timers.forEach(clearTimeout);
@@ -51,10 +51,10 @@ export default function HomeClient() {
       setPromoVisible(false);
       setLatestVisible(false);
       delay(10000, () => setPromoVisible(true));
-      delay(16000, () => setLatestVisible(true));
-      delay(24000, () => setLatestVisible(false));
-      delay(34000, () => setPromoVisible(false));
-      delay(35000, runCycle);
+      delay(20000, () => setLatestVisible(true));
+      delay(34000, () => setLatestVisible(false));
+      delay(44000, () => setPromoVisible(false));
+      delay(45000, runCycle);
     };
 
     runCycle();
