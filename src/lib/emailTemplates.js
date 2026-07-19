@@ -23,7 +23,7 @@ const baseTemplate = (content) => `
         <!-- HEADER -->
         <tr>
           <td style="background:linear-gradient(135deg,#16a34a 0%,#059669 100%);padding:28px 32px;text-align:center;">
-            <img src="${appUrl}/images/logo.png" alt="Mi Tienda" style="height:48px;width:auto;display:block;margin:0 auto 8px;" />
+            <img src="${appUrl}/images/logo-white.png" alt="Mi Tienda" style="height:48px;width:auto;display:block;margin:0 auto 8px;" />
             <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Tu plataforma de compras y ventas</p>
           </td>
         </tr>
