@@ -29,12 +29,13 @@ export default function HomeClient() {
   const [promoVisible, setPromoVisible] = useState(false);
   const [latestVisible, setLatestVisible] = useState(false);
 
-  // Calculate widths: 1 banner = 100%, 2 = 50% each, 3 = 33.33% each
-  const totalVisible = 1 + (promoVisible ? 1 : 0) + (latestVisible ? 1 : 0);
-  const sharedWidth = `${100 / totalVisible}%`;
-  const featuredWidth = sharedWidth;
-  const mascotWidth = promoVisible ? sharedWidth : "0%";
-  const latestWidth = latestVisible ? sharedWidth : "0%";
+  // Width percentages per state:
+  //   only featured:              Featured=100%
+  //   featured + mascots:         Featured=70%, Mascots=30%
+  //   featured + mascots + latest: Featured=60%, Mascots=20%, Latest=20%
+  const featuredWidth = latestVisible ? "60%" : promoVisible ? "70%" : "100%";
+  const mascotWidth = latestVisible ? "20%" : promoVisible ? "30%" : "0%";
+  const latestWidth = latestVisible ? "20%" : "0%";
 
   const fetchController = useRef(null);
   const isFirstLoad = useRef(true);
@@ -190,18 +191,14 @@ export default function HomeClient() {
             className="h-full shrink-0 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{ width: mascotWidth, opacity: promoVisible ? 1 : 0 }}
           >
-            <div className="h-full w-[280px] lg:w-[300px]">
-              <MascotPromoBanner />
-            </div>
+            <MascotPromoBanner />
           </div>
           {/* Latest */}
           <div
             className="h-full shrink-0 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{ width: latestWidth, opacity: latestVisible ? 1 : 0 }}
           >
-            <div className="h-full w-[280px] lg:w-[300px]">
-              <LatestProductsBanner />
-            </div>
+            <LatestProductsBanner />
           </div>
         </div>
       )}

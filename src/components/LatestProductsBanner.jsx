@@ -37,9 +37,9 @@ export default function LatestProductsBanner() {
   const product = products[currentIdx];
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full">
       <div
-        className="relative w-full h-[140px] sm:h-[160px] lg:h-[180px] rounded-xl overflow-hidden shadow-lg shadow-blue-500/15"
+        className="relative w-full h-full rounded-xl overflow-hidden shadow-lg shadow-blue-500/15"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
