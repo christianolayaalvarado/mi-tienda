@@ -140,6 +140,7 @@ model Order {
   customerPhone    String?
   customerAddress  String?
   orderNumber      String?
+  clientOrderId    String?
   orderItems       OrderItem[]
   createdAt        DateTime    @default(now())
   paymentVerifiedBy String?

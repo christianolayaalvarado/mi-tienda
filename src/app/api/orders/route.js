@@ -76,7 +76,7 @@ export async function POST(req) {
 
     // Idempotencia simple: si envían clientOrderId, devolver orden existente
     if (clientOrderId) {
-      const existing = await prisma.order.findFirst({ where: { clientOrderId } });
+      const existing = await prisma.order.findFirst({ where: { clientOrderId: clientOrderId } });
       if (existing) {
         return NextResponse.json({ order: existing }, { status: 200 });
       }
@@ -91,7 +91,7 @@ export async function POST(req) {
 
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, price: true, stock: true, storeId: true, name: true },
+      select: { id: true, price: true, stock: true, storeId: true, title: true },
     });
     const productMap = new Map(products.map((p) => [p.id, p]));
 
@@ -104,7 +104,7 @@ export async function POST(req) {
       const resolvedStoreId = product?.storeId ?? String(it.storeId || "");
       return {
         productId: pid,
-        productName: product?.name || it.productName || "",
+        productName: product?.title || it.productName || "",
         quantity,
         unitPrice,
         priceInCents: Math.round((Number(unitPrice) || 0) * 100),
