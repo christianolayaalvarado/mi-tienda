@@ -176,31 +176,50 @@ export default function HomeClient() {
       {/* Modal de bienvenida de mascotas */}
       <MascotWelcomeModal />
 
-      {/* 3 banners side-by-side: Featured + Mascots + Latest */}
+      {/* 3 banners: Featured + Mascots + Latest */}
       {!currentSearch && !currentCategory && (
-        <div className="relative w-full h-[260px] lg:h-[200px] flex gap-2 lg:gap-3 overflow-hidden">
-          {/* Featured */}
-          <div
-            className="h-full shrink-0 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{ width: featuredWidth }}
-          >
-            <FeaturedCarousel />
+        <>
+          {/* Mobile: stack vertically */}
+          <div className="flex flex-col gap-3 lg:hidden">
+            <div className="w-full">
+              <FeaturedCarousel />
+            </div>
+            <div
+              className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
+              style={{ maxHeight: promoVisible ? "200px" : "0", opacity: promoVisible ? 1 : 0 }}
+            >
+              <MascotPromoBanner />
+            </div>
+            <div
+              className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
+              style={{ maxHeight: latestVisible ? "200px" : "0", opacity: latestVisible ? 1 : 0 }}
+            >
+              <LatestProductsBanner />
+            </div>
           </div>
-          {/* Mascots */}
-          <div
-            className="h-full shrink-0 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{ width: mascotWidth, opacity: promoVisible ? 1 : 0 }}
-          >
-            <MascotPromoBanner />
+
+          {/* Desktop: side by side */}
+          <div className="hidden lg:flex gap-3 w-full h-[200px]">
+            <div
+              className="h-full shrink-0 overflow-hidden rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{ width: featuredWidth }}
+            >
+              <FeaturedCarousel />
+            </div>
+            <div
+              className="h-full shrink-0 overflow-hidden rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{ width: mascotWidth, opacity: promoVisible ? 1 : 0 }}
+            >
+              <MascotPromoBanner />
+            </div>
+            <div
+              className="h-full shrink-0 overflow-hidden rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{ width: latestWidth, opacity: latestVisible ? 1 : 0 }}
+            >
+              <LatestProductsBanner />
+            </div>
           </div>
-          {/* Latest */}
-          <div
-            className="h-full shrink-0 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{ width: latestWidth, opacity: latestVisible ? 1 : 0 }}
-          >
-            <LatestProductsBanner />
-          </div>
-        </div>
+        </>
       )}
 
       {/* Título de sección + selector de orden */}
