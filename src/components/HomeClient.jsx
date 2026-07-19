@@ -183,23 +183,37 @@ export default function HomeClient() {
       {/* 3 banners: Featured + Mascots + Latest */}
       {!currentSearch && !currentCategory && (
         <>
-          {/* Mobile: stack vertically */}
-          <div className="flex flex-col gap-3 lg:hidden">
+          {/* Mobile: one banner at a time, fixed height, push transitions */}
+          <div className="relative w-full h-[200px] lg:hidden rounded-xl overflow-hidden">
+            {/* Featured */}
             <div
-              className="w-full rounded-xl overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{ maxHeight: featuredHidden ? "0" : "200px", opacity: featuredHidden ? 0 : 1 }}
+              className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{
+                opacity: featuredHidden ? 0 : 1,
+                transform: featuredHidden ? "translateY(-100%)" : "translateY(0)",
+              }}
             >
               <FeaturedCarousel />
             </div>
+            {/* Mascots */}
             <div
-              className="rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
-              style={{ maxHeight: promoVisible ? "200px" : "0", opacity: promoVisible ? 1 : 0 }}
+              className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{
+                opacity: promoVisible ? 1 : 0,
+                transform: promoVisible ? "translateY(0)" : "translateY(100%)",
+                pointerEvents: promoVisible ? "auto" : "none",
+              }}
             >
               <MascotPromoBanner />
             </div>
+            {/* Latest */}
             <div
-              className="rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
-              style={{ maxHeight: latestVisible ? "200px" : "0", opacity: latestVisible ? 1 : 0 }}
+              className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{
+                opacity: latestVisible ? 1 : 0,
+                transform: latestVisible ? "translateY(0)" : "translateY(100%)",
+                pointerEvents: latestVisible ? "auto" : "none",
+              }}
             >
               <LatestProductsBanner />
             </div>
