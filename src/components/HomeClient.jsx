@@ -41,33 +41,24 @@ export default function HomeClient() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Animate banners cycle: mascots 60s → hide 3s → latest 60s → hide 3s → repeat
+  // Banner cycle: +3s mascots appear → +3s latest appear → +10s latest disappears → +3s mascots disappear → restart
   useEffect(() => {
-    let t;
-    const MASCOT_DURATION = 60000;
-    const LATEST_DURATION = 60000;
-    const GAP = 3000;
+    let timers = [];
+    const clear = () => timers.forEach(clearTimeout);
+    const delay = (ms, fn) => { timers.push(setTimeout(fn, ms)); };
 
-    const showMascots = () => {
-      setPromoVisible(true);
-      setLatestVisible(false);
-      t = setTimeout(() => {
-        setPromoVisible(false);
-        t = setTimeout(showLatest, GAP);
-      }, MASCOT_DURATION);
-    };
-
-    const showLatest = () => {
-      setLatestVisible(true);
+    const runCycle = () => {
       setPromoVisible(false);
-      t = setTimeout(() => {
-        setLatestVisible(false);
-        t = setTimeout(showMascots, GAP);
-      }, LATEST_DURATION);
+      setLatestVisible(false);
+      delay(3000, () => setPromoVisible(true));
+      delay(6000, () => setLatestVisible(true));
+      delay(16000, () => setLatestVisible(false));
+      delay(19000, () => setPromoVisible(false));
+      delay(22000, runCycle);
     };
 
-    t = setTimeout(showMascots, 2000);
-    return () => clearTimeout(t);
+    runCycle();
+    return clear;
   }, []);
 
   // evitar renderizar una paginación enorme
@@ -188,25 +179,17 @@ export default function HomeClient() {
       {/* Carrusel de productos destacados + Banner lateral (mascotas o productos nuevos) */}
       {!currentSearch && !currentCategory && (
         <div className="flex flex-col lg:flex-row gap-2 lg:gap-3">
-          <div className="h-[166px] lg:h-[180px] w-full min-w-0">
+          <div className="h-[166px] lg:h-[372px] w-full min-w-0">
             <FeaturedCarousel />
           </div>
-          <div className="relative min-w-0 overflow-hidden">
+          <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-hidden">
             {/* Mascot banner */}
             <div
-              className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
               style={
                 isDesktop
-                  ? {
-                      maxWidth: promoVisible ? "300px" : "0",
-                      opacity: promoVisible ? 1 : 0,
-                      width: promoVisible ? "300px" : "0",
-                    }
-                  : {
-                      maxHeight: promoVisible ? "162px" : "0",
-                      opacity: promoVisible ? 1 : 0,
-                      width: "100%",
-                    }
+                  ? { maxWidth: promoVisible ? "300px" : "0", opacity: promoVisible ? 1 : 0, width: promoVisible ? "300px" : "0" }
+                  : { maxHeight: promoVisible ? "162px" : "0", opacity: promoVisible ? 1 : 0, width: "100%" }
               }
             >
               <div className="h-[162px] lg:h-[180px] w-full">
@@ -215,19 +198,11 @@ export default function HomeClient() {
             </div>
             {/* Latest products banner */}
             <div
-              className="absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
               style={
                 isDesktop
-                  ? {
-                      maxWidth: latestVisible ? "300px" : "0",
-                      opacity: latestVisible ? 1 : 0,
-                      width: latestVisible ? "300px" : "0",
-                    }
-                  : {
-                      maxHeight: latestVisible ? "162px" : "0",
-                      opacity: latestVisible ? 1 : 0,
-                      width: "100%",
-                    }
+                  ? { maxWidth: latestVisible ? "300px" : "0", opacity: latestVisible ? 1 : 0, width: latestVisible ? "300px" : "0" }
+                  : { maxHeight: latestVisible ? "162px" : "0", opacity: latestVisible ? 1 : 0, width: "100%" }
               }
             >
               <div className="h-[162px] lg:h-[180px] w-full">
