@@ -30,7 +30,7 @@ export default function HomeClient() {
   const [latestVisible, setLatestVisible] = useState(false);
   const [featuredHidden, setFeaturedHidden] = useState(false);
 
-  // Width percentages per state:
+  // Width percentages per state (desktop):
   //   0s:   Featured=100%, Mascots=0%,    Latest=0%
   //   +10s: Featured=70%,  Mascots=30%,   Latest=0%
   //   +20s: Featured=0%,   Mascots=30%,   Latest=70%
@@ -39,6 +39,9 @@ export default function HomeClient() {
   const featuredWidth = featuredHidden ? "0%" : promoVisible ? "70%" : "100%";
   const mascotWidth = promoVisible ? "30%" : "0%";
   const latestWidth = latestVisible ? "70%" : "0%";
+
+  // Mobile: which banner is active (0=Featured, 1=Mascots, 2=Latest)
+  const mobileActiveIndex = featuredHidden && latestVisible ? 2 : promoVisible ? 1 : 0;
 
   const fetchController = useRef(null);
   const isFirstLoad = useRef(true);
@@ -183,37 +186,21 @@ export default function HomeClient() {
       {/* 3 banners: Featured + Mascots + Latest */}
       {!currentSearch && !currentCategory && (
         <>
-          {/* Mobile: one banner at a time, push from right */}
+          {/* Mobile: carousel push effect — one banner at a time */}
           <div className="relative w-full h-[200px] lg:hidden rounded-xl overflow-hidden">
-            {/* Featured: at center when visible, slides left when hidden */}
             <div
-              className="absolute inset-0 transition-transform duration-1000 ease-in-out"
-              style={{
-                transform: featuredHidden ? "translateX(-100%)" : "translateX(0)",
-                pointerEvents: featuredHidden ? "none" : "auto",
-              }}
+              className="flex h-full transition-transform duration-1000 ease-in-out"
+              style={{ transform: `translateX(-${mobileActiveIndex * 100}%)` }}
             >
-              <FeaturedCarousel />
-            </div>
-            {/* Mascots: slides in from right when visible, slides left when hidden */}
-            <div
-              className="absolute inset-0 transition-transform duration-1000 ease-in-out"
-              style={{
-                transform: promoVisible ? "translateX(0)" : (latestVisible ? "translateX(-100%)" : "translateX(100%)"),
-                pointerEvents: promoVisible ? "auto" : "none",
-              }}
-            >
-              <MascotPromoBanner />
-            </div>
-            {/* Latest: slides in from right when visible, slides left when hidden */}
-            <div
-              className="absolute inset-0 transition-transform duration-1000 ease-in-out"
-              style={{
-                transform: latestVisible ? "translateX(0)" : "translateX(100%)",
-                pointerEvents: latestVisible ? "auto" : "none",
-              }}
-            >
-              <LatestProductsBanner />
+              <div className="w-full h-full shrink-0">
+                <FeaturedCarousel />
+              </div>
+              <div className="w-full h-full shrink-0">
+                <MascotPromoBanner />
+              </div>
+              <div className="w-full h-full shrink-0">
+                <LatestProductsBanner />
+              </div>
             </div>
           </div>
 
