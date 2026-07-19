@@ -28,18 +28,17 @@ export default function HomeClient() {
   const [error, setError] = useState(null);
   const [promoVisible, setPromoVisible] = useState(false);
   const [latestVisible, setLatestVisible] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(true);
+
+  // Calculate widths: 1 banner = 100%, 2 = 50% each, 3 = 33.33% each
+  const totalVisible = 1 + (promoVisible ? 1 : 0) + (latestVisible ? 1 : 0);
+  const sharedWidth = `${100 / totalVisible}%`;
+  const featuredWidth = sharedWidth;
+  const mascotWidth = promoVisible ? sharedWidth : "0%";
+  const latestWidth = latestVisible ? sharedWidth : "0%";
 
   const fetchController = useRef(null);
   const isFirstLoad = useRef(true);
   const mounted = useRef(false);
-
-  useEffect(() => {
-    const check = () => setIsDesktop(window.innerWidth >= 1024);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   // Banner cycle: +3s mascots appear → +3s latest appear → +10s latest disappears → +3s mascots disappear → restart
   useEffect(() => {
@@ -176,38 +175,32 @@ export default function HomeClient() {
       {/* Modal de bienvenida de mascotas */}
       <MascotWelcomeModal />
 
-      {/* Carrusel de productos destacados + Banner lateral (mascotas o productos nuevos) */}
+      {/* 3 banners side-by-side: Featured + Mascots + Latest */}
       {!currentSearch && !currentCategory && (
-        <div className="flex flex-col lg:flex-row gap-2 lg:gap-3">
-          <div className="h-[166px] lg:h-[372px] w-full min-w-0">
+        <div className="relative w-full h-[260px] lg:h-[200px] flex gap-2 lg:gap-3 overflow-hidden">
+          {/* Featured */}
+          <div
+            className="h-full shrink-0 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ width: featuredWidth }}
+          >
             <FeaturedCarousel />
           </div>
-          <div className="flex flex-col gap-2 lg:gap-3 min-w-0 overflow-hidden">
-            {/* Mascot banner */}
-            <div
-              className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
-              style={
-                isDesktop
-                  ? { maxWidth: promoVisible ? "300px" : "0", opacity: promoVisible ? 1 : 0, width: promoVisible ? "300px" : "0" }
-                  : { maxHeight: promoVisible ? "162px" : "0", opacity: promoVisible ? 1 : 0, width: "100%" }
-              }
-            >
-              <div className="h-[162px] lg:h-[180px] w-full">
-                <MascotPromoBanner />
-              </div>
+          {/* Mascots */}
+          <div
+            className="h-full shrink-0 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ width: mascotWidth, opacity: promoVisible ? 1 : 0 }}
+          >
+            <div className="h-full w-[280px] lg:w-[300px]">
+              <MascotPromoBanner />
             </div>
-            {/* Latest products banner */}
-            <div
-              className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
-              style={
-                isDesktop
-                  ? { maxWidth: latestVisible ? "300px" : "0", opacity: latestVisible ? 1 : 0, width: latestVisible ? "300px" : "0" }
-                  : { maxHeight: latestVisible ? "162px" : "0", opacity: latestVisible ? 1 : 0, width: "100%" }
-              }
-            >
-              <div className="h-[162px] lg:h-[180px] w-full">
-                <LatestProductsBanner />
-              </div>
+          </div>
+          {/* Latest */}
+          <div
+            className="h-full shrink-0 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ width: latestWidth, opacity: latestVisible ? 1 : 0 }}
+          >
+            <div className="h-full w-[280px] lg:w-[300px]">
+              <LatestProductsBanner />
             </div>
           </div>
         </div>
