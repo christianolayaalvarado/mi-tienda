@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import ThemeSelector from "@/components/ThemeSelector";
@@ -14,7 +13,6 @@ const SECTIONS = [
 ];
 
 export default function EditProfilePage() {
-  const { data: session, update: updateSession } = useSession();
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState("personal");
@@ -33,36 +31,25 @@ export default function EditProfilePage() {
 
   useEffect(() => {
     if (initializedRef.current) return;
-    if (!session?.user) return;
     initializedRef.current = true;
-
-    setForm({
-      name: session.user.name ?? "",
-      email: session.user.email ?? "",
-      password: "",
-      confirmPassword: "",
-      city: "",
-      address: "",
-      phone: "",
-    });
 
     (async () => {
       try {
         const res = await fetch("/api/users/me", { credentials: "include" });
         if (!res.ok) return;
         const data = await res.json();
-        setForm((f) => ({
-          name: data.name ?? f.name,
-          email: data.email ?? f.email,
+        setForm({
+          name: data.name ?? "",
+          email: data.email ?? "",
           password: "",
           confirmPassword: "",
-          city: data.city ?? f.city,
-          address: data.address ?? f.address,
-          phone: data.phone ?? f.phone,
-        }));
+          city: data.city ?? "",
+          address: data.address ?? "",
+          phone: data.phone ?? "",
+        });
       } catch {}
     })();
-  }, [session?.user?.id]);
+  }, []);
 
   const handleChange = (k, v) => setForm((s) => ({ ...s, [k]: v }));
 
@@ -111,10 +98,6 @@ export default function EditProfilePage() {
 
       toast.success(data?.message || "Perfil actualizado");
       setForm((f) => ({ ...f, password: "", confirmPassword: "" }));
-
-      if (updateSession) {
-        await updateSession({ user: { name: form.name } });
-      }
     } catch (err) {
       console.error("handleSubmit error:", err);
       toast.error("Error inesperado al guardar");
