@@ -32,10 +32,10 @@ export default function HomeClient() {
   // Width percentages per state:
   //   only featured:              Featured=100%
   //   featured + mascots:         Featured=70%, Mascots=30%
-  //   featured + mascots + latest: Featured=60%, Mascots=20%, Latest=20%
-  const featuredWidth = latestVisible ? "60%" : promoVisible ? "70%" : "100%";
+  //   featured + mascots + latest: Featured=30%, Mascots=20%, Latest=50%
+  const featuredWidth = latestVisible ? "30%" : promoVisible ? "70%" : "100%";
   const mascotWidth = latestVisible ? "20%" : promoVisible ? "30%" : "0%";
-  const latestWidth = latestVisible ? "20%" : "0%";
+  const latestWidth = latestVisible ? "50%" : "0%";
 
   const fetchController = useRef(null);
   const isFirstLoad = useRef(true);
@@ -181,17 +181,17 @@ export default function HomeClient() {
         <>
           {/* Mobile: stack vertically */}
           <div className="flex flex-col gap-3 lg:hidden">
-            <div className="w-full">
+            <div className="w-full rounded-xl overflow-hidden">
               <FeaturedCarousel />
             </div>
             <div
-              className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
+              className="rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
               style={{ maxHeight: promoVisible ? "200px" : "0", opacity: promoVisible ? 1 : 0 }}
             >
               <MascotPromoBanner />
             </div>
             <div
-              className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
+              className="rounded-xl transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden"
               style={{ maxHeight: latestVisible ? "200px" : "0", opacity: latestVisible ? 1 : 0 }}
             >
               <LatestProductsBanner />
