@@ -42,13 +42,10 @@ async function resolveUserId(req) {
   }
 }
 
-export async function GET() {
+export async function GET(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return jsonResponse({ error: "No autorizado" }, 401);
-
-    const userId = session.user?.id;
-    if (!userId) return jsonResponse({ error: "Usuario no identificado" }, 401);
+    const userId = await resolveUserId(req);
+    if (!userId) return jsonResponse({ error: "No autorizado" }, 401);
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
