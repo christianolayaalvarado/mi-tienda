@@ -32,10 +32,10 @@ export default function HomeClient() {
   // Width percentages per state:
   //   only featured:              Featured=100%
   //   featured + mascots:         Featured=70%, Mascots=30%
-  //   featured + mascots + latest: Featured=30%, Mascots=20%, Latest=50%
-  const featuredWidth = latestVisible ? "30%" : promoVisible ? "70%" : "100%";
+  //   featured + mascots + latest: Featured=60%, Mascots=20%, Latest=20%
+  const featuredWidth = latestVisible ? "60%" : promoVisible ? "70%" : "100%";
   const mascotWidth = latestVisible ? "20%" : promoVisible ? "30%" : "0%";
-  const latestWidth = latestVisible ? "50%" : "0%";
+  const latestWidth = latestVisible ? "20%" : "0%";
 
   const fetchController = useRef(null);
   const isFirstLoad = useRef(true);
