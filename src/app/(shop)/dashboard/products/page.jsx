@@ -168,13 +168,13 @@ export default function ProductsPage() {
           <button
             onClick={handleDeleteSelected}
             disabled={selectedProducts.length === 0 || deleting}
-            className={`px-4 py-2 rounded text-white ${selectedProducts.length === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"}`}
+            className={`px-4 py-2 rounded-lg font-medium text-white ${selectedProducts.length === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"}`}
           >
             {deleting ? "Eliminando..." : `🗑 Eliminar (${selectedProducts.length})`}
           </button>
 
           <Link href="/dashboard/products/new">
-            <button className="bg-green-600 text-white px-4 py-2 rounded">+ Nuevo</button>
+            <button className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition">+ Nuevo</button>
           </Link>
         </div>
       </div>
@@ -231,7 +231,7 @@ export default function ProductsPage() {
 
                   {canEdit ? (
                     <Link href={`/dashboard/products/edit/${product.id}`}>
-                      <button className="text-xs bg-blue-500 text-white px-2 py-1 rounded">Editar</button>
+                      <button className="text-xs bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600 transition">Editar</button>
                     </Link>
                   ) : (
                     <span className="text-xs text-gray-500 px-2 py-1">Solo lectura</span>
@@ -255,9 +255,9 @@ export default function ProductsPage() {
 
       {totalPages > 1 && (
         <div className="flex justify-center mt-6 gap-4">
-          <button onClick={handlePrev} disabled={page === 1}>Anterior</button>
-          <span>Página {page} de {totalPages}</span>
-          <button onClick={handleNext} disabled={page === totalPages}>Siguiente</button>
+          <button onClick={handlePrev} disabled={page === 1} className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition">Anterior</button>
+          <span className="flex items-center text-sm text-gray-600">Página {page} de {totalPages}</span>
+          <button onClick={handleNext} disabled={page === totalPages} className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition">Siguiente</button>
         </div>
       )}
     </div>

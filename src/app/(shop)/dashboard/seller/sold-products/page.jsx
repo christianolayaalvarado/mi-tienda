@@ -111,7 +111,7 @@ export default function SoldProductsPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       {p.currentStock === 0 ? (
-                        <Link href={`/dashboard/products/edit/${p.id}`} className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200 transition">
+                        <Link href={`/dashboard/products/edit/${p.id}`} className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-lg hover:bg-yellow-200 transition font-medium">
                           Reabastecer
                         </Link>
                       ) : (

@@ -125,7 +125,7 @@ export default function OfertasPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-3 py-1 border rounded disabled:opacity-50"
+            className="px-3 py-1.5 border rounded-lg disabled:opacity-50 transition"
           >
             ←
           </button>
@@ -133,7 +133,7 @@ export default function OfertasPage() {
             <button
               key={p}
               onClick={() => setPage(p)}
-              className={`px-3 py-1 rounded border ${
+              className={`px-3 py-1.5 rounded-lg border transition ${
                 page === p ? "bg-red-600 text-white" : "hover:bg-gray-100"
               }`}
             >
@@ -143,7 +143,7 @@ export default function OfertasPage() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-3 py-1 border rounded disabled:opacity-50"
+            className="px-3 py-1.5 border rounded-lg disabled:opacity-50 transition"
           >
             →
           </button>

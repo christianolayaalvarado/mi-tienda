@@ -283,7 +283,7 @@ function RegisterForm() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 rounded-lg font-semibold text-white transition shadow-lg shadow-gray-400 ${
+              className={`w-full py-2.5 rounded-lg font-semibold text-white transition shadow-lg shadow-gray-400 ${
                 loading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
               }`}
             >

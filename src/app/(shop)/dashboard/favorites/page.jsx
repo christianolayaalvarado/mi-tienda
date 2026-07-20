@@ -41,7 +41,7 @@ export default function FavoritesPage() {
           <p className="text-gray-400 text-xs mt-1">Toca el corazón en cualquier producto para guardarlo aquí</p>
           <Link
             href="/"
-            className="inline-block mt-4 px-6 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition"
+            className="inline-block mt-4 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition"
           >
             Explorar productos
           </Link>

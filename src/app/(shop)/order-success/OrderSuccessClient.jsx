@@ -202,10 +202,10 @@ export default function OrderSuccessClient({ orderId }) {
       ))}
 
       <div className="flex justify-center gap-4">
-        <Link href="/" className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
+        <Link href="/" className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-green-700 transition">
           Seguir comprando
         </Link>
-        <Link href="/dashboard/orders" className="border px-6 py-3 rounded-lg hover:bg-gray-100">
+        <Link href="/dashboard/orders" className="border border-gray-300 px-6 py-2.5 rounded-lg font-medium hover:bg-gray-100 transition">
           Ver mis órdenes
         </Link>
       </div>

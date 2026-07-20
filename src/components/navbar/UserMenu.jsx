@@ -47,7 +47,7 @@ export default function UserMenu() {
           <User size={18} />
           <span className="hidden sm:inline">Login</span>
         </div>
-        <div role="button" tabIndex={0} onClick={() => router.push("/register")} onKeyDown={(e) => { if (e.key === "Enter") router.push("/register"); }} className="cursor-pointer bg-green-600 text-white px-2 sm:px-3 py-2 rounded hover:bg-green-700 min-h-[44px] flex items-center whitespace-nowrap">
+        <div role="button" tabIndex={0} onClick={() => router.push("/register")} onKeyDown={(e) => { if (e.key === "Enter") router.push("/register"); }} className="cursor-pointer bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 min-h-[40px] flex items-center whitespace-nowrap">
           <span className="sm:hidden text-xs">Registrate</span>
           <span className="hidden sm:inline">Registrarse</span>
         </div>

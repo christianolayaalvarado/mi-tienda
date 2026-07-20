@@ -71,7 +71,7 @@ function ModalConfirm({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200"
+            className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition"
           >
             {cancelText}
           </button>
@@ -80,7 +80,7 @@ function ModalConfirm({
             type="button"
             ref={confirmRef}
             onClick={onConfirm}
-            className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+            className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
           >
             {confirmText}
           </button>
@@ -934,7 +934,7 @@ export default function CartPage() {
         <div className="flex gap-4">
           <button
             onClick={() => router.push("/checkout")}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
             disabled={displayItems.length === 0 || estimating || loadingServer}
           >
             {estimating || loadingServer ? "Procesando..." : "Proceder al pago"}
@@ -942,7 +942,7 @@ export default function CartPage() {
 
           <button
             onClick={handleDirectCheckout}
-            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+            className="bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition"
             disabled={displayItems.length === 0 || estimating || loadingServer}
           >
             Finalizar compra
@@ -950,7 +950,7 @@ export default function CartPage() {
 
           <button
             onClick={openClearModal}
-            className="bg-gray-200 px-6 py-2 rounded hover:bg-gray-300"
+            className="bg-gray-200 text-gray-700 px-5 py-2.5 rounded-lg font-medium hover:bg-gray-300 disabled:opacity-50 transition"
             disabled={displayItems.length === 0 || estimating || loadingServer}
           >
             Vaciar carrito

@@ -25,14 +25,14 @@ export default async function DashboardHome() {
       <div className="mt-6 flex gap-4">
         <Link
           href="/dashboard/products"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
         >
           Mis Productos
         </Link>
 
         <Link
           href="/dashboard/products/new"
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium"
         >
           Nuevo Producto
         </Link>
