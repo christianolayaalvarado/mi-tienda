@@ -109,8 +109,9 @@ function RegisterForm() {
         return;
       }
 
+      const storeName = data.stores?.[0]?.name ? ` con la tienda "${data.stores[0].name}"` : "";
       setSuccess(
-        `Registro exitoso. Usuario "${data.name}" creado con la tienda "${data.stores[0].name}". Redirigiendo...`
+        `Registro exitoso. Usuario "${data.name}" creado${storeName}. Redirigiendo...`
       );
       setForm({ name: "", email: "", password: "", storeName: "" });
 

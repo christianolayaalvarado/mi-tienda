@@ -49,7 +49,7 @@ export default function ConfirmCodeClient() {
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const pasted = (e.clipboardData || window.clipboardData)?.getData("text")?.replace(/\D/g, "").slice(0, 6);
     if (pasted) {
       const newCode = pasted.split("").concat(Array(6).fill("")).slice(0, 6);
       setCode(newCode);

@@ -180,13 +180,10 @@ export default function CheckoutPage({ params }) {
           return;
         }
 
-        const resolvedSellerId = paramSellerId || user.id || user._id || user.userId || null;
-        setSellerId(resolvedSellerId);
         setSessionStatus("authenticated");
       } catch (err) {
         console.warn("No se pudo cargar la sesión para checkout:", err);
         setSessionUser(null);
-        setSellerId(paramSellerId || null);
         setSessionStatus("unauthenticated");
       }
     };
@@ -250,6 +247,22 @@ export default function CheckoutPage({ params }) {
     loadCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionStatus]);
+
+  useEffect(() => {
+    if (!orderItems.length || sellerId) return;
+    const storeId = orderItems.find((it) => it.storeId)?.storeId;
+    if (!storeId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/stores/${encodeURIComponent(storeId)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data?.store?.userId) setSellerId(data.store.userId);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [orderItems, sellerId]);
 
   useEffect(() => {
     const cleanupPaidItems = async () => {
@@ -502,7 +515,7 @@ export default function CheckoutPage({ params }) {
         <PaymentMethodSelector
           sellerId={sellerId}
           value={paymentMethodId}
-          onChange={(v) => setPaymentMethodId(v)}
+          onSelect={(v) => setPaymentMethodId(v)}
         />
       </div>
 
