@@ -47,7 +47,7 @@ export async function GET(req) {
             title: product.title,
             price: product.price,
             images: product.images,
-            currentStock: product.stock,
+            currentStock: Math.max(0, product.stock),
             totalSold: 0,
             totalRevenue: 0,
             orderCount: 0,

@@ -158,6 +158,7 @@ export async function POST(req) {
           total,
           status: "pending",
           paymentStatus: "unpaid",
+          stockDeducted: true,
           customerName: user.name || null,
           customerEmail: user.email || null,
         },

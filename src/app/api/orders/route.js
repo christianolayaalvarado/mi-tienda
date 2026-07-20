@@ -193,6 +193,7 @@ export async function POST(req) {
         total: serverTotalCents / 100,
         status: "pending",
         paymentStatus: "unpaid",
+        stockDeducted: true,
         paymentMethodId: chosenPaymentMethod ? chosenPaymentMethod.id : null,
         customerName: customer.name || authUser.name || "",
         customerEmail: customer.email || authUser.email || "",
