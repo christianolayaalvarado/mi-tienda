@@ -344,7 +344,11 @@ export default function CartPreview(props) {
   );
 
   if (typeof window !== "undefined" && document.body) {
-    return ReactDOM.createPortal(content, document.body);
+    try {
+      return ReactDOM.createPortal(content, document.body);
+    } catch {
+      return null;
+    }
   }
   return null;
 }

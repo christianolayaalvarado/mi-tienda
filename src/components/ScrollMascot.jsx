@@ -8,6 +8,27 @@ import MascotAvatar from "@/components/MascotAvatar";
 import Mascot3D from "@/components/Mascot3D";
 import AccessoryShop from "@/components/AccessoryShop";
 import useMascotBehavior from "@/hooks/useMascotBehavior";
+
+function SafePortal({ children, container }) {
+  const [mounted, setMounted] = useState(false);
+  const portalRef = useRef(null);
+
+  useEffect(() => {
+    const el = document.createElement("div");
+    el.setAttribute("data-portal", "scroll-mascot");
+    document.body.appendChild(el);
+    portalRef.current = el;
+    setMounted(true);
+    return () => {
+      try {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      } catch {}
+    };
+  }, []);
+
+  if (!mounted || !portalRef.current) return null;
+  return createPortal(children, portalRef.current);
+}
 import useMascotPersonality from "@/hooks/useMascotPersonality";
 import useMascotCoins from "@/hooks/useMascotCoins";
 import useMascotChat from "@/hooks/useMascotChat";
@@ -465,27 +486,29 @@ export default function ScrollMascot({ onClick }) {
         {displayPct}%
       </div>
 
-      {/* Shop rendered via portal to document body (outside pointer-events-none) */}
-      {showShop && createPortal(
-        <AccessoryShop onClose={() => setShowShop(false)} />,
-        document.body
+      {/* Shop rendered via portal (dedicated container, no removeChild errors) */}
+      {showShop && (
+        <SafePortal>
+          <AccessoryShop onClose={() => setShowShop(false)} />
+        </SafePortal>
       )}
 
-      {/* Chat rendered via portal to document body */}
-      {showChat && createPortal(
-        <div className="fixed bottom-20 right-4 z-[9999]" style={{ maxHeight: "60vh" }}>
-          <MascotChat
-            messages={messages}
-            isTyping={isTyping}
-            onSend={(text) => sendMessage(text)}
-            onClear={clearMessages}
-            quickActions={quickActions}
-            mascotName={mascotName}
-            moodEmoji={moodEmoji}
-            onClose={() => setShowChat(false)}
-          />
-        </div>,
-        document.body
+      {/* Chat rendered via portal (dedicated container, no removeChild errors) */}
+      {showChat && (
+        <SafePortal>
+          <div className="fixed bottom-20 right-4 z-[9999]" style={{ maxHeight: "60vh" }}>
+            <MascotChat
+              messages={messages}
+              isTyping={isTyping}
+              onSend={(text) => sendMessage(text)}
+              onClear={clearMessages}
+              quickActions={quickActions}
+              mascotName={mascotName}
+              moodEmoji={moodEmoji}
+              onClose={() => setShowChat(false)}
+            />
+          </div>
+        </SafePortal>
       )}
     </div>
   );
