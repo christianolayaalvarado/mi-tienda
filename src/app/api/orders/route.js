@@ -254,7 +254,7 @@ export async function POST(req) {
         currency: createdOrder.currency || "USD",
         items: createdOrder.orderItems.flatMap((oi) =>
           (oi.items || []).map((it) => ({
-            productName: it.product?.name || "Producto",
+            productName: it.product?.title || "Producto",
             quantity: it.quantity,
             price: it.price,
           }))
@@ -272,25 +272,25 @@ export async function POST(req) {
       const storeIds = Array.from(new Set(createdOrder.orderItems.map((oi) => String(oi.storeId))));
       const stores = await prisma.store.findMany({
         where: { id: { in: storeIds } },
-        include: { owner: { select: { email: true, name: true, phone: true } } },
+        include: { user: { select: { email: true, name: true, phone: true } } },
       });
       const storeMap = new Map(stores.map((s) => [String(s.id), s]));
 
       const sellerPromises = createdOrder.orderItems.map((oi) => {
         const store = storeMap.get(String(oi.storeId));
-        const sellerEmail = store?.email || store?.owner?.email;
-        const sellerPhone = store?.owner?.phone;
+        const sellerEmail = store?.user?.email;
+        const sellerPhone = store?.user?.phone;
         const sellerOrder = {
           id: createdOrder.id,
           orderNumber: createdOrder.orderNumber,
           total: createdOrder.total,
           currency: createdOrder.currency || "USD",
           items: (oi.items || []).map((it) => ({
-            productName: it.product?.name || "Producto",
+            productName: it.product?.title || "Producto",
             quantity: it.quantity,
             price: it.price,
           })),
-          sellerName: store?.name || store?.owner?.name || "Vendedor",
+          sellerName: store?.name || store?.user?.name || "Vendedor",
           sellerEmail,
         };
 
