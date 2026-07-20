@@ -24,6 +24,7 @@ export async function GET(req) {
     const skip = (page - 1) * take;
 
     const where = {
+      stock: { gt: 0 },
       ...(search ? { title: { contains: search, mode: "insensitive" } } : {}),
       ...(category ? { category: { name: category } } : {}),
       ...(onSale ? { discountPct: { not: null, gt: 0 } } : {}),
