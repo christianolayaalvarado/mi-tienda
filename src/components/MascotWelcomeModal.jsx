@@ -60,7 +60,7 @@ export default function MascotWelcomeModal() {
 
   useEffect(() => {
     try {
-      const shown = localStorage.getItem("mascot-welcome-shown");
+      const shown = sessionStorage.getItem("mascot-welcome-shown");
       if (!shown) {
         const t = setTimeout(() => setIsOpen(true), 5000);
         return () => clearTimeout(t);
@@ -91,7 +91,7 @@ export default function MascotWelcomeModal() {
       setTimeout(() => {
         setIsOpen(false);
         setIsAnimating(false);
-        try { localStorage.setItem("mascot-welcome-shown", "1"); } catch {}
+        try { sessionStorage.setItem("mascot-welcome-shown", "1"); } catch {}
       }, 300);
     }, 100);
   }, []);
