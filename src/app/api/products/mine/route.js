@@ -27,6 +27,7 @@ export async function GET(req) {
     const url = new URL(req.url);
     const search = (url.searchParams.get("search") || "").trim();
     const categoryId = url.searchParams.get("categoryId") || "";
+    const stockFilter = url.searchParams.get("stock") || "";
     const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
     const limit = Math.max(1, parseInt(url.searchParams.get("limit") || "12", 10));
 
@@ -44,6 +45,8 @@ export async function GET(req) {
       userId: user.id,
       ...(search ? { title: { contains: search, mode: "insensitive" } } : {}),
       ...(categoryId ? { categoryId } : {}),
+      ...(stockFilter === "out" ? { stock: 0 } : {}),
+      ...(stockFilter === "available" ? { stock: { gt: 0 } } : {}),
     };
 
     const total = await prisma.product.count({ where });

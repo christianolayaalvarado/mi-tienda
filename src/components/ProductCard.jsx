@@ -32,6 +32,12 @@ export default function ProductCard({ product, priority }) {
             </span>
           )}
 
+          {product.stock === 0 && (
+            <span className="absolute top-2 right-2 z-10 bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+              Agotado
+            </span>
+          )}
+
           {hasValidImage ? (
             <img
               src={product.images[0]}

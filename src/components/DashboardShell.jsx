@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/orders", label: "Mis Órdenes", icon: "🧾" },
   { href: "/dashboard/favorites", label: "Favoritos", icon: "❤️" },
   { href: "/dashboard/seller/orders", label: "Ventas", icon: "💰" },
+  { href: "/dashboard/seller/sold-products", label: "Productos vendidos", icon: "📊" },
   { href: "/dashboard/seller/reviews", label: "Reseñas", icon: "⭐" },
   { href: "/dashboard/payment-methods", label: "Formas de pago", icon: "📍" },
   { href: "/dashboard/referrals", label: "Invitar amigos", icon: "🎁" },

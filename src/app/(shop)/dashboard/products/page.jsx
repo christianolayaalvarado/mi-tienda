@@ -27,6 +27,7 @@ export default function ProductsPage() {
 
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [stockFilter, setStockFilter] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const limit = 12;
@@ -63,6 +64,7 @@ export default function ProductsPage() {
       const params = new URLSearchParams();
       if (debouncedSearch) params.append("search", debouncedSearch);
       if (categoryId) params.append("categoryId", categoryId);
+      if (stockFilter) params.append("stock", stockFilter);
       params.append("page", page);
       params.append("limit", limit);
 
@@ -91,8 +93,8 @@ export default function ProductsPage() {
     }
   };
 
-  useEffect(() => { setPage(1); }, [debouncedSearch, categoryId]);
-  useEffect(() => { fetchProducts(); }, [debouncedSearch, categoryId, page]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, categoryId, stockFilter]);
+  useEffect(() => { fetchProducts(); }, [debouncedSearch, categoryId, stockFilter, page]);
 
   const toggleSelect = (id) => {
     setSelectedProducts((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
@@ -183,6 +185,11 @@ export default function ProductsPage() {
           <option value="">Todas</option>
           {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
         </select>
+        <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)} className="border p-2 rounded">
+          <option value="">Todo el stock</option>
+          <option value="available">Disponibles</option>
+          <option value="out">Agotados</option>
+        </select>
       </div>
 
       <div className="mb-4 flex justify-between items-center">
@@ -234,7 +241,12 @@ export default function ProductsPage() {
                 {product.images?.[0] && <img src={product.images[0]} className="w-full h-24 object-cover mb-2 rounded" />}
 
                 <h2 className="text-sm font-bold line-clamp-2">{product.title}</h2>
-                <p className="text-sm">S/ {product.price}</p>
+                <p className="text-sm font-semibold text-green-700">S/ {product.price}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className={`text-xs font-medium ${product.stock === 0 ? "text-red-600" : product.stock <= 3 ? "text-orange-600" : "text-gray-500"}`}>
+                    {product.stock === 0 ? "Agotado" : `Stock: ${product.stock}`}
+                  </p>
+                </div>
               </div>
             );
           })}
