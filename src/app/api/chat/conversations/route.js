@@ -54,6 +54,36 @@ export async function GET(req) {
   }
 }
 
+// DELETE - Eliminar conversación
+export async function DELETE(req) {
+  try {
+    const csrfErr = validateCsrf(req);
+    if (csrfErr) return csrfErr;
+
+    const authUser = await getServerAuthUser(req);
+    if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+    const url = new URL(req.url);
+    const conversationId = url.searchParams.get("id");
+    if (!conversationId) return NextResponse.json({ error: "id requerido" }, { status: 400 });
+
+    const conversation = await prisma.conversation.findUnique({ where: { id: conversationId } });
+    if (!conversation) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
+
+    if (conversation.buyerId !== authUser.id && conversation.sellerId !== authUser.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    await prisma.message.deleteMany({ where: { conversationId } });
+    await prisma.conversation.delete({ where: { id: conversationId } });
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("ERROR DELETE conversation:", err);
+    return NextResponse.json({ error: "Error eliminando conversación" }, { status: 500 });
+  }
+}
+
 // POST - Crear o obtener conversación existente
 export async function POST(req) {
   try {

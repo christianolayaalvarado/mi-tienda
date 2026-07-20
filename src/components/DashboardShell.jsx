@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -25,8 +25,16 @@ const ADMIN_ITEMS = [
 
 export default function DashboardShell({ children, userName, userEmail, userRole }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const pathname = usePathname();
   const isAdmin = userRole === "admin" || userRole === "ADMIN";
+
+  useEffect(() => {
+    fetch("/api/seller/pending-count", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => setPendingCount(d?.pendingCount || 0))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -62,6 +70,11 @@ export default function DashboardShell({ children, userName, userEmail, userRole
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
+              {item.href === "/dashboard/seller/orders" && pendingCount > 0 && (
+                <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold">
+                  {pendingCount > 99 ? "99+" : pendingCount}
+                </span>
+              )}
             </Link>
           ))}
 
@@ -127,6 +140,11 @@ export default function DashboardShell({ children, userName, userEmail, userRole
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
+              {item.href === "/dashboard/seller/orders" && pendingCount > 0 && (
+                <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold">
+                  {pendingCount > 99 ? "99+" : pendingCount}
+                </span>
+              )}
             </Link>
           ))}
 

@@ -135,6 +135,26 @@ export default function ChatClient() {
     );
   };
 
+  // Eliminar conversación
+  const handleDeleteConversation = async (conv) => {
+    if (!window.confirm("¿Eliminar esta conversación? Esta acción no se puede deshacer.")) return;
+    try {
+      const res = await fetch(`/api/chat/conversations?id=${conv.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Error");
+      setConversations((prev) => prev.filter((c) => c.id !== conv.id));
+      if (activeConv?.id === conv.id) {
+        setActiveConv(null);
+        setMessages([]);
+      }
+      toast.success("Conversación eliminada");
+    } catch {
+      toast.error("No se pudo eliminar la conversación");
+    }
+  };
+
   const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
 
   if (loading) {
@@ -180,46 +200,59 @@ export default function ChatClient() {
                 const other = conv.otherUser;
                 const isActive = activeConv?.id === conv.id;
                 return (
-                  <button
+                  <div
                     key={conv.id}
-                    onClick={() => selectConversation(conv)}
-                    className={`w-full text-left p-3 border-b hover:bg-gray-50 transition ${
+                    className={`relative group border-b hover:bg-gray-50 transition ${
                       isActive ? "bg-green-50 border-l-2 border-l-green-500" : ""
                     }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-green-700 font-semibold text-sm">
-                          {(other?.name || other?.email || "?").charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {other?.name || other?.email || "Usuario"}
-                          </p>
-                          <span className="text-xs text-gray-400 flex-shrink-0">
-                            {formatDate(conv.lastMessageAt)}
+                    <button
+                      onClick={() => selectConversation(conv)}
+                      className="w-full text-left p-3"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-green-700 font-semibold text-sm">
+                            {(other?.name || other?.email || "?").charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        {conv.product && (
-                          <p className="text-xs text-green-600 truncate mt-0.5">
-                            {conv.product.title}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between mt-0.5">
-                          <p className="text-xs text-gray-400 truncate">
-                            {conv.lastMessage || "Sin mensajes"}
-                          </p>
-                          {conv.unreadCount > 0 && (
-                            <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500 text-white text-xs font-bold flex-shrink-0">
-                              {conv.unreadCount}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {other?.name || other?.email || "Usuario"}
+                            </p>
+                            <span className="text-xs text-gray-400 flex-shrink-0">
+                              {formatDate(conv.lastMessageAt)}
                             </span>
+                          </div>
+                          {conv.product && (
+                            <p className="text-xs text-green-600 truncate mt-0.5">
+                              {conv.product.title}
+                            </p>
                           )}
+                          <div className="flex items-center justify-between mt-0.5">
+                            <p className="text-xs text-gray-400 truncate">
+                              {conv.lastMessage || "Sin mensajes"}
+                            </p>
+                            {conv.unreadCount > 0 && (
+                              <span className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500 text-white text-xs font-bold flex-shrink-0">
+                                {conv.unreadCount}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv); }}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition p-1 text-gray-400 hover:text-red-500 rounded"
+                      title="Eliminar conversación"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 );
               })
             )}
@@ -258,18 +291,25 @@ export default function ChatClient() {
                   const isMine = msg.senderId === currentUserId;
                   return (
                     <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                        isMine
-                          ? "bg-green-600 text-white rounded-br-md"
-                          : "bg-gray-100 text-gray-800 rounded-bl-md"
-                      }`}>
-                        <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
-                        <p className={`text-xs mt-1 ${isMine ? "text-green-200" : "text-gray-400"}`}>
-                          {formatTime(msg.createdAt)}
-                          {isMine && msg.read && (
-                            <span className="ml-1">✓✓</span>
-                          )}
-                        </p>
+                      <div className="max-w-xs lg:max-w-md">
+                        {!isMine && msg.sender && (
+                          <p className="text-xs text-gray-500 mb-1 ml-2 font-medium">
+                            {msg.sender.name || msg.sender.email}
+                          </p>
+                        )}
+                        <div className={`px-4 py-2 rounded-2xl ${
+                          isMine
+                            ? "bg-green-600 text-white rounded-br-md"
+                            : "bg-gray-100 text-gray-800 rounded-bl-md"
+                        }`}>
+                          <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
+                          <p className={`text-xs mt-1 ${isMine ? "text-green-200" : "text-gray-400"}`}>
+                            {formatTime(msg.createdAt)}
+                            {isMine && msg.read && (
+                              <span className="ml-1">✓✓</span>
+                            )}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   );
