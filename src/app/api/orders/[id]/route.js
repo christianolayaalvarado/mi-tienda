@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
+import { sendPaymentConfirmedToBuyer, sendPaymentConfirmedToSeller } from "@/lib/email";
 
 const isValidObjectId = (id) => typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
 
@@ -22,7 +23,7 @@ export async function GET(req, context) {
       include: {
         orderItems: {
           include: {
-            store: true,
+            store: { include: { user: { select: { id: true, phone: true, name: true, email: true } } } },
             items: { include: { product: true } },
           },
         },
@@ -380,6 +381,34 @@ export async function PATCH(req, context) {
         return { alreadyPaid: false, order: updatedOrder, allPaid };
       });
 
+      // Send emails when all stores are paid
+      if (result?.allPaid && result?.order) {
+        try {
+          const fullOrder = await prisma.order.findUnique({
+            where: { id: orderId },
+            include: { orderItems: { include: { items: { include: { product: true } }, store: { include: { user: { select: { email: true, name: true } } } } } } },
+          });
+          if (fullOrder) {
+            const buyerEmail = fullOrder.customerEmail;
+            const orderData = {
+              id: fullOrder.id,
+              orderNumber: fullOrder.orderNumber,
+              total: fullOrder.total,
+              items: fullOrder.orderItems.flatMap((oi) => (oi.items || []).map((it) => ({ productName: it.product?.title || "Producto", quantity: it.quantity, price: it.price }))),
+            };
+            if (buyerEmail) {
+              sendPaymentConfirmedToBuyer({ to: buyerEmail, order: orderData }).catch((e) => console.error("Error email buyer:", e));
+            }
+            for (const oi of fullOrder.orderItems) {
+              const sellerEmail = oi.store?.user?.email;
+              if (sellerEmail) {
+                sendPaymentConfirmedToSeller({ to: sellerEmail, order: { ...orderData, sellerName: oi.store?.name || "Tu tienda" } }).catch((e) => console.error("Error email seller:", e));
+              }
+            }
+          }
+        } catch (e) { console.warn("Error sending payment emails:", e?.message); }
+      }
+
       return NextResponse.json({ success: true, result });
     }
 
@@ -459,6 +488,34 @@ export async function PATCH(req, context) {
 
         return { success: true, allPaid: false };
       });
+
+      // Send emails when all stores are paid
+      if (result?.allPaid && result?.order) {
+        try {
+          const fullOrder = await prisma.order.findUnique({
+            where: { id: orderId },
+            include: { orderItems: { include: { items: { include: { product: true } }, store: { include: { user: { select: { email: true, name: true } } } } } } },
+          });
+          if (fullOrder) {
+            const buyerEmail = fullOrder.customerEmail;
+            const orderData = {
+              id: fullOrder.id,
+              orderNumber: fullOrder.orderNumber,
+              total: fullOrder.total,
+              items: fullOrder.orderItems.flatMap((oi) => (oi.items || []).map((it) => ({ productName: it.product?.title || "Producto", quantity: it.quantity, price: it.price }))),
+            };
+            if (buyerEmail) {
+              sendPaymentConfirmedToBuyer({ to: buyerEmail, order: orderData }).catch((e) => console.error("Error email buyer:", e));
+            }
+            for (const oi of fullOrder.orderItems) {
+              const sellerEmail = oi.store?.user?.email;
+              if (sellerEmail) {
+                sendPaymentConfirmedToSeller({ to: sellerEmail, order: { ...orderData, sellerName: oi.store?.name || "Tu tienda" } }).catch((e) => console.error("Error email seller:", e));
+              }
+            }
+          }
+        } catch (e) { console.warn("Error sending payment emails:", e?.message); }
+      }
 
       return NextResponse.json({ success: true, result });
     }

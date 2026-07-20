@@ -342,17 +342,61 @@ export default function OrderDetailPage() {
       </div>
 
       {/* ACCIONES */}
-      <div className="flex gap-2 items-center">
+      <div className="flex flex-wrap gap-3 items-center">
         <p className="text-sm text-gray-600">
           La confirmación de pago debe realizarse desde la sección <strong>Ventas</strong>.
         </p>
-        <button
-          onClick={() => handleDeleteOrder("soft", true)}
-          disabled={deleting || disableActions}
-          className="ml-auto bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
-        >
-          {deleting ? "Eliminando..." : "Eliminar"}
-        </button>
+        <div className="ml-auto flex flex-wrap gap-2">
+          <button
+            onClick={() => handleDeleteOrder("soft", true)}
+            disabled={deleting || disableActions}
+            className="bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          >
+            {deleting ? "Eliminando..." : "Eliminar"}
+          </button>
+
+          {/* Chat con vendedor */}
+          {order.orderItems?.[0]?.storeId && (
+            <button
+              onClick={async () => {
+                try {
+                  const storeRes = await fetch(`/api/stores/${order.orderItems[0].storeId}`);
+                  const storeData = await storeRes.json().catch(() => null);
+                  const sellerId = storeData?.store?.userId;
+                  if (!sellerId) { toast.error("No se pudo identificar al vendedor"); return; }
+                  const chatRes = await fetch("/api/chat/conversations", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sellerId, productId: order.orderItems?.[0]?.items?.[0]?.productId }),
+                  });
+                  const chatData = await chatRes.json().catch(() => null);
+                  if (chatRes.ok) { window.location.href = "/dashboard/chat"; }
+                  else { toast.error(chatData?.error || "Error abriendo chat"); }
+                } catch { toast.error("Error abriendo chat"); }
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded font-medium hover:bg-blue-700 transition flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+              Chat con vendedor
+            </button>
+          )}
+
+          {/* WhatsApp al vendedor */}
+          {order.orderItems?.[0]?.store?.user?.phone ? (
+            <a
+              href={`https://wa.me/${order.orderItems[0].store.user.phone.replace(/[^0-9]/g, "").length === 9 ? "51" : ""}${order.orderItems[0].store.user.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hola, tengo una consulta sobre mi orden ${order.orderNumber || order.id}...`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-green-500 text-white px-4 py-2 rounded font-medium hover:bg-green-600 transition flex items-center gap-2"
+            >
+              WhatsApp al vendedor
+            </a>
+          ) : (
+            <span className="text-xs text-gray-400 self-center" title="El vendedor no registró teléfono">
+              WhatsApp no disponible (sin teléfono)
+            </span>
+          )}
+        </div>
       </div>
 
       {/* COMPROBANTE */}

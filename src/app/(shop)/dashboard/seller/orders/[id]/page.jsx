@@ -297,7 +297,7 @@ export default function SellerOrderDetailPage() {
       )}
 
       {/* Gestión de envío */}
-      {isPaid && !isCancelled && (
+      {hasPayment && !isCancelled && (
         <div className="bg-white border rounded-lg p-4">
           <h2 className="font-semibold text-gray-700 mb-3">Gestión de envío</h2>
 
@@ -385,6 +385,48 @@ export default function SellerOrderDetailPage() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               Cancelar orden
             </button>
+          )}
+
+          {/* Chat con comprador */}
+          {order.customerEmail && (
+            <button
+              onClick={async () => {
+                try {
+                  const buyerRes = await fetch(`/api/users/by-email?email=${encodeURIComponent(order.customerEmail)}`);
+                  const buyerData = await buyerRes.json().catch(() => null);
+                  const buyerId = buyerData?.user?.id;
+                  if (!buyerId) { toast.error("No se pudo identificar al comprador"); return; }
+                  const chatRes = await fetch("/api/chat/conversations", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sellerId: buyerId, productId: order.orderItems?.[0]?.items?.[0]?.productId }),
+                  });
+                  const chatData = await chatRes.json().catch(() => null);
+                  if (chatRes.ok) { window.location.href = "/dashboard/chat"; }
+                  else { toast.error(chatData?.error || "Error abriendo chat"); }
+                } catch { toast.error("Error abriendo chat"); }
+              }}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+              Chat con comprador
+            </button>
+          )}
+
+          {/* WhatsApp al comprador */}
+          {order.customerPhone ? (
+            <a
+              href={`https://wa.me/${order.customerPhone.replace(/[^0-9]/g, "").length === 9 ? "51" : ""}${order.customerPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hola ${order.customerName || ""}, sobre tu orden ${orderNumber}...`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition flex items-center gap-2"
+            >
+              WhatsApp al comprador
+            </a>
+          ) : (
+            <span className="text-xs text-gray-400 self-center" title="El comprador no registró teléfono">
+              WhatsApp no disponible (sin teléfono)
+            </span>
           )}
         </div>
       )}

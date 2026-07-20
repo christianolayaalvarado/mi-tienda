@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 const STATUS_COLORS = {
   pending: "bg-yellow-100 text-yellow-800",
-  confirmed: "bg-blue-100 text-blue-800",
+  processing: "bg-blue-100 text-blue-800",
   shipped: "bg-purple-100 text-purple-800",
   delivered: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
@@ -45,10 +45,10 @@ export default function AdminOrdersPage() {
 
   const updateStatus = async (orderId, newStatus) => {
     try {
-      const res = await fetch("/api/orders/update-status", {
-        method: "POST",
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, status: newStatus }),
+        body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error("Error");
       fetchOrders();
@@ -75,7 +75,7 @@ export default function AdminOrdersPage() {
         >
           <option value="">Todos los estados</option>
           <option value="pending">Pendiente</option>
-          <option value="confirmed">Confirmado</option>
+          <option value="processing">Procesando</option>
           <option value="shipped">Enviado</option>
           <option value="delivered">Entregado</option>
           <option value="cancelled">Cancelado</option>
@@ -139,13 +139,13 @@ export default function AdminOrdersPage() {
               <div className="flex flex-wrap gap-2 pt-1">
                 {order.status === "pending" && (
                   <button
-                    onClick={() => updateStatus(order.id, "confirmed")}
+                    onClick={() => updateStatus(order.id, "processing")}
                     className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition"
                   >
                     Confirmar
                   </button>
                 )}
-                {order.status === "confirmed" && (
+                {order.status === "processing" && (
                   <button
                     onClick={() => updateStatus(order.id, "shipped")}
                     className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition"
@@ -171,11 +171,18 @@ export default function AdminOrdersPage() {
                 )}
                 {(() => {
                   const sellerPhone = order.orderItems?.[0]?.store?.user?.phone;
-                  if (!sellerPhone) return null;
+                  const sellerName = order.orderItems?.[0]?.store?.user?.name || order.orderItems?.[0]?.store?.name || "Vendedor";
+                  if (!sellerPhone) {
+                    return (
+                      <span className="text-xs text-gray-400 px-3 py-1.5" title={`${sellerName} no tiene teléfono registrado`}>
+                        Sin WhatsApp
+                      </span>
+                    );
+                  }
                   let cleanPhone = sellerPhone.replace(/[^0-9]/g, "");
                   if (cleanPhone.length === 9) cleanPhone = "51" + cleanPhone;
                   const items = order.orderItems?.flatMap((oi) => oi.items || []) || [];
-                  const itemsText = items.map((it) => `• ${it.product?.name || "Producto"} x${it.quantity}`).join("%0A");
+                  const itemsText = items.map((it) => `• ${it.product?.title || "Producto"} x${it.quantity}`).join("%0A");
                   const msg = encodeURIComponent(`🔔 Nueva orden ${order.orderNumber || order.id}%0A%0ACliente: ${order.user?.name || "N/A"}%0ATotal: S/ ${Number(order.total).toFixed(2)}%0A%0AProductos:%0A${itemsText}`);
                   return (
                     <a
