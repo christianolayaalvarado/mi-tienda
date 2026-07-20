@@ -62,7 +62,7 @@ export default function MascotWelcomeModal() {
     try {
       const shown = localStorage.getItem("mascot-welcome-shown");
       if (!shown) {
-        const t = setTimeout(() => setIsOpen(true), 30000);
+        const t = setTimeout(() => setIsOpen(true), 5000);
         return () => clearTimeout(t);
       }
     } catch {}

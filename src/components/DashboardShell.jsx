@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import PendingOrdersModal from "@/components/PendingOrdersModal";
+import MascotWelcomeModal from "@/components/MascotWelcomeModal";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Inicio", icon: "🏠" },
@@ -194,6 +196,9 @@ export default function DashboardShell({ children, userName, userEmail, userRole
           {children}
         </main>
       </div>
+
+      <PendingOrdersModal />
+      <MascotWelcomeModal />
     </div>
   );
 }
