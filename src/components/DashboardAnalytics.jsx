@@ -5,12 +5,16 @@ import { useState, useEffect } from "react";
 export default function DashboardAnalytics() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch("/api/dashboard/analytics", { credentials: "include" })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Not authorized");
+        return r.json();
+      })
       .then(setData)
-      .catch(() => {})
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -24,15 +28,15 @@ export default function DashboardAnalytics() {
     );
   }
 
-  if (!data) return null;
+  if (error || !data || data.error) return null;
 
   const stats = [
-    { label: "Productos", value: data.totalProducts, icon: "📦", color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Órdenes (7d)", value: data.ordersLast7Days, sub: `${data.totalOrders} total`, icon: "🛒", color: "text-green-600", bg: "bg-green-50" },
-    { label: "Ingresos (30d)", value: `S/ ${data.revenueLast30Days.toLocaleString()}`, sub: `S/ ${data.totalRevenue.toLocaleString()} total`, icon: "💰", color: "text-yellow-600", bg: "bg-yellow-50" },
-    { label: "Favoritos", value: data.totalFavorites, icon: "❤️", color: "text-red-500", bg: "bg-red-50" },
-    { label: "Stock bajo", value: data.lowStockProducts, icon: "⚠️", color: "text-orange-600", bg: "bg-orange-50" },
-    { label: "Sin stock", value: data.outOfStock, icon: "🚫", color: "text-gray-600", bg: "bg-gray-50" },
+    { label: "Productos", value: data.totalProducts ?? 0, icon: "📦", color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Órdenes (7d)", value: data.ordersLast7Days ?? 0, sub: `${data.totalOrders ?? 0} total`, icon: "🛒", color: "text-green-600", bg: "bg-green-50" },
+    { label: "Ingresos (30d)", value: `S/ ${(data.revenueLast30Days ?? 0).toLocaleString()}`, sub: `S/ ${(data.totalRevenue ?? 0).toLocaleString()} total`, icon: "💰", color: "text-yellow-600", bg: "bg-yellow-50" },
+    { label: "Favoritos", value: data.totalFavorites ?? 0, icon: "❤️", color: "text-red-500", bg: "bg-red-50" },
+    { label: "Stock bajo", value: data.lowStockProducts ?? 0, icon: "⚠️", color: "text-orange-600", bg: "bg-orange-50" },
+    { label: "Sin stock", value: data.outOfStock ?? 0, icon: "🚫", color: "text-gray-600", bg: "bg-gray-50" },
   ];
 
   return (
