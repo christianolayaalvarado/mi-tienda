@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getServerAuthUser } from "@/lib/serverAuth";
 import DashboardWelcome from "@/components/DashboardWelcome";
+import DashboardAnalytics from "@/components/DashboardAnalytics";
 
 export default async function DashboardHome() {
   const user = await getServerAuthUser();
@@ -21,6 +22,9 @@ export default async function DashboardHome() {
 
       {/* Welcome section with tier and theme */}
       <DashboardWelcome />
+
+      {/* Analytics */}
+      <DashboardAnalytics />
 
       <div className="mt-6 flex flex-wrap gap-3 sm:gap-4">
         <Link
