@@ -478,6 +478,7 @@ export function CartProvider({ children }) {
             image,
             stock: productStock,
             product: product.product ?? null,
+            addedAt: Date.now(),
           },
         ];
       }

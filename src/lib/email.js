@@ -16,6 +16,7 @@ import {
   weMissYouTemplate,
   weeklyOffersTemplate,
   seasonalTemplate,
+  abandonedCartTemplate,
 } from "./emailTemplates";
 
 const defaultFrom = `"${process.env.FROM_NAME || "Mi Tienda"}" <${process.env.FROM_EMAIL || process.env.EMAIL_USER}>`;
@@ -116,6 +117,9 @@ export const sendWeeklyOffersEmail = async ({ to, userName, products }) =>
 
 export const sendSeasonalEmail = async ({ to, userName, season }) =>
   sendMail({ to, subject: `¡${season.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())} ya está aquí! - Mi Tienda`, html: seasonalTemplate(userName, season) });
+
+export const sendAbandonedCartReminder = async ({ to, cartItems, total }) =>
+  sendMail({ to, subject: "¡Tienes productos esperando! 🛒 - Mi Tienda", html: abandonedCartTemplate(cartItems, total) });
 
 export default {
   sendMail,

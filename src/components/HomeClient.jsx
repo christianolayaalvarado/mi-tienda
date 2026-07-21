@@ -10,6 +10,7 @@ import LatestProductsBanner from "@/components/LatestProductsBanner";
 import MascotWelcomeModal from "@/components/MascotWelcomeModal";
 import ScrollMascot from "@/components/ScrollMascot";
 import EmptyState from "@/components/EmptyState";
+import AbandonedCartBanner from "@/components/AbandonedCartBanner";
 
 export default function HomeClient() {
   const router = useRouter();
@@ -227,6 +228,9 @@ export default function HomeClient() {
           </div>
         </>
       )}
+
+      {/* Abandoned cart reminder */}
+      {!currentSearch && !currentCategory && <AbandonedCartBanner />}
 
       {/* Título de sección + selector de orden */}
       {!currentSearch && !currentCategory && (

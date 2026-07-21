@@ -490,6 +490,59 @@ export const seasonalTemplate = (userName, season) => {
   `;
 };
 
+const abandonedCartTemplate = (cartItems, total) => {
+  const itemsHtml = cartItems
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding:12px 0;border-bottom:1px solid #f0f0f0;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              ${item.image ? `<td width="60" style="padding-right:12px;"><img src="${item.image}" alt="${item.name}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" /></td>` : ""}
+              <td>
+                <p style="margin:0;font-weight:600;color:#1f2937;font-size:14px;">${item.name}</p>
+                <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">Cantidad: ${item.quantity} × ${formatCurrency(item.price)}</p>
+              </td>
+              <td style="text-align:right;font-weight:600;color:#16a34a;white-space:nowrap;">${formatCurrency(item.price * item.quantity)}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>`
+    )
+    .join("");
+
+  return baseTemplate(`
+        <tr>
+          <td style="padding:32px;">
+            <h2 style="margin:0 0 8px;color:#1f2937;font-size:22px;">¡Tienes productos esperando! 🛒</h2>
+            <p style="margin:0 0 24px;color:#6b7280;font-size:15px;">No olvides completar tu compra. Estos productos siguen disponibles por poco tiempo.</p>
+
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+              ${itemsHtml}
+            </table>
+
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+              <tr>
+                <td style="padding:16px;background:#f0fdf4;border-radius:8px;">
+                  <p style="margin:0;font-size:16px;font-weight:700;color:#16a34a;">Total: ${formatCurrency(total)}</p>
+                </td>
+              </tr>
+            </table>
+
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td align="center">
+                  <a href="${appUrl}/cart" style="display:inline-block;padding:14px 32px;background:#16a34a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;">Completar mi compra</a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:24px 0 0;color:#9ca3af;font-size:13px;text-align:center;">¿No fue tu carrito? Puedes ignorar este mensaje.</p>
+          </td>
+        </tr>
+  `);
+};
+
 export default {
   verificationCodeTemplate,
   proofTemplate,
