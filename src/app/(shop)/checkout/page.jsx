@@ -168,6 +168,12 @@ export default function CheckoutPage({ params }) {
   const [shippingEstimate, setShippingEstimate] = useState(null);
   const [calculatingShipping, setCalculatingShipping] = useState(false);
 
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [couponData, setCouponData] = useState(null);
+  const [couponError, setCouponError] = useState("");
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
   useEffect(() => {
     const loadSession = async () => {
       try {
@@ -319,10 +325,41 @@ export default function CheckoutPage({ params }) {
     [orderItems]
   );
 
-  const grandTotal = total + shippingCost;
+  const discountAmount = couponData?.discount || 0;
+  const grandTotal = Math.max(0, total - discountAmount + shippingCost);
 
   const formatCurrency = (v) =>
     new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(v);
+
+  const validateCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    setCouponError("");
+    setCouponData(null);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode, subtotal: total }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setCouponData(data.coupon);
+      } else {
+        setCouponError(data.error || "Cupón inválido");
+      }
+    } catch {
+      setCouponError("Error validando cupón");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setCouponCode("");
+    setCouponData(null);
+    setCouponError("");
+  };
 
   // Calculate shipping cost
   const calculateShipping = async (department, city) => {
@@ -398,6 +435,10 @@ export default function CheckoutPage({ params }) {
           storeId: it.storeId,
         })),
         total: grandTotal,
+        subtotal: total,
+        discountAmount,
+        couponId: couponData?.id || null,
+        couponCode: couponData?.code || null,
         customer: {
           name: sessionUser?.name || "",
           email: sessionUser?.email || "",
@@ -614,10 +655,54 @@ export default function CheckoutPage({ params }) {
       </div>
 
       <div className="mb-6">
+        {/* Coupon input */}
+        {!couponData ? (
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              placeholder="Código de cupón"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && validateCoupon()}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none uppercase"
+            />
+            <button
+              type="button"
+              onClick={validateCoupon}
+              disabled={validatingCoupon || !couponCode.trim()}
+              className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+            >
+              {validatingCoupon ? "..." : "Aplicar"}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-4 py-2 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-green-600">🏷️</span>
+              <span className="text-sm font-semibold text-green-700">{couponData.code}</span>
+              <span className="text-xs text-green-600">
+                (-{couponData.discountType === "percentage" ? `${couponData.discountValue}%` : formatCurrency(couponData.discountValue)})
+              </span>
+            </div>
+            <button onClick={removeCoupon} className="text-gray-400 hover:text-red-500 transition">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+        {couponError && <p className="text-red-500 text-xs mt-1">{couponError}</p>}
+
         <div className="flex justify-between items-center">
           <div className="text-lg font-medium">Subtotal</div>
           <div className="text-xl font-semibold">{formatCurrency(total)}</div>
         </div>
+        {discountAmount > 0 && (
+          <div className="flex justify-between items-center text-sm mt-1">
+            <div className="text-green-600 font-medium">Descuento</div>
+            <div className="font-medium text-green-600">-{formatCurrency(discountAmount)}</div>
+          </div>
+        )}
         {shippingCost > 0 && (
           <div className="flex justify-between items-center text-sm mt-1">
             <div className="text-gray-600">Envío</div>

@@ -60,7 +60,7 @@ export async function POST(req) {
     if (!authUser?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const body = await req.json();
-    const { items, customer = {}, total: clientTotal = 0, paymentMethodId, clientOrderId, shipping = {} } = body;
+    const { items, customer = {}, total: clientTotal = 0, paymentMethodId, clientOrderId, shipping = {}, couponId, couponCode, discountAmount = 0 } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "No hay items en la orden" }, { status: 400 });
@@ -135,16 +135,18 @@ export async function POST(req) {
       );
     }
 
-    // Calcular serverTotal en centavos y comparar con clientTotal
+    // Calcular serverTotal en centavos y comparar con clientTotal (con descuento)
     const serverTotalCents = itemsNormalized.reduce((s, it) => s + it.priceInCents * it.quantity, 0);
+    const discountCents = Math.round((Number(discountAmount) || 0) * 100);
+    const serverFinalTotalCents = serverTotalCents - discountCents;
     const clientTotalCents = Math.round((Number(clientTotal) || 0) * 100);
 
     const TOLERANCE_CENTS = 1; // tolerancia mínima
 
-    if (Math.abs(serverTotalCents - clientTotalCents) > TOLERANCE_CENTS) {
-      console.warn("Total mismatch", { serverTotalCents, clientTotalCents });
+    if (Math.abs(serverFinalTotalCents - clientTotalCents) > TOLERANCE_CENTS) {
+      console.warn("Total mismatch", { serverFinalTotalCents, clientTotalCents });
       return NextResponse.json(
-        { error: "Total mismatch", serverTotal: serverTotalCents / 100, clientTotal: clientTotalCents / 100 },
+        { error: "Total mismatch", serverTotal: serverFinalTotalCents / 100, clientTotal: clientTotalCents / 100 },
         { status: 400 }
       );
     }
@@ -190,7 +192,7 @@ export async function POST(req) {
       const orderData = {
         userId,
         orderNumber,
-        total: serverTotalCents / 100,
+        total: serverFinalTotalCents / 100,
         status: "pending",
         paymentStatus: "unpaid",
         stockDeducted: true,
@@ -205,6 +207,8 @@ export async function POST(req) {
         shippingCity: shipping.city || null,
         shippingDepartment: shipping.department || null,
         shippingPostalCode: shipping.postalCode || null,
+        couponId: couponId || null,
+        discountAmount: Number(discountAmount) || 0,
         orderItems: {
           create: groups.map((g) => ({
             storeId: g.storeId,
@@ -238,6 +242,14 @@ export async function POST(req) {
         await tx.product.update({
           where: { id: it.productId },
           data: { stock: { decrement: it.quantity } },
+        });
+      }
+
+      // Incrementar uso del cupón
+      if (couponId) {
+        await tx.coupon.update({
+          where: { id: couponId },
+          data: { usedCount: { increment: 1 } },
         });
       }
 

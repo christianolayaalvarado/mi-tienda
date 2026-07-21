@@ -23,6 +23,7 @@ const NAV_ITEMS = [
 const ADMIN_ITEMS = [
   { href: "/dashboard/admin/orders", label: "Órdenes admin", icon: "🔧" },
   { href: "/dashboard/admin/shipping", label: "Tarifas envío", icon: "🚚" },
+  { href: "/dashboard/admin/coupons", label: "Cupones", icon: "🏷️" },
   { href: "/dashboard/admin/marketing", label: "Email Marketing", icon: "📧" },
 ];
 

@@ -166,6 +166,11 @@ model Order {
   shippedAt         DateTime?
   deliveredAt       DateTime?
 
+  // Cupón
+  couponId          String?     @db.ObjectId
+  coupon            Coupon?     @relation(fields: [couponId], references: [id])
+  discountAmount    Float       @default(0)
+
   orderHistories OrderHistory[]
 
   @@index([userId])
@@ -444,4 +449,19 @@ model CoinTransaction {
 
   @@index([userId])
   @@index([createdAt])
+}
+
+model Coupon {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  code          String   @unique
+  discountType  String   @default("percentage") // "percentage" or "fixed"
+  discountValue Float
+  minPurchase   Float    @default(0)
+  maxUses       Int      @default(0) // 0 = unlimited
+  usedCount     Int      @default(0)
+  expiresAt     DateTime?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  orders        Order[]
 }
