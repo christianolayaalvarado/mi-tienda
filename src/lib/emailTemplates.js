@@ -543,6 +543,32 @@ export const abandonedCartTemplate = (cartItems, total) => {
   `);
 };
 
+export const reviewRequestTemplate = ({ buyerName, orderId, orderNumber }) => {
+  const reviewUrl = `${appUrl}/dashboard/orders/${orderId}`;
+  return `
+        <tr>
+          <td align="center" style="padding:0 16px">
+            <div style="max-width:480px;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;padding:40px 32px;text-align:center;font-family:'Inter','Segoe UI',sans-serif">
+              <div style="font-size:48px;margin-bottom:16px">⭐</div>
+              <h2 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1f2937">¿Cómo te fue con tu compra?</h2>
+              <p style="margin:0 0 24px;color:#6b7280;font-size:15px">Tu opinión ayuda a otros compradores</p>
+
+              <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:0 0 24px">
+                <p style="margin:0 0 8px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:1px">Orden</p>
+                <p style="margin:0;font-size:17px;font-weight:600;color:#1f2937">#${orderNumber}</p>
+              </div>
+
+              <p style="margin:0 0 24px;color:#6b7280;font-size:14px">Tu compra fue entregada. ¿Podrías calificar tu experiencia y dejar una reseña? Toma solo 30 segundos.</p>
+
+              <a href="${reviewUrl}" style="display:inline-block;background:#f59e0b;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 32px;border-radius:8px;font-size:15px">Dejar reseña</a>
+
+              <p style="margin:24px 0 0;color:#9ca3af;font-size:13px;text-align:center">Gracias por confiar en Mi Tienda</p>
+            </div>
+          </td>
+        </tr>
+  `;
+};
+
 export const lowStockTemplate = ({ sellerName, productTitle, currentStock, productId }) => {
   const productUrl = `${appUrl}/dashboard/products`;
   const stockColor = currentStock <= 1 ? "#dc2626" : currentStock <= 2 ? "#f59e0b" : "#2563eb";

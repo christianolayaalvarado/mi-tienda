@@ -18,6 +18,7 @@ import {
   seasonalTemplate,
   abandonedCartTemplate,
   lowStockTemplate,
+  reviewRequestTemplate,
 } from "./emailTemplates";
 
 const defaultFrom = `"${process.env.FROM_NAME || "Mi Tienda"}" <${process.env.FROM_EMAIL || process.env.EMAIL_USER}>`;
@@ -131,6 +132,15 @@ export const sendLowStockAlert = async ({ to, sellerName, productTitle, currentS
   });
 };
 
+export const sendReviewRequestEmail = async ({ to, buyerName, orderId, orderNumber }) => {
+  const html = reviewRequestTemplate({ buyerName, orderId, orderNumber });
+  return sendMail({
+    to,
+    subject: `⭐ ¿Cómo te fue con tu compra #${orderNumber}?`,
+    html,
+  });
+};
+
 export default {
   sendMail,
   sendVerificationCodeEmail,
@@ -148,4 +158,5 @@ export default {
   sendWeeklyOffersEmail,
   sendSeasonalEmail,
   sendLowStockAlert,
+  sendReviewRequestEmail,
 };

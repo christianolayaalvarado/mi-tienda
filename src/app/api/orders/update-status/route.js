@@ -113,6 +113,27 @@ export async function PUT(req) {
       console.warn("No se pudo registrar orderHistory en update-status:", e?.message || e);
     }
 
+    // Si se marcó como entregada, enviar email pidiendo reseña
+    if (status === "delivered") {
+      try {
+        const buyer = await prisma.user.findUnique({
+          where: { id: order.userId },
+          select: { email: true, name: true },
+        });
+        if (buyer?.email) {
+          const { sendReviewRequestEmail } = await import("@/lib/email");
+          sendReviewRequestEmail({
+            to: buyer.email,
+            buyerName: buyer.name,
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+          }).catch(() => {});
+        }
+      } catch (e) {
+        console.warn("Error sending review request email:", e?.message || e);
+      }
+    }
+
     return NextResponse.json({ success: true, status: updated.status });
 
   } catch (err) {
