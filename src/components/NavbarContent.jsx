@@ -7,6 +7,7 @@ import { useCart } from "@/context/CartContext";
 import SearchBox from "./navbar/SearchBox";
 import CartPreview from "./navbar/CartPreview";
 import UserMenu from "./navbar/UserMenu";
+import ThemeToggle from "./navbar/ThemeToggle";
 import CategoryScroller from "./navbar/CategoryScroller";
 
 import {
@@ -208,6 +209,7 @@ export default function NavbarContent() {
               </span>
             </button>
             <UserMenu />
+            <ThemeToggle />
           </div>
 
           {/* Search: order-3 on mobile (wraps to line 2), order-2 on desktop (between logo and actions) */}
