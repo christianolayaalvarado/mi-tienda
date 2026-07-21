@@ -246,6 +246,31 @@ export default function ProductsPage() {
                   <p className={`text-xs font-medium ${product.stock === 0 ? "text-red-600" : product.stock <= 3 ? "text-orange-600" : "text-gray-500"}`}>
                     {product.stock === 0 ? "Agotado" : `Stock: ${product.stock}`}
                   </p>
+                  {product.stock <= 3 && product.stock > 0 && (
+                    <button
+                      onClick={async () => {
+                        const newStock = prompt(`Stock actual: ${product.stock}. ¿Cuántas unidades agregar?`, "10");
+                        if (!newStock || isNaN(Number(newStock)) || Number(newStock) <= 0) return;
+                        try {
+                          const res = await fetch(`/api/products/${product.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ stock: product.stock + Number(newStock) }),
+                          });
+                          if (res.ok) {
+                            toast.success(`Stock actualizado a ${product.stock + Number(newStock)}`);
+                            fetchProducts();
+                          } else {
+                            toast.error("Error al actualizar stock");
+                          }
+                        } catch { toast.error("Error de red"); }
+                      }}
+                      className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-medium hover:bg-orange-200 transition"
+                    >
+                      +Reabastecer
+                    </button>
+                  )}
                 </div>
               </div>
             );

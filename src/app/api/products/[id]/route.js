@@ -141,3 +141,60 @@ export async function PUT(req, { params }) {
     return NextResponse.json({ error: "Error actualizando producto" }, { status: 500 });
   }
 }
+
+export async function PATCH(req, { params }) {
+  try {
+    const { id } = await params;
+    if (!id || !isValidObjectId(id)) {
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    }
+
+    const session = await getServerAuthUser(req);
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const existing = await prisma.product.findUnique({
+      where: { id },
+      include: { store: { include: { user: { select: { id: true, email: true } } } }, user: { select: { id: true, email: true } } },
+    });
+    if (!existing) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+
+    const userId = session.id || null;
+    const userEmail = session.email || null;
+    const isProductOwner = (userId && String(existing.userId) === String(userId)) || (userEmail && existing.user?.email === userEmail);
+    const isStoreOwner = existing.store?.user?.id === userId || existing.store?.user?.email === userEmail;
+    const isAdmin = session.role === "admin" || session.role === "ADMIN";
+
+    if (!isProductOwner && !isStoreOwner && !isAdmin) {
+      return NextResponse.json({ error: "No tienes permiso para editar este producto" }, { status: 403 });
+    }
+
+    const updateData = {};
+    if (body.stock !== undefined) {
+      const s = Number(body.stock);
+      if (Number.isFinite(s) && Number.isInteger(s) && s >= 0) updateData.stock = s;
+    }
+    if (body.price !== undefined) {
+      const p = Number(body.price);
+      if (Number.isFinite(p) && p >= 0) updateData.price = p;
+    }
+    if (body.title !== undefined) updateData.title = String(body.title).trim();
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: "Nada que actualizar" }, { status: 400 });
+    }
+
+    const updated = await prisma.product.update({
+      where: { id },
+      data: updateData,
+      include: { category: true, store: true, user: true },
+    });
+
+    return NextResponse.json(updated);
+  } catch (err) {
+    console.error("PATCH product error:", err);
+    return NextResponse.json({ error: "Error actualizando producto" }, { status: 500 });
+  }
+}
