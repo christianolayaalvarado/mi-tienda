@@ -151,20 +151,20 @@ export default function RegisterBenefitsModal() {
           ))}
           <button
             onClick={() => setCurrentImage((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-xs border border-white/10 z-10 transition"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white flex items-center justify-center text-xs border border-white/30 z-10 transition font-bold"
           >
             ‹
           </button>
           <button
             onClick={() => setCurrentImage((prev) => (prev + 1) % CAROUSEL_IMAGES.length)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-xs border border-white/10 z-10 transition"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white flex items-center justify-center text-xs border border-white/30 z-10 transition font-bold"
           >
             ›
           </button>
           {/* Mobile close button */}
           <button
             onClick={dismiss}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 flex items-center justify-center text-white text-sm border border-white/10 z-20 transition"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 flex items-center justify-center text-white text-sm border border-white/30 z-20 transition font-bold"
           >
             ✕
           </button>
@@ -268,20 +268,20 @@ export default function RegisterBenefitsModal() {
           {/* Desktop close button - top right corner of carousel */}
           <button
             onClick={dismiss}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 flex items-center justify-center text-white text-sm border border-white/10 z-20 transition"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 flex items-center justify-center text-white text-sm border border-white/30 z-20 transition font-bold"
           >
             ✕
           </button>
 
           <button
             onClick={() => setCurrentImage((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-sm border border-white/10 z-10 transition"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white flex items-center justify-center text-sm border border-white/30 z-10 transition font-bold"
           >
             ‹
           </button>
           <button
             onClick={() => setCurrentImage((prev) => (prev + 1) % CAROUSEL_IMAGES.length)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center text-sm border border-white/10 z-10 transition"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white flex items-center justify-center text-sm border border-white/30 z-10 transition font-bold"
           >
             ›
           </button>
