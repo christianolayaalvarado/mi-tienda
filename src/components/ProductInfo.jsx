@@ -295,6 +295,10 @@ export default function ProductInfo({ product }) {
         S/ {Number(product.price || 0).toFixed(2)}
       </p>
 
+      {product.categoryId && (
+        <BestPriceBadge categoryId={product.categoryId} currentPrice={product.price} />
+      )}
+
       {remainingStock === 1 && <p className="text-red-600 font-semibold mt-2">🔥 Última unidad disponible</p>}
       {remainingStock > 1 && remainingStock <= 3 && <p className="text-orange-600 font-semibold mt-2">🔥 Solo quedan {remainingStock} unidades</p>}
 
@@ -392,6 +396,32 @@ export default function ProductInfo({ product }) {
       )}
 
       <AuthRequiredModal open={modalOpen} onClose={() => setModalOpen(false)} callbackUrl={typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"} />
+    </div>
+  );
+}
+
+function BestPriceBadge({ categoryId, currentPrice }) {
+  const [isBest, setIsBest] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/products?category=${categoryId}&limit=50`)
+      .then((r) => r.json())
+      .then((data) => {
+        const products = data?.products || [];
+        if (products.length < 3) return;
+        const prices = products.map((p) => Number(p.price)).filter((p) => p > 0);
+        const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+        if (Number(currentPrice) < avg * 0.7) setIsBest(true);
+      })
+      .catch(() => {});
+  }, [categoryId, currentPrice]);
+
+  if (!isBest) return null;
+
+  return (
+    <div className="mt-2 inline-flex items-center gap-1.5 bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
+      <span>🏷️</span>
+      <span>¡Mejor precio en esta categoría!</span>
     </div>
   );
 }
