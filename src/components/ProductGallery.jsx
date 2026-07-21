@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 
 function Chevron({ className = "" }) {
@@ -24,7 +24,6 @@ function Chevron({ className = "" }) {
 
 export default function ProductGallery({ images, title }) {
 
-  // 🔹 Limpiar imágenes inválidas
   const validImages =
     images && images.length > 0
       ? images.filter(img => img && img.trim() !== "")
@@ -39,10 +38,12 @@ export default function ProductGallery({ images, title }) {
   const [startIndex, setStartIndex] = useState(0)
   const [fade, setFade] = useState(false)
   const [viewerOpen, setViewerOpen] = useState(false)
+  const [lensPos, setLensPos] = useState({ x: 0, y: 0 })
+  const [showLens, setShowLens] = useState(false)
+  const imgContainerRef = useRef(null)
 
   const visibleCount = 4
 
-  // 🔥 FIX IMPORTANTE: inicializar correctamente
   useEffect(() => {
     if (displayImages.length > 0) {
       setSelectedImage(displayImages[0])
@@ -50,7 +51,6 @@ export default function ProductGallery({ images, title }) {
     }
   }, [images])
 
-  // 🔹 ESC para cerrar viewer
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === "Escape") setViewerOpen(false)
@@ -77,9 +77,16 @@ export default function ProductGallery({ images, title }) {
     setTimeout(() => setFade(false), 120)
   }
 
-  // 🔥 Fallback si imagen falla (clave para Cloudinary)
   const handleImageError = () => {
     setSelectedImage("/images/placeholder.png")
+  }
+
+  const handleMouseMove = (e) => {
+    if (!imgContainerRef.current) return
+    const rect = imgContainerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    setLensPos({ x, y })
   }
 
   return (
@@ -135,8 +142,12 @@ export default function ProductGallery({ images, title }) {
       {/* Imagen grande */}
       <div className="relative w-full sm:w-[85%] md:w-full max-w-[640px] aspect-square mx-auto">
         <div
+          ref={imgContainerRef}
           onClick={() => setViewerOpen(true)}
-          className="relative w-full h-full cursor-zoom-in"
+          onMouseMove={handleMouseMove}
+          onMouseEnter={() => setShowLens(true)}
+          onMouseLeave={() => setShowLens(false)}
+          className="relative w-full h-full cursor-zoom-in overflow-hidden"
         >
           {selectedImage && (
             <Image
@@ -144,14 +155,31 @@ export default function ProductGallery({ images, title }) {
               alt={title}
               fill
               sizes="(max-width: 768px) 90vw, (max-width: 1200px) 50vw, 40vw"
-              className={`object-contain rounded-xl shadow-lg transition-all duration-300 hover:scale-105 ${
-                fade ? "opacity-40 scale-95" : "opacity-100"
+              className={`object-contain rounded-xl shadow-lg transition-opacity duration-300 ${
+                fade ? "opacity-40" : "opacity-100"
               }`}
               priority
               onError={handleImageError}
             />
           )}
+
+          {showLens && !fade && (
+            <div
+              className="hidden md:block absolute pointer-events-none border-2 border-white/80 rounded-full shadow-2xl overflow-hidden"
+              style={{
+                width: 160,
+                height: 160,
+                left: `calc(${lensPos.x}% - 80px)`,
+                top: `calc(${lensPos.y}% - 80px)`,
+                backgroundImage: `url(${selectedImage})`,
+                backgroundSize: "400%",
+                backgroundPosition: `${lensPos.x}% ${lensPos.y}%`,
+              }}
+            />
+          )}
         </div>
+
+        <div className="mt-2 text-center text-xs text-gray-400 md:hidden">Toca para ampliar</div>
       </div>
 
       {/* Viewer fullscreen */}

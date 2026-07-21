@@ -1,3 +1,3 @@
 export default function ShopLayout({ children }) {
-  return <>{children}</>;
+  return <div className="page-transition">{children}</div>;
 }
