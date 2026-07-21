@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import SocialProof from "@/components/SocialProof";
 
 const imageSizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
 
@@ -70,6 +71,10 @@ export default function ProductCard({ product, priority }) {
           {product.stock > 1 && product.stock <= 3 && (
             <p className="text-orange-600 text-xs font-semibold mt-1">🔥 Solo quedan {product.stock}</p>
           )}
+
+          <div className="mt-1">
+            <SocialProof productId={product.id} type="viewing" />
+          </div>
         </div>
       </Link>
 
