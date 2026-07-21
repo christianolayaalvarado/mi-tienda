@@ -490,7 +490,7 @@ export const seasonalTemplate = (userName, season) => {
   `;
 };
 
-const abandonedCartTemplate = (cartItems, total) => {
+export const abandonedCartTemplate = (cartItems, total) => {
   const itemsHtml = cartItems
     .map(
       (item) => `
@@ -557,4 +557,5 @@ export default {
   weMissYouTemplate,
   weeklyOffersTemplate,
   seasonalTemplate,
+  abandonedCartTemplate,
 };
