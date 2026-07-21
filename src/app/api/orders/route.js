@@ -342,6 +342,40 @@ export async function POST(req) {
 
       // Ejecutar envíos en paralelo y no bloquear la respuesta
       await Promise.allSettled([buyerPromise, ...sellerPromises]);
+
+      // Alertas de stock bajo
+      try {
+        for (const it of itemsNormalized) {
+          const product = await prisma.product.findUnique({
+            where: { id: it.productId },
+            select: { id: true, title: true, stock: true, storeId: true },
+          });
+          if (product && product.stock <= 3 && product.stock > 0) {
+            const store = await prisma.store.findUnique({
+              where: { id: product.storeId },
+              select: { userId: true },
+            });
+            if (store?.userId) {
+              const seller = await prisma.user.findUnique({
+                where: { id: store.userId },
+                select: { email: true, name: true },
+              });
+              if (seller?.email) {
+                const { sendLowStockAlert } = await import("@/lib/email");
+                sendLowStockAlert({
+                  to: seller.email,
+                  sellerName: seller.name,
+                  productTitle: product.title,
+                  currentStock: product.stock,
+                  productId: product.id,
+                }).catch(() => {});
+              }
+            }
+          }
+        }
+      } catch (stockAlertErr) {
+        console.error("Error sending low stock alerts:", stockAlertErr);
+      }
     } catch (emailErr) {
       console.error("Error en proceso de notificaciones de orden:", emailErr);
     }

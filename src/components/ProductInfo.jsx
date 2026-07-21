@@ -327,7 +327,7 @@ export default function ProductInfo({ product }) {
       <div className="mt-6 space-y-1 text-sm text-gray-600 text-left">
         <p><span className="font-semibold text-gray-800">ID Producto:</span> {productIdStr}</p>
         <p><span className="font-semibold text-gray-800">Categoría:</span> {product.category?.name || "-"}</p>
-        <p><span className="font-semibold text-gray-800">Vendedor:</span> {product.user?.name || "Sin nombre"}</p>
+        <p><span className="font-semibold text-gray-800">Vendedor:</span> {product.user?.name || "Sin nombre"} {product.user?.isVerified && <span title="Vendedor verificado" className="inline-flex items-center ml-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">✓ Verificado</span>}</p>
         <p><span className="font-semibold text-gray-800">Tienda:</span> {product.store?.name || "Sin tienda"}</p>
         <p><span className="font-semibold text-gray-800">Código tienda:</span> {product.store?.code || "-"}</p>
         <p><span className="font-semibold text-gray-800">Stock:</span> {remainingStock} disponibles</p>

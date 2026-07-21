@@ -17,6 +17,7 @@ model User {
   verificationCode String?
   verificationSentAt DateTime?
   sellerCode    String?
+  isVerified    Boolean  @default(false)
   city          String?
   address       String?
   phone         String?

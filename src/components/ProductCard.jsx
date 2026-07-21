@@ -88,6 +88,7 @@ export default function ProductCard({ product, priority }) {
           ) : (
             <span className="font-medium">{storeName}</span>
           )}
+          {product.user?.isVerified && <span title="Vendedor verificado" className="inline-flex items-center ml-1 text-[10px] bg-blue-100 text-blue-700 px-1 py-0.5 rounded-full font-medium">✓</span>}
         </p>
 
         <Link href={`/product/${productId}`} className="shrink-0">

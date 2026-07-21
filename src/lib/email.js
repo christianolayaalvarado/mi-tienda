@@ -17,6 +17,7 @@ import {
   weeklyOffersTemplate,
   seasonalTemplate,
   abandonedCartTemplate,
+  lowStockTemplate,
 } from "./emailTemplates";
 
 const defaultFrom = `"${process.env.FROM_NAME || "Mi Tienda"}" <${process.env.FROM_EMAIL || process.env.EMAIL_USER}>`;
@@ -121,6 +122,15 @@ export const sendSeasonalEmail = async ({ to, userName, season }) =>
 export const sendAbandonedCartReminder = async ({ to, cartItems, total }) =>
   sendMail({ to, subject: "¡Tienes productos esperando! 🛒 - Mi Tienda", html: abandonedCartTemplate(cartItems, total) });
 
+export const sendLowStockAlert = async ({ to, sellerName, productTitle, currentStock, productId }) => {
+  const html = lowStockTemplate({ sellerName, productTitle, currentStock, productId });
+  return sendMail({
+    to,
+    subject: `⚠️ Stock bajo: ${productTitle}`,
+    html,
+  });
+};
+
 export default {
   sendMail,
   sendVerificationCodeEmail,
@@ -137,4 +147,5 @@ export default {
   sendWeMissYouEmail,
   sendWeeklyOffersEmail,
   sendSeasonalEmail,
+  sendLowStockAlert,
 };
