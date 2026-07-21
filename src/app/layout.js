@@ -30,6 +30,14 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Mi tienda",
   description: "Catálogo de productos",
+  manifest: "/manifest.json",
+  themeColor: "#16a34a",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Mi Tienda",
+  },
   openGraph: {
     type: "website",
     title: "Mi Tienda — Productos",
@@ -55,6 +63,23 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="apple-touch-icon" href="/images/icon-192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Mi Tienda" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function() {});
+                });
+              }
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-theme-primary flex flex-col h-screen overflow-hidden`}
       >
