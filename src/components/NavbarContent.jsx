@@ -178,7 +178,7 @@ export default function NavbarContent() {
         {/* Single flex row with wrap: search goes to line 2 on mobile */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-6">
           <Link href="/" className="flex items-center shrink-0 order-1">
-            <img src="/images/logo.png" alt="Logo MiTienda" className="h-8 sm:h-10 w-auto navbar-logo" />
+            <img src="/images/logo.png" alt="Logo MiTienda" className="h-8 sm:h-10 w-auto navbar-logo animate-[fadeIn_0.5s_ease]" />
           </Link>
 
           {/* Actions: ml-auto on mobile pushes to right edge, sm:order-3 on desktop */}

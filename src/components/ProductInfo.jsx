@@ -270,7 +270,7 @@ export default function ProductInfo({ product }) {
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center md:text-left flex-1">{product.title}</h1>
         <button
           onClick={() => toggle(productIdStr)}
-          className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition border border-gray-200"
+          className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition border border-gray-200 ${fav ? "animate-[heartPop_0.3s_ease]" : ""}`}
           aria-label={fav ? "Quitar de favoritos" : "Agregar a favoritos"}
         >
           <svg className="w-5 h-5 transition-colors" fill={fav ? "#ef4444" : "none"} stroke={fav ? "#ef4444" : "#9ca3af"} strokeWidth={2} viewBox="0 0 24 24">
