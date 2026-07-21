@@ -11,10 +11,10 @@ export default async function DashboardHome() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4 text-theme-primary">Panel de control</h1>
+    <div className="max-w-4xl mx-auto p-3 sm:p-4">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 text-theme-primary">Panel de control</h1>
 
-      <p className="mb-6 text-theme-secondary">
+      <p className="mb-6 text-theme-secondary text-sm sm:text-base">
         Bienvenido al panel de administración de tu tienda,{" "}
         {user.name}.
       </p>
@@ -22,7 +22,7 @@ export default async function DashboardHome() {
       {/* Welcome section with tier and theme */}
       <DashboardWelcome />
 
-      <div className="mt-6 flex gap-4">
+      <div className="mt-6 flex flex-wrap gap-3 sm:gap-4">
         <Link
           href="/dashboard/products"
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"

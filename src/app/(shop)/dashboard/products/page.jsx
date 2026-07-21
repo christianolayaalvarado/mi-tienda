@@ -158,29 +158,29 @@ export default function ProductsPage() {
   const normalize = (v) => (v == null ? null : String(v));
 
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-6">
       <Breadcrumbs />
 
-      <div className="flex justify-between items-center mb-4 mt-4">
-        <h1 className="text-2xl font-bold">Mis Productos</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 mt-4">
+        <h1 className="text-xl sm:text-2xl font-bold">Mis Productos</h1>
 
         <div className="flex gap-2">
           <button
             onClick={handleDeleteSelected}
             disabled={selectedProducts.length === 0 || deleting}
-            className={`px-4 py-2 rounded-lg font-medium text-white ${selectedProducts.length === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"}`}
+            className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm text-white ${selectedProducts.length === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"}`}
           >
             {deleting ? "Eliminando..." : `🗑 Eliminar (${selectedProducts.length})`}
           </button>
 
           <Link href="/dashboard/products/new">
-            <button className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition">+ Nuevo</button>
+            <button className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium text-sm hover:bg-green-700 transition">+ Nuevo</button>
           </Link>
         </div>
       </div>
 
-      <div className="flex gap-4 mb-6">
-        <input type="text" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="border p-2 rounded flex-1" />
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <input type="text" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="border p-2 rounded flex-1 min-w-0" />
         <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="border p-2 rounded">
           <option value="">Todas</option>
           {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
@@ -210,7 +210,7 @@ export default function ProductsPage() {
           actionLabel="Crear producto"
         />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {products.map((product) => {
             const sessionUserId = normalize(user?.id);
             const productUserId = normalize(product.userId);
@@ -238,7 +238,7 @@ export default function ProductsPage() {
                   )}
                 </div>
 
-                {product.images?.[0] && <img src={product.images[0]} className="w-full h-24 object-cover mb-2 rounded" />}
+                {product.images?.[0] && <img src={product.images[0]} className="w-full h-32 sm:h-24 object-cover mb-2 rounded" />}
 
                 <h2 className="text-sm font-bold line-clamp-2">{product.title}</h2>
                 <p className="text-sm font-semibold text-green-700">S/ {product.price}</p>

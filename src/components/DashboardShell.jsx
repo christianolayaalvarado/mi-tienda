@@ -177,7 +177,7 @@ export default function DashboardShell({ children, userName, userEmail, userRole
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 overflow-x-hidden">
         {/* Mobile top bar */}
         <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0">
           <button
