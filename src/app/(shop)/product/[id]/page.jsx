@@ -5,6 +5,7 @@ import ProductInfo from "@/components/ProductInfo"
 import ReviewsSection from "@/components/ReviewsSection"
 import Image from "next/image"
 import Breadcrumbs from "@/components/Breadcrumbs"
+import ProductViewTracker from "@/components/ProductViewTracker"
 
 export default async function ProductDetail({ params }) {
 
@@ -62,6 +63,7 @@ export default async function ProductDetail({ params }) {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
+      <ProductViewTracker product={product} />
 
       <Breadcrumbs extraItems={[{ label: product.title }]} />
 

@@ -11,6 +11,8 @@ import MascotWelcomeModal from "@/components/MascotWelcomeModal";
 import ScrollMascot from "@/components/ScrollMascot";
 import EmptyState from "@/components/EmptyState";
 import AbandonedCartBanner from "@/components/AbandonedCartBanner";
+import RecentlyViewed from "@/components/RecentlyViewed";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 
 export default function HomeClient() {
   const router = useRouter();
@@ -30,6 +32,8 @@ export default function HomeClient() {
   const [promoVisible, setPromoVisible] = useState(false);
   const [latestVisible, setLatestVisible] = useState(false);
   const [featuredHidden, setFeaturedHidden] = useState(false);
+
+  const { recentlyViewed } = useRecentlyViewed();
 
   // Width percentages per state (desktop):
   //   0s:   Featured=100%, Mascots=0%,    Latest=0%
@@ -327,6 +331,9 @@ export default function HomeClient() {
           </button>
         </div>
       )}
+
+      {/* Recently viewed products */}
+      {!currentSearch && !currentCategory && <RecentlyViewed items={recentlyViewed} />}
 
       {/* Mascota animada */}
       <ScrollMascot onClick={() => window.dispatchEvent(new CustomEvent("open-help-modal"))} />
