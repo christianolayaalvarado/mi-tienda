@@ -42,7 +42,7 @@ export default function DashboardShell({ children, userName, userEmail, userRole
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
