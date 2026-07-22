@@ -49,23 +49,20 @@ function OrderItemProducts({ orderItem, orderId, fetchOrderDetail }) {
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="mt-2 grid gap-2">
+    <div className="mt-2 space-y-2">
       {items.map((prod) => (
         <div
           key={prod.id || `${orderItem.id}-${prod.productId || Math.random()}`}
-          className="flex justify-between text-sm"
+          className="flex items-start justify-between gap-2 text-sm"
         >
-          <div>
-            <div className="font-medium">{prod.product?.title || prod.product?.name || prod.productName || "Producto"}</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-medium truncate">{prod.product?.title || prod.product?.name || prod.productName || "Producto"}</div>
             <div className="text-gray-500 text-xs">
-              Precio unitario: S/ {Number(prod.price || 0).toFixed(2)}
+              S/ {Number(prod.price || 0).toFixed(2)} x {Number(prod.quantity || 0)}
             </div>
           </div>
-          <div className="text-right">
-            <div>{Number(prod.quantity || 0)} x</div>
-            <div className="font-semibold">
-              S/ {(Number(prod.price || 0) * Number(prod.quantity || 1)).toFixed(2)}
-            </div>
+          <div className="text-right shrink-0 font-semibold">
+            S/ {(Number(prod.price || 0) * Number(prod.quantity || 1)).toFixed(2)}
           </div>
         </div>
       ))}
@@ -79,9 +76,7 @@ export default function SellerOrdersPage() {
   const [error, setError] = useState(null);
   const [session, setSession] = useState(null);
   const [detailCache, setDetailCache] = useState({});
-
-  // Estado para el modal de eliminación
-  const [deleteTarget, setDeleteTarget] = useState(null); // { orderId }
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const normalize = (rawOrders = []) =>
     (rawOrders || []).map((o) => ({
@@ -103,40 +98,25 @@ export default function SellerOrdersPage() {
     }));
 
   useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          setSession(data?.user ? { user: data.user } : null);
-        } else {
-          setSession(null);
-        }
-      } catch (e) {
-        console.warn("No se pudo obtener sesión en cliente:", e?.message || e);
-        setSession(null);
-      }
-    };
-
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        await fetchSession();
-        const res = await fetch("/api/seller/orders");
-        if (!res.ok) {
-          const text = await res.text().catch(() => null);
-          throw new Error(`Error ${res.status}: ${text || res.statusText}`);
+        const meRes = await fetch("/api/auth/me", { credentials: "include" });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          setSession(meData?.user ? { user: meData.user } : null);
         }
+        const res = await fetch("/api/seller/orders");
+        if (!res.ok) throw new Error(`Error ${res.status}`);
         const data = await res.json();
         setOrders(normalize(data.orders || data || []));
       } catch (err) {
-        console.error("Error cargando órdenes del vendedor:", err);
-        setError("No se pudieron cargar las ventas. Revisa la consola.");
+        console.error("Error cargando ventas:", err);
+        setError("No se pudieron cargar las ventas.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchOrders();
   }, []);
 
@@ -144,22 +124,18 @@ export default function SellerOrdersPage() {
     try {
       setLoading(true);
       const res = await fetch("/api/seller/orders");
-      if (!res.ok) {
-        const text = await res.text().catch(() => null);
-        throw new Error(`Error ${res.status}: ${text || res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`Error ${res.status}`);
       const data = await res.json();
       setOrders(normalize(data.orders || data || []));
     } catch (err) {
-      console.error("Error refrescando órdenes:", err);
-      setError("No se pudieron refrescar las ventas. Revisa la consola.");
+      console.error("Error refrescando:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleMarkPaid = async (orderId) => {
-    if (!confirm("Confirmar: marcar esta orden como pagada? Esta acción la realiza un administrador.")) return;
+    if (!confirm("Marcar esta orden como pagada?")) return;
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
@@ -167,19 +143,16 @@ export default function SellerOrdersPage() {
         body: JSON.stringify({ action: "markPaid" }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(json?.error || json?.message || "Error marcando como pagado");
-      }
+      if (!res.ok) throw new Error(json?.error || "Error");
       alert("Orden marcada como pagada");
       await refreshOrders();
     } catch (err) {
-      console.error("Error marcando como pagado:", err);
-      alert(err?.message || "No se pudo marcar como pagado. Revisa la consola.");
+      alert(err?.message || "No se pudo marcar como pagado");
     }
   };
 
   const handleMarkStorePaid = async (orderId, storeId) => {
-    if (!confirm("Confirmar: marcar esta tienda como pagada?")) return;
+    if (!confirm("Marcar esta tienda como pagada?")) return;
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
@@ -187,14 +160,11 @@ export default function SellerOrdersPage() {
         body: JSON.stringify({ action: "markStorePaid", storeId }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(json?.error || json?.message || "Error marcando pago de tienda");
-      }
-      alert("Pago de la tienda marcado correctamente");
+      if (!res.ok) throw new Error(json?.error || "Error");
+      alert("Pago de tienda marcado");
       await refreshOrders();
     } catch (err) {
-      console.error("Error marcando pago de tienda:", err);
-      alert(err?.message || "No se pudo marcar pago de tienda. Revisa la consola.");
+      alert(err?.message || "No se pudo marcar");
     }
   };
 
@@ -212,7 +182,6 @@ export default function SellerOrdersPage() {
     }
   };
 
-  // Eliminar orden (soft-delete) usando la razón provista por el modal
   const handleDeleteOrder = async (orderId, reason) => {
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
@@ -221,169 +190,127 @@ export default function SellerOrdersPage() {
         body: JSON.stringify({ reason: reason || "", mode: "soft" }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(json?.error || json?.message || "Error eliminando orden");
-      }
+      if (!res.ok) throw new Error(json?.error || "Error eliminando");
       setDeleteTarget(null);
       await refreshOrders();
-      alert("Orden eliminada correctamente");
+      alert("Orden eliminada");
     } catch (err) {
-      console.error("Error eliminando orden:", err);
-      alert(err?.message || "No se pudo eliminar la orden");
+      alert(err?.message || "No se pudo eliminar");
     }
   };
 
-  if (loading) return <p className="p-6 text-gray-600">Cargando ventas...</p>;
-  if (error) return <p className="p-6 text-red-600">{error}</p>;
-  if (!orders || orders.length === 0) return <p className="p-6 text-gray-600">No tienes ventas aún</p>;
+  if (loading) return <p className="p-4 sm:p-6 text-gray-600">Cargando ventas...</p>;
+  if (error) return <p className="p-4 sm:p-6 text-red-600">{error}</p>;
+  if (!orders || orders.length === 0) return <p className="p-4 sm:p-6 text-gray-600">No tienes ventas aún</p>;
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Ventas de mi tienda</h1>
+    <div className="p-4 sm:p-6 space-y-4">
+      <h1 className="text-xl sm:text-2xl font-bold">Ventas de mi tienda</h1>
 
       <div className="space-y-4">
         {orders.map((order) => (
-          <div key={order.id} className="border p-4 rounded bg-white shadow-sm">
-            <div className="flex justify-between items-start">
-              <div>
-                {/* #Orden con botón Ver detalle junto al número */}
-                <p className="text-sm text-gray-500 flex items-center gap-2">
-                  <strong>#Orden:</strong>
-                  <span className="text-gray-800">{order.orderNumber || order.id}</span>
-                  <a
-                    href={`/dashboard/orders/${order.id}`}
-                    className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded"
-                  >
-                    Ver detalle
-                  </a>
-                </p>
-
-                <p className="text-sm text-gray-500">
-                  <strong>Fecha:</strong>{" "}
-                  <span className="text-gray-800">{formatDate(order.createdAt)}</span>
-                </p>
-
-                <p className="text-sm text-gray-500">
-                  <strong>Cliente:</strong>{" "}
-                  <span className="text-gray-800">
-                    {order.customerName ? `${order.customerName} • ` : ""}
-                    {order.customerEmail || "—"}
-                  </span>
-                </p>
+          <div key={order.id} className="border rounded-lg bg-white shadow-sm overflow-hidden">
+            {/* Header de la orden */}
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-semibold text-gray-900">#{order.orderNumber || order.id?.slice(-8)}</p>
+                <a href={`/dashboard/orders/${order.id}`} className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded-lg shrink-0">
+                  Ver detalle
+                </a>
               </div>
 
-              <div className="text-right">
-                <p className="text-sm">
-                  <strong>Total:</strong>{" "}
-                  <span className="text-gray-800">S/ {Number(order.total || 0).toFixed(2)}</span>
-                </p>
-                <p className="text-sm">
-                  <strong>Estado:</strong>{" "}
-                  <span className="text-gray-800">{order.paymentStatus}</span>
-                </p>
-                <p className="text-sm">
-                  <strong>Documento:</strong>{" "}
-                  <span className="text-gray-800">{order.documentNumber || "No emitido"}</span>
-                </p>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-400 text-xs">Fecha</span>
+                  <p className="text-gray-800">{formatDate(order.createdAt)}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-gray-400 text-xs">Total</span>
+                  <p className="font-bold text-green-700 text-lg">S/ {Number(order.total || 0).toFixed(2)}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-gray-400 text-xs">Cliente</span>
+                  <p className="text-gray-800 truncate">{order.customerName || "—"}</p>
+                  <p className="text-gray-500 text-xs truncate">{order.customerEmail || "—"}</p>
+                </div>
+                <div>
+                  <span className="text-gray-400 text-xs">Estado</span>
+                  <p>
+                    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${
+                      order.paymentStatus === "paid" ? "bg-green-100 text-green-800" :
+                      order.paymentStatus === "pending_verification" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-gray-100 text-gray-800"
+                    }`}>
+                      {order.paymentStatus}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <span className="text-gray-400 text-xs">Documento</span>
+                  <p className="text-gray-800">{order.documentNumber || "No emitido"}</p>
+                </div>
               </div>
             </div>
 
-            {/* Items por tienda dentro de la orden */}
-            <div className="mt-4 space-y-3">
-              {order.orderItems.map((item) => (
-                <div key={item.id} className="border-t pt-3">
-                  <div className="flex justify-between items-center">
-                    {/* Estado del item y, junto a él, Ver comprobante + Marcar tienda como pagada */}
-                    <div className="flex items-center gap-4">
-                      <p className="font-semibold">Estado del item: {item.paymentStatus || "unknown"}</p>
-
-                      {/* Ver comprobante (moved here) */}
-                      <a
-                        href={`/api/orders/${order.id}/proof`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-green-600 underline"
-                      >
-                        Ver comprobante
-                      </a>
-
-                      {/* Botón para que el vendedor de esta tienda marque su tienda como pagada */}
-                      <button
-                        onClick={() => handleMarkStorePaid(order.id, item.storeId)}
-                        disabled={item.paymentStatus === "paid"}
-                        className={`text-sm px-3 py-1 rounded ${
-                          item.paymentStatus === "paid"
-                            ? "bg-gray-200 text-gray-600"
-                            : "bg-yellow-600 text-white hover:bg-yellow-700"
-                        }`}
-                      >
-                        {item.paymentStatus === "paid" ? "Tienda pagada" : "Marcar tienda como pagada"}
-                      </button>
+            {/* Items por tienda */}
+            {order.orderItems?.length > 0 && (
+              <div className="border-t divide-y">
+                {order.orderItems.map((item) => (
+                  <div key={item.id} className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        item.paymentStatus === "paid" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                      }`}>
+                        {item.paymentStatus === "paid" ? "Pagada" : "Pendiente"}
+                      </span>
+                      <span className="text-xs text-gray-500 truncate">
+                        Tienda: {item.store?.name || item.storeId || "—"}
+                      </span>
                     </div>
 
-                    <p className="text-sm text-gray-500">Tienda: {item.store?.name || item.storeId || "—"}</p>
+                    <OrderItemProducts orderItem={item} orderId={order.id} fetchOrderDetail={fetchOrderDetail} />
+
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <a href={`/api/orders/${order.id}/proof`} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-green-600 underline py-1">Ver comprobante</a>
+                      <button onClick={() => handleMarkStorePaid(order.id, item.storeId)} disabled={item.paymentStatus === "paid"}
+                        className={`text-xs px-2.5 py-1 rounded-lg ${
+                          item.paymentStatus === "paid" ? "bg-gray-100 text-gray-500" : "bg-yellow-500 text-white hover:bg-yellow-600"
+                        }`}>
+                        {item.paymentStatus === "paid" ? "Tienda pagada" : "Marcar pagada"}
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="mt-2 grid gap-2">
-                    <OrderItemProducts
-                      orderItem={item}
-                      orderId={order.id}
-                      fetchOrderDetail={fetchOrderDetail}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Acciones rápidas a nivel de orden */}
-            <div className="mt-4 flex items-center justify-between gap-2">
-              <div className="flex gap-2 items-center">
-                {/* Botón Eliminar orden (abre modal). Si la orden ya está eliminada, queda deshabilitado */}
-                <button
-                  onClick={() => setDeleteTarget({ orderId: order.id })}
-                  disabled={!!order.deleted}
-                  className={`text-sm px-3 py-1 rounded ${
-                    order.deleted ? "bg-gray-200 text-gray-600 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"
-                  }`}
-                >
-                  Eliminar orden
-                </button>
-
-                {/* Mostrar botón de orden completa SOLO para admin */}
-                {session?.user?.role === "admin" ? (
-                  <button
-                    onClick={() => handleMarkPaid(order.id)}
-                    disabled={order.paymentStatus === "paid"}
-                    className={`text-sm px-3 py-1 rounded ${
-                      order.paymentStatus === "paid" ? "bg-gray-200 text-gray-600" : "bg-green-600 text-white hover:bg-green-700"
-                    }`}
-                  >
-                    {order.paymentStatus === "paid" ? "Pagado" : "Marcar como pagado"}
-                  </button>
-                ) : null}
+                ))}
               </div>
+            )}
 
-              {/* Si la orden está marcada como eliminada (soft-delete), mostrar razón en la misma línea, a la derecha */}
-              {order.deleted ? (
-                <div className="text-sm text-red-600">
-                  <strong>Orden eliminada</strong> • Razón: {order.deletedReason || "—"} • Fecha:{" "}
-                  {order.deletedAt ? formatDate(order.deletedAt) : "—"}
-                </div>
-              ) : null}
+            {/* Acciones de la orden */}
+            <div className="border-t p-4 flex flex-wrap gap-2">
+              <button onClick={() => setDeleteTarget({ orderId: order.id })} disabled={!!order.deleted}
+                className={`text-xs px-3 py-1.5 rounded-lg ${
+                  order.deleted ? "bg-gray-100 text-gray-500" : "bg-red-600 text-white hover:bg-red-700"
+                }`}>
+                Eliminar
+              </button>
+              {session?.user?.role === "admin" && (
+                <button onClick={() => handleMarkPaid(order.id)} disabled={order.paymentStatus === "paid"}
+                  className={`text-xs px-3 py-1.5 rounded-lg ${
+                    order.paymentStatus === "paid" ? "bg-gray-100 text-gray-500" : "bg-green-600 text-white hover:bg-green-700"
+                  }`}>
+                  {order.paymentStatus === "paid" ? "Pagado" : "Marcar pagado"}
+                </button>
+              )}
+              {order.deleted && (
+                <span className="text-xs text-red-500 self-center">Eliminada: {order.deletedReason || "—"}</span>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Modal de razón para eliminar orden */}
-      <ReasonModal
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={(reason) => {
-          if (!deleteTarget) return;
-          handleDeleteOrder(deleteTarget.orderId, reason);
-        }}
-      />
+      <ReasonModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
+        onConfirm={(reason) => { if (deleteTarget) handleDeleteOrder(deleteTarget.orderId, reason); }} />
     </div>
   );
 }
