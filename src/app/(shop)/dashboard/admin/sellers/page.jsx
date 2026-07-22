@@ -72,31 +72,33 @@ export default function SellersPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((seller) => (
-            <div key={seller.id} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-gray-900 truncate">{seller.name || "Sin nombre"}</p>
-                  {seller.isVerified && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">✓ Verificado</span>
-                  )}
+            <div key={seller.id} className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-gray-900">{seller.name || "Sin nombre"}</p>
+                    {seller.isVerified && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">✓ Verificado</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 truncate">{seller.email}</p>
+                  <div className="flex gap-3 mt-1 text-xs text-gray-400">
+                    <span>{seller.productCount} productos</span>
+                    <span>{seller.storeCount} tiendas</span>
+                    {seller.city && <span>{seller.city}</span>}
+                  </div>
                 </div>
-                <p className="text-sm text-gray-500 truncate">{seller.email}</p>
-                <div className="flex gap-3 mt-1 text-xs text-gray-400">
-                  <span>{seller.productCount} productos</span>
-                  <span>{seller.storeCount} tiendas</span>
-                  {seller.city && <span>{seller.city}</span>}
-                </div>
+                <button
+                  onClick={() => toggleVerification(seller.id, seller.isVerified)}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                    seller.isVerified
+                      ? "bg-red-50 text-red-700 hover:bg-red-100"
+                      : "bg-green-50 text-green-700 hover:bg-green-100"
+                  }`}
+                >
+                  {seller.isVerified ? "Remover verificación" : "Verificar"}
+                </button>
               </div>
-              <button
-                onClick={() => toggleVerification(seller.id, seller.isVerified)}
-                className={`shrink-0 ml-4 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                  seller.isVerified
-                    ? "bg-red-50 text-red-700 hover:bg-red-100"
-                    : "bg-green-50 text-green-700 hover:bg-green-100"
-                }`}
-              >
-                {seller.isVerified ? "Remover verificación" : "Verificar"}
-              </button>
             </div>
           ))}
         </div>

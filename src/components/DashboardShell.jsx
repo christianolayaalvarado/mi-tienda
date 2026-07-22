@@ -52,7 +52,7 @@ export default function DashboardShell({ children, userName, userEmail, userRole
       )}
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col shrink-0 w-64 bg-gray-900 text-white p-4 h-full">
+      <aside className="hidden md:flex md:flex-col shrink-0 w-64 bg-gray-900 text-white p-4 h-full overflow-y-auto">
         <div className="mb-3">
           <h2 className="text-xl font-bold">Dashboard</h2>
         </div>
@@ -109,7 +109,7 @@ export default function DashboardShell({ children, userName, userEmail, userRole
 
       {/* Mobile sidebar */}
       <aside
-        className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white p-4 flex flex-col h-full transform transition-transform duration-200 ${
+        className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white p-4 flex flex-col h-full overflow-y-auto transform transition-transform duration-200 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
