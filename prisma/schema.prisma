@@ -82,6 +82,7 @@ model Product {
   originalPrice    Float?
   discountPct      Float?
   favorites        Favorite[]
+  views            ProductView[]
 
   @@index([categoryId])
   @@index([storeId])
@@ -465,4 +466,23 @@ model Coupon {
   createdAt     DateTime @default(now())
 
   orders        Order[]
+}
+
+model ProductView {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId   String   @db.ObjectId
+  product     Product  @relation(fields: [productId], references: [id])
+  ip          String?
+  country     String?
+  region      String?
+  city        String?
+  lat         Float?
+  lon         Float?
+  userAgent   String?
+  referer     String?
+  createdAt   DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+  @@index([ip])
 }
