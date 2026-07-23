@@ -478,6 +478,16 @@ export default function CheckoutPage({ params }) {
       toast.dismiss(loadingToast);
       toast.success("Orden creada correctamente");
 
+      // Mark spin code as used if it was applied
+      if (couponData?.isSpinCode && couponData?.id) {
+        fetch("/api/spin-wheel/mark-used", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ prizeId: couponData.id }),
+        }).catch(() => {});
+      }
+
       // limpiar carrito local
       try {
         writeCartRaw(null);
