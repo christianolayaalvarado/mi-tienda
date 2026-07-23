@@ -1,14 +1,34 @@
 "use client";
 
+import { createPortal } from "react-dom";
+import { useState, useEffect } from "react";
+
 export default function WelcomeBenefits({ isOpen, onClose, onUpgrade, userName }) {
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+  if (!isOpen || !mounted) return null;
+
+  const modal = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-5 text-center">
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-5 text-center relative">
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 text-white/80 hover:text-white p-1"
+            aria-label="Cerrar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
           <div className="text-4xl mb-2">🎉</div>
           <h2 className="text-xl font-bold text-white">Bienvenido{userName ? `, ${userName}` : ""}</h2>
           <p className="text-green-100 text-sm mt-1">Tu cuenta esta lista. Esto es lo que incluye:</p>
@@ -86,4 +106,6 @@ export default function WelcomeBenefits({ isOpen, onClose, onUpgrade, userName }
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
