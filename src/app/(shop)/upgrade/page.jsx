@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -28,7 +28,15 @@ const FULL_FEATURES = [
   "Sellers verificados",
 ];
 
-export default function UpgradePage() {
+export default function UpgradePageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">Cargando...</p></div>}>
+      <UpgradePage />
+    </Suspense>
+  );
+}
+
+function UpgradePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromRegister = searchParams.get("from") === "register";
