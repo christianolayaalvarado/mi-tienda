@@ -27,6 +27,8 @@ export default function MarketingPage() {
   const [result, setResult] = useState(null);
   const [storeName, setStoreName] = useState("Mi Tienda");
   const [mode, setMode] = useState("editor");
+  const [selectedEmails, setSelectedEmails] = useState([]);
+  const [sendTarget, setSendTarget] = useState("all");
 
   useEffect(() => {
     Promise.all([
@@ -48,11 +50,15 @@ export default function MarketingPage() {
     setResult(null);
     try {
       const html = generateEmailHTML(blocks, emailWidth, storeName);
+      const body = { subject, html };
+      if (sendTarget === "selected" && selectedEmails.length > 0) {
+        body.targetEmails = selectedEmails;
+      }
       const res = await fetch("/api/seller/marketing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ subject, html }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       setResult(data);
@@ -61,6 +67,22 @@ export default function MarketingPage() {
     }
     setSending(false);
   };
+
+  const toggleEmail = (email) => {
+    setSelectedEmails((prev) =>
+      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selectedEmails.length === contacts.length) {
+      setSelectedEmails([]);
+    } else {
+      setSelectedEmails(contacts.map((c) => c.email).filter(Boolean));
+    }
+  };
+
+  const targetCount = sendTarget === "selected" ? selectedEmails.length : Math.min(contactCount, 100);
 
   const exportHTML = () => {
     const html = generateEmailHTML(blocks, emailWidth, storeName);
@@ -157,10 +179,10 @@ export default function MarketingPage() {
       <div className="flex flex-wrap gap-3 mt-6">
         <button
           onClick={sendCampaign}
-          disabled={sending || !subject.trim() || blocks.length === 0 || contactCount === 0}
+          disabled={sending || !subject.trim() || blocks.length === 0 || targetCount === 0}
           className="px-5 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
-          {sending ? "Enviando..." : `Enviar a ${Math.min(contactCount, 100)} contactos`}
+          {sending ? "Enviando..." : `Enviar a ${targetCount} contactos`}
         </button>
         <button
           onClick={exportHTML}
@@ -190,23 +212,66 @@ export default function MarketingPage() {
         </div>
       )}
 
-      {/* Contact preview */}
+      {/* Contact selector */}
       {contacts.length > 0 && (
         <div className="mt-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Contactos ({contacts.length})</h2>
+          {/* Target selector */}
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <h2 className="text-sm font-semibold text-gray-700">Enviar a:</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSendTarget("all")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                  sendTarget === "all" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Todos ({contactCount})
+              </button>
+              <button
+                onClick={() => setSendTarget("selected")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                  sendTarget === "selected" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Seleccionados ({selectedEmails.length})
+              </button>
+            </div>
+            {sendTarget === "selected" && selectedEmails.length > 0 && (
+              <button onClick={() => setSelectedEmails([])} className="text-xs text-red-500 hover:text-red-700">
+                Limpiar seleccion
+              </button>
+            )}
+          </div>
+
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto max-h-48 overflow-y-auto">
+            <div className="overflow-x-auto max-h-72 overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
+                    <th className="px-4 py-2 w-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedEmails.length === contacts.length && contacts.length > 0}
+                        onChange={toggleAll}
+                        className="rounded"
+                      />
+                    </th>
                     <th className="px-4 py-2 text-left font-medium text-gray-600">Email</th>
                     <th className="px-4 py-2 text-left font-medium text-gray-600 hidden sm:table-cell">Ciudad</th>
                     <th className="px-4 py-2 text-right font-medium text-gray-600">Visitas</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {contacts.slice(0, 30).map((c, i) => (
-                    <tr key={i}>
+                  {contacts.map((c, i) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="px-4 py-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedEmails.includes(c.email)}
+                          onChange={() => toggleEmail(c.email)}
+                          className="rounded"
+                        />
+                      </td>
                       <td className="px-4 py-2 text-gray-800">{c.email}</td>
                       <td className="px-4 py-2 text-gray-500 hidden sm:table-cell">{c.city || "—"}</td>
                       <td className="px-4 py-2 text-right font-medium text-green-700">{c.viewCount}</td>

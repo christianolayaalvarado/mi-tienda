@@ -10,7 +10,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const { subject, html, sendTo } = await req.json();
+    const { subject, html, targetEmails } = await req.json();
 
     if (!subject || !html) {
       return NextResponse.json({ error: "subject y html requeridos" }, { status: 400 });
@@ -32,17 +32,23 @@ export async function POST(req) {
     });
     const productIds = products.map((p) => p.id);
 
-    // Get contacts from product views
-    const contacts = await prisma.productView.findMany({
-      where: {
-        productId: { in: productIds },
-        email: { not: null },
-      },
-      select: { email: true },
-      distinct: ["email"],
-    });
+    let emails = [];
 
-    const emails = contacts.map((c) => c.email).filter(Boolean);
+    if (targetEmails && Array.isArray(targetEmails) && targetEmails.length > 0) {
+      // Send to specific selected emails
+      emails = targetEmails.filter((e) => e && typeof e === "string" && e.includes("@"));
+    } else {
+      // Send to all contacts
+      const contacts = await prisma.productView.findMany({
+        where: {
+          productId: { in: productIds },
+          email: { not: null },
+        },
+        select: { email: true },
+        distinct: ["email"],
+      });
+      emails = contacts.map((c) => c.email).filter(Boolean);
+    }
 
     if (emails.length === 0) {
       return NextResponse.json({ error: "No hay contactos con email" }, { status: 400 });
