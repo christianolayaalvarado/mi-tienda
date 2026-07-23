@@ -44,7 +44,7 @@ function UpgradePage() {
   const [showPayment, setShowPayment] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [form, setForm] = useState({ amount: "89.99", phone: "", transactionId: "" });
+  const [form, setForm] = useState({ amount: "199", phone: "", transactionId: "" });
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" })
@@ -148,7 +148,7 @@ function UpgradePage() {
             <div className="p-6">
               <h3 className="text-xl font-bold text-gray-900">Full</h3>
               <div className="mt-2 mb-4">
-                <span className="text-3xl font-bold text-gray-900">S/ 89.99</span>
+                <span className="text-3xl font-bold text-gray-900">S/ 199</span>
                 <span className="text-gray-500 text-sm"> / ano</span>
               </div>
               <p className="text-sm text-gray-500 mb-4">Para vender y gestionar tu tienda</p>
@@ -184,21 +184,21 @@ function UpgradePage() {
 
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
                 <p className="text-sm font-medium text-blue-800 mb-2">Monto a pagar:</p>
-                <p className="text-2xl font-bold text-blue-700">S/ 89.99</p>
+                <p className="text-2xl font-bold text-blue-700">S/ 199</p>
               </div>
 
               <div className="space-y-3 mb-4">
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs font-bold text-gray-500 uppercase mb-1">Yape</p>
-                  <p className="text-sm text-gray-800">Numero: <strong>966 741 893</strong></p>
+                  <p className="text-sm text-gray-800">Numero: <strong>519 595 02168</strong></p>
                   <p className="text-xs text-gray-500 mt-1">Abre tu app Yape y envia el monto</p>
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs font-bold text-gray-500 uppercase mb-1">Transferencia bancaria</p>
-                  <p className="text-sm text-gray-800">Cuenta: <strong>194-37823078-0-18</strong></p>
-                  <p className="text-sm text-gray-800">CCI: <strong>00219413782307801818</strong></p>
-                  <p className="text-xs text-gray-500 mt-1">Banco de la Nacion</p>
+                  <p className="text-sm text-gray-800">Cuenta: <strong>19198605848064</strong></p>
+                  <p className="text-sm text-gray-800">CCI: <strong>00219119860584806450</strong></p>
+                  <p className="text-xs text-gray-500 mt-1">Banco de Credito del Peru (BCP)</p>
                 </div>
               </div>
 
@@ -209,7 +209,7 @@ function UpgradePage() {
                     type="tel"
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    placeholder="966 741 893"
+                    placeholder="9XX XXX XXX"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
                 </div>
