@@ -15,13 +15,20 @@ async function main() {
     if (existingAdmin) {
       console.log("Usuario admin ya existe:", existingAdmin.email);
       adminId = existingAdmin.id;
-      // Asegurar que el role sea admin
+      // Asegurar que el role sea admin y plan full
+      const updateData = {};
       if (existingAdmin.role !== "admin" && existingAdmin.role !== "ADMIN") {
+        updateData.role = "admin";
+      }
+      if (existingAdmin.plan !== "full") {
+        updateData.plan = "full";
+      }
+      if (Object.keys(updateData).length > 0) {
         await prisma.user.update({
           where: { email: "admin@demo.com" },
-          data: { role: "admin" },
+          data: updateData,
         });
-        console.log("Role de admin actualizado a 'admin'");
+        console.log("Admin actualizado:", updateData);
       }
     } else {
       const password = await bcrypt.hash("123456", 10);
@@ -31,6 +38,7 @@ async function main() {
           name: "Admin",
           password,
           role: "admin",
+          plan: "full",
         },
       });
       console.log("Usuario admin creado:", admin.email);

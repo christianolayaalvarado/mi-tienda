@@ -26,6 +26,7 @@ const NAV_ITEMS = [
 const ADMIN_ITEMS = [
   { href: "/dashboard/admin/orders", label: "Ordenes admin", icon: "🔧" },
   { href: "/dashboard/admin/sellers", label: "Vendedores", icon: "👥" },
+  { href: "/dashboard/admin/plans", label: "Planes", icon: "💳" },
   { href: "/dashboard/admin/reports", label: "Reportes", icon: "📋" },
   { href: "/dashboard/admin/analytics", label: "Conversion", icon: "📊" },
   { href: "/dashboard/admin/shipping", label: "Tarifas envio", icon: "🚚" },
