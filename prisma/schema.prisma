@@ -42,8 +42,10 @@ model User {
   referredBy     Referral?  @relation("ReferredUser")
   favorites      Favorite[]
   accounts       Account[]
+  spinPrizes     SpinWheelPrize[]
   sessions       Session[]
   coinTransactions CoinTransaction[]
+  productViews    ProductView[]
 }
 
 model Store {
@@ -472,6 +474,10 @@ model ProductView {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   productId   String   @db.ObjectId
   product     Product  @relation(fields: [productId], references: [id])
+  userId      String?  @db.ObjectId
+  user        User?    @relation(fields: [userId], references: [id])
+  email       String?
+  phone       String?
   ip          String?
   country     String?
   region      String?
@@ -485,4 +491,39 @@ model ProductView {
   @@index([productId])
   @@index([createdAt])
   @@index([ip])
+  @@index([userId])
+  @@index([email])
+}
+
+model SupportReport {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String?  @db.ObjectId
+  email       String?
+  category    String   @default("bug") // bug, suggestion, complaint, other
+  description String
+  url         String?
+  device      String?
+  browser     String?
+  status      String   @default("pending") // pending, reviewing, resolved
+  adminNote   String?
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model SpinWheelPrize {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+  prizeType   String   // percentage_discount, fixed_discount, free_shipping
+  prizeValue  Float
+  code        String   @unique
+  used        Boolean  @default(false)
+  usedAt      DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
 }

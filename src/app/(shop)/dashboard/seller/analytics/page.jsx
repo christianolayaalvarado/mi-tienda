@@ -133,6 +133,30 @@ export default function SellerAnalytics() {
                 {data.daily?.length > 0 ? Math.round(data.total / data.daily.length) : 0}
               </p>
             </div>
+            <div className="bg-pink-50 rounded-lg p-3 border border-pink-100">
+              <p className="text-xs text-pink-500 font-medium">Contactos</p>
+              <p className="text-2xl font-bold text-pink-700">{data.contactCount || 0}</p>
+            </div>
+          </div>
+
+          {/* Export buttons */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <a
+              href={`/api/seller/product-viewers?days=${days}&export=csv`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Descargar contactos (CSV)
+            </a>
+            <a
+              href={`/api/seller/product-viewers?days=${days}&export=csv`}
+              target="_blank"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition"
+            >
+              📱 Enviar por WhatsApp
+            </a>
           </div>
 
           {/* Map */}
@@ -173,7 +197,7 @@ export default function SellerAnalytics() {
 
           {/* Product views */}
           {data.productViews?.length > 0 && (
-            <div>
+            <div className="mb-6">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Productos más vistos</h2>
               <div className="space-y-2">
                 {data.productViews.map((p, i) => (
@@ -185,6 +209,93 @@ export default function SellerAnalytics() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Contacts table */}
+          {data.contacts?.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                Contactos capturados ({data.contacts.length})
+              </h2>
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-left">
+                      <tr>
+                        <th className="px-4 py-2 font-medium text-gray-600">Email</th>
+                        <th className="px-4 py-2 font-medium text-gray-600">Telefono</th>
+                        <th className="px-4 py-2 font-medium text-gray-600 hidden sm:table-cell">Ciudad</th>
+                        <th className="px-4 py-2 font-medium text-gray-600 text-right">Visitas</th>
+                        <th className="px-4 py-2 font-medium text-gray-600 hidden sm:table-cell">Ultima visita</th>
+                        <th className="px-4 py-2 font-medium text-gray-600">Accion</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {data.contacts.map((c, i) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="px-4 py-2">
+                            {c.email ? (
+                              <a href={"mailto:" + c.email + "?subject=Mira estas ofertas en Mi Tienda"} className="text-blue-600 hover:underline">{c.email}</a>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2">
+                            {c.phone ? (
+                              <a
+                                href={"https://wa.me/" + c.phone.replace(/[^0-9]/g, "") + "?text=Hola! Te visitaste nuestra tienda y tenemos ofertas especiales para ti"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-emerald-600 hover:underline"
+                              >
+                                {c.phone}
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2 text-gray-600 hidden sm:table-cell">{c.city || "—"}</td>
+                          <td className="px-4 py-2 text-right font-bold text-green-700">{c.viewCount}</td>
+                          <td className="px-4 py-2 text-xs text-gray-500 hidden sm:table-cell">
+                            {new Date(c.lastVisit).toLocaleDateString("es-PE")}
+                          </td>
+                          <td className="px-4 py-2">
+                            <div className="flex gap-1">
+                              {c.email && (
+                                <a
+                                  href={"mailto:" + c.email + "?subject=Ofertas especiales para ti en Mi Tienda"}
+                                  className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition"
+                                >
+                                  Email
+                                </a>
+                              )}
+                              {c.phone && (
+                                <a
+                                  href={"https://wa.me/" + c.phone.replace(/[^0-9]/g, "") + "?text=Hola! Visitaste nuestra tienda y tenemos ofertas especiales para ti"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 transition"
+                                >
+                                  WhatsApp
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!data.contacts?.length && (
+            <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                <strong>Sin contactos capturados aun.</strong> Los emails y telefonos se capturan automaticamente cuando visitantes logueados exploran tus productos. Para comenzar a capturar contactos, asegurate de que los usuarios se registren e inicien sesion antes de navegar.
+              </p>
             </div>
           )}
         </>

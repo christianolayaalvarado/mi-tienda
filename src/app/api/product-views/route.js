@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getServerAuthUser } from "@/lib/serverAuth";
 
 // POST /api/product-views — log a product view with IP geolocation
 export async function POST(req) {
@@ -16,6 +17,27 @@ export async function POST(req) {
     const ip = forwarded ? forwarded.split(",")[0].trim() : "127.0.0.1";
     const userAgent = req.headers.get("user-agent") || "";
     const referer = req.headers.get("referer") || "";
+
+    // Try to identify logged-in user
+    let userId = null, email = null, phone = null;
+    try {
+      const user = await getServerAuthUser(req);
+      if (user?.id) userId = user.id;
+      if (user?.email) email = user.email;
+      if (user?.phone) phone = user.phone;
+    } catch {}
+
+    // If we have userId, fetch full profile for phone
+    if (userId && !phone) {
+      try {
+        const profile = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { phone: true, email: true },
+        });
+        if (profile?.phone) phone = profile.phone;
+        if (profile?.email && !email) email = profile.email;
+      } catch {}
+    }
 
     // Geolocate with ip-api.com (free, no key needed)
     let country = null, region = null, city = null, lat = null, lon = null;
@@ -50,12 +72,22 @@ export async function POST(req) {
     });
 
     if (existing) {
+      // If existing view has no user info but we now have it, update
+      if (userId && !existing.userId) {
+        await prisma.productView.update({
+          where: { id: existing.id },
+          data: { userId, email, phone },
+        }).catch(() => {});
+      }
       return NextResponse.json({ success: true, deduped: true });
     }
 
     await prisma.productView.create({
       data: {
         productId,
+        userId,
+        email,
+        phone,
         ip: ip || null,
         country,
         region,

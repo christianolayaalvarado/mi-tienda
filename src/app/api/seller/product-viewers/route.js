@@ -4,6 +4,7 @@ import { getServerAuthUser } from "@/lib/serverAuth";
 
 // GET /api/seller/product-viewers?productId=xxx — views for a specific product
 // GET /api/seller/product-viewers — all views for seller's products
+// GET /api/seller/product-viewers?export=csv — export contacts as CSV
 export async function GET(req) {
   try {
     const user = await getServerAuthUser(req);
@@ -14,6 +15,7 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const productId = searchParams.get("productId");
     const days = parseInt(searchParams.get("days") || "30", 10);
+    const exportCsv = searchParams.get("export") === "csv";
 
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
@@ -30,6 +32,15 @@ export async function GET(req) {
     });
     const productIds = products.map((p) => p.id);
 
+    if (productIds.length === 0) {
+      if (exportCsv) {
+        return new NextResponse("Email,Telefono,Ciudad,Pais,Fecha\n", {
+          headers: { "Content-Type": "text/csv", "Content-Disposition": 'attachment; filename="visitantes.csv"' },
+        });
+      }
+      return NextResponse.json({ total: 0, locations: [], productViews: [], daily: [], contacts: [] });
+    }
+
     const where = {
       productId: { in: productIds },
       createdAt: { gte: since },
@@ -39,12 +50,15 @@ export async function GET(req) {
       where.productId = productId;
     }
 
-    // Get views
+    // Get views — include contact info
     const views = await prisma.productView.findMany({
       where,
       select: {
         productId: true,
         ip: true,
+        email: true,
+        phone: true,
+        userId: true,
         country: true,
         region: true,
         city: true,
@@ -53,8 +67,38 @@ export async function GET(req) {
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
-      take: 500,
+      take: 1000,
     });
+
+    // CSV export: unique contacts
+    if (exportCsv) {
+      const contactMap = {};
+      views.forEach((v) => {
+        const key = v.email || v.phone || v.ip || Math.random().toString();
+        if (!contactMap[key] && (v.email || v.phone)) {
+          contactMap[key] = {
+            email: v.email || "",
+            phone: v.phone || "",
+            city: v.city || "",
+            country: v.country || "",
+            date: v.createdAt.toISOString().slice(0, 10),
+          };
+        }
+      });
+
+      const contacts = Object.values(contactMap);
+      const header = "Email,Telefono,Ciudad,Pais,Fecha\n";
+      const rows = contacts.map((c) =>
+        `"${c.email}","${c.phone}","${c.city}","${c.country}","${c.date}"`
+      ).join("\n");
+
+      return new NextResponse(header + rows, {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="visitantes-${days}d.csv"`,
+        },
+      });
+    }
 
     // Enrich with product titles
     const productMap = {};
@@ -92,11 +136,36 @@ export async function GET(req) {
       daily[day]++;
     });
 
+    // Contacts with email or phone (deduplicated)
+    const contactMap = {};
+    views.forEach((v) => {
+      if (!v.email && !v.phone) return;
+      const key = v.email || v.phone;
+      if (!contactMap[key]) {
+        contactMap[key] = {
+          email: v.email || null,
+          phone: v.phone || null,
+          city: v.city || null,
+          country: v.country || null,
+          lastVisit: v.createdAt,
+          viewCount: 0,
+        };
+      }
+      contactMap[key].viewCount++;
+      if (v.createdAt > contactMap[key].lastVisit) {
+        contactMap[key].lastVisit = v.createdAt;
+      }
+    });
+
+    const contacts = Object.values(contactMap).sort((a, b) => b.viewCount - a.viewCount);
+
     return NextResponse.json({
       total: views.length,
       locations,
       productViews: Object.entries(productViews).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
       daily: Object.entries(daily).map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date)),
+      contacts,
+      contactCount: contacts.length,
     });
   } catch (err) {
     console.error("GET seller product-viewers error:", err);

@@ -155,6 +155,10 @@ export default function HelpModal() {
   ]);
   const [botInput, setBotInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [reportForm, setReportForm] = useState({ category: "bug", description: "", email: "" });
+  const [reportSending, setReportSending] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
   const botEndRef = useRef(null);
 
   useEffect(() => {
@@ -181,6 +185,27 @@ export default function HelpModal() {
       setBotMessages((prev) => [...prev, { role: "bot", text: getBotResponse(userMsg) }]);
       setIsTyping(false);
     }, 800);
+  };
+
+  const submitReport = async () => {
+    if (!reportForm.description.trim() || reportForm.description.trim().length < 5) return;
+    setReportSending(true);
+    try {
+      const res = await fetch("/api/support-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          ...reportForm,
+          url: typeof window !== "undefined" ? window.location.href : "",
+        }),
+      });
+      if (res.ok) {
+        setReportSent(true);
+        setReportForm({ category: "bug", description: "", email: "" });
+      }
+    } catch {}
+    setReportSending(false);
   };
 
   const filteredFaq = FAQ_ITEMS.filter(
@@ -331,6 +356,65 @@ export default function HelpModal() {
                     <p className="text-xs text-green-600">Habla con nuestro asistente IA</p>
                   </div>
                 </button>
+
+                {/* Reportar problema */}
+                <button
+                  onClick={() => { setShowReport(!showReport); setReportSent(false); }}
+                  className="w-full mt-2 flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition"
+                >
+                  <span className="text-xl">🐛</span>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-red-800">¿Tienes problemas?</p>
+                    <p className="text-xs text-red-600">Reporta un error y lo resolveremos</p>
+                  </div>
+                </button>
+
+                {showReport && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    {reportSent ? (
+                      <div className="text-center py-4">
+                        <p className="text-2xl mb-2">✅</p>
+                        <p className="text-sm font-medium text-green-700">Reporte enviado</p>
+                        <p className="text-xs text-gray-500 mt-1">Nuestro equipo lo revisará pronto</p>
+                        <button onClick={() => { setShowReport(false); setReportSent(false); }} className="mt-3 text-xs text-green-600 hover:underline">Cerrar</button>
+                      </div>
+                    ) : (
+                      <>
+                        <select
+                          value={reportForm.category}
+                          onChange={(e) => setReportForm((f) => ({ ...f, category: e.target.value }))}
+                          className="w-full mb-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm"
+                        >
+                          <option value="bug">🐛 Bug / Error</option>
+                          <option value="suggestion">💡 Sugerencia</option>
+                          <option value="complaint">⚠️ Queja</option>
+                          <option value="other">📝 Otro</option>
+                        </select>
+                        <textarea
+                          placeholder="Describe el problema... (mínimo 5 caracteres)"
+                          value={reportForm.description}
+                          onChange={(e) => setReportForm((f) => ({ ...f, description: e.target.value }))}
+                          className="w-full mb-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm resize-none"
+                          rows={3}
+                        />
+                        <input
+                          type="email"
+                          placeholder="Tu email (opcional)"
+                          value={reportForm.email}
+                          onChange={(e) => setReportForm((f) => ({ ...f, email: e.target.value }))}
+                          className="w-full mb-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm"
+                        />
+                        <button
+                          onClick={submitReport}
+                          disabled={reportSending || reportForm.description.trim().length < 5}
+                          className="w-full py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                          {reportSending ? "Enviando..." : "Enviar reporte"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

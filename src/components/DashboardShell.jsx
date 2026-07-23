@@ -17,14 +17,17 @@ const NAV_ITEMS = [
   { href: "/dashboard/seller/reviews", label: "Reseñas", icon: "⭐" },
   { href: "/dashboard/payment-methods", label: "Formas de pago", icon: "📍" },
   { href: "/dashboard/referrals", label: "Invitar amigos", icon: "🎁" },
+  { href: "/spin-wheel", label: "Ruleta", icon: "🎰" },
   { href: "/dashboard/profile/edit", label: "Editar Perfil", icon: "👤" },
   { href: "/dashboard/mascotas", label: "Mascotas", icon: "🎭" },
 ];
 
 const ADMIN_ITEMS = [
-  { href: "/dashboard/admin/orders", label: "Órdenes admin", icon: "🔧" },
+  { href: "/dashboard/admin/orders", label: "Ordenes admin", icon: "🔧" },
   { href: "/dashboard/admin/sellers", label: "Vendedores", icon: "👥" },
-  { href: "/dashboard/admin/shipping", label: "Tarifas envío", icon: "🚚" },
+  { href: "/dashboard/admin/reports", label: "Reportes", icon: "📋" },
+  { href: "/dashboard/admin/analytics", label: "Conversion", icon: "📊" },
+  { href: "/dashboard/admin/shipping", label: "Tarifas envio", icon: "🚚" },
   { href: "/dashboard/admin/coupons", label: "Cupones", icon: "🏷️" },
   { href: "/dashboard/admin/marketing", label: "Email Marketing", icon: "📧" },
 ];
