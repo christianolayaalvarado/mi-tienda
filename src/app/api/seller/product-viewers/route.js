@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
 
+// Known email provider proxy indicators
+const EMAIL_PROVIDER_USERAGENTS = /gmail|outlook|hotmail|yahoomail|apple.mail|protonmail|zoho|aol\.mail/i;
+const EMAIL_PROVIDER_REFERERS = /mail\.google|mail\.yahoo|outlook\.live|hotmail\.com|mail\.aol|protonmail/i;
+
+function isEmailProviderTraffic(view) {
+  if (view.userAgent && EMAIL_PROVIDER_USERAGENTS.test(view.userAgent)) return true;
+  if (view.referer && EMAIL_PROVIDER_REFERERS.test(view.referer)) return true;
+  return false;
+}
+
 // GET /api/seller/product-viewers?productId=xxx — views for a specific product
 // GET /api/seller/product-viewers — all views for seller's products
 // GET /api/seller/product-viewers?export=csv — export contacts as CSV
@@ -50,7 +60,7 @@ export async function GET(req) {
       where.productId = productId;
     }
 
-    // Get views — include contact info
+    // Get views — include contact info + user agent/referer for filtering
     const views = await prisma.productView.findMany({
       where,
       select: {
@@ -64,13 +74,26 @@ export async function GET(req) {
         city: true,
         lat: true,
         lon: true,
+        userAgent: true,
+        referer: true,
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
       take: 1000,
     });
 
-    // CSV export: unique contacts
+    // Separate real views from email provider proxy views
+    const realViews = [];
+    const emailProxyViews = [];
+    views.forEach((v) => {
+      if (isEmailProviderTraffic(v)) {
+        emailProxyViews.push(v);
+      } else {
+        realViews.push(v);
+      }
+    });
+
+    // CSV export: unique contacts (from ALL views, including email proxy)
     if (exportCsv) {
       const contactMap = {};
       views.forEach((v) => {
@@ -104,9 +127,9 @@ export async function GET(req) {
     const productMap = {};
     products.forEach((p) => { productMap[p.id] = p.title; });
 
-    // Aggregate by location
+    // Aggregate by location (only real views, not email proxy)
     const locationMap = {};
-    views.forEach((v) => {
+    realViews.forEach((v) => {
       const key = [v.city, v.region, v.country].filter(Boolean).join(", ") || "Desconocida";
       if (!locationMap[key]) {
         locationMap[key] = { city: v.city, region: v.region, country: v.country, lat: v.lat, lon: v.lon, count: 0, products: new Set() };
@@ -120,23 +143,23 @@ export async function GET(req) {
       products: Array.from(l.products),
     })).sort((a, b) => b.count - a.count);
 
-    // Aggregate by product
+    // Aggregate by product (real views only)
     const productViews = {};
-    views.forEach((v) => {
+    realViews.forEach((v) => {
       const title = productMap[v.productId] || v.productId;
       if (!productViews[title]) productViews[title] = 0;
       productViews[title]++;
     });
 
-    // Daily views
+    // Daily views (real views only)
     const daily = {};
-    views.forEach((v) => {
+    realViews.forEach((v) => {
       const day = v.createdAt.toISOString().slice(0, 10);
       if (!daily[day]) daily[day] = 0;
       daily[day]++;
     });
 
-    // Contacts with email or phone (deduplicated)
+    // Contacts with email or phone (deduplicated, from ALL views)
     const contactMap = {};
     views.forEach((v) => {
       if (!v.email && !v.phone) return;
@@ -160,7 +183,9 @@ export async function GET(req) {
     const contacts = Object.values(contactMap).sort((a, b) => b.viewCount - a.viewCount);
 
     return NextResponse.json({
-      total: views.length,
+      total: realViews.length,
+      totalAll: views.length,
+      emailProxyFiltered: emailProxyViews.length,
       locations,
       productViews: Object.entries(productViews).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
       daily: Object.entries(daily).map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date)),

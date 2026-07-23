@@ -116,8 +116,11 @@ export default function SellerAnalytics() {
           {/* Stats cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-              <p className="text-xs text-blue-500 font-medium">Total vistas</p>
+              <p className="text-xs text-blue-500 font-medium">Vistas reales</p>
               <p className="text-2xl font-bold text-blue-700">{data.total}</p>
+              {data.emailProxyFiltered > 0 && (
+                <p className="text-[10px] text-gray-400 mt-0.5">-{data.emailProxyFiltered} de emails proxy</p>
+              )}
             </div>
             <div className="bg-green-50 rounded-lg p-3 border border-green-100">
               <p className="text-xs text-green-500 font-medium">Zonas</p>
