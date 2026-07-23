@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import PendingOrdersModal from "@/components/PendingOrdersModal";
 import MascotWelcomeModal from "@/components/MascotWelcomeModal";
+import WelcomeBenefits from "@/components/WelcomeBenefits";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Inicio", icon: "🏠", plan: "free" },
@@ -37,7 +38,10 @@ const ADMIN_ITEMS = [
 export default function DashboardShell({ children, userName, userEmail, userRole, userPlan }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const isAdmin = userRole === "admin" || userRole === "ADMIN";
   const isFull = userPlan === "full" || isAdmin;
 
@@ -241,6 +245,45 @@ export default function DashboardShell({ children, userName, userEmail, userRole
 
       <PendingOrdersModal />
       <MascotWelcomeModal />
+
+      {/* Upgrade banner for Free users */}
+      {!isFull && !bannerDismissed && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-3 sm:p-4 flex items-center justify-between gap-3 shadow-lg md:ml-64">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-xl sm:text-2xl shrink-0">🚀</span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Desbloquea tu tienda Full</p>
+              <p className="text-xs text-blue-100 truncate">Crea tu tienda, email marketing, analytics y mas</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="px-3 sm:px-4 py-2 bg-white text-blue-700 text-xs sm:text-sm font-semibold rounded-lg hover:bg-blue-50 transition whitespace-nowrap"
+            >
+              Ver beneficios
+            </button>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="p-1 text-blue-200 hover:text-white transition"
+              aria-label="Cerrar"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Upgrade modal */}
+      <WelcomeBenefits
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgrade={() => {
+          setShowUpgradeModal(false);
+          router.push("/upgrade");
+        }}
+        userName={userName}
+      />
     </div>
   );
 }
