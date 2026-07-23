@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/seller/orders", label: "Ventas", icon: "💰" },
   { href: "/dashboard/seller/sold-products", label: "Productos vendidos", icon: "📊" },
   { href: "/dashboard/seller/analytics", label: "Visitantes", icon: "🗺️" },
+  { href: "/dashboard/seller/marketing", label: "Email Marketing", icon: "📧" },
   { href: "/dashboard/seller/reviews", label: "Reseñas", icon: "⭐" },
   { href: "/dashboard/payment-methods", label: "Formas de pago", icon: "📍" },
   { href: "/dashboard/referrals", label: "Invitar amigos", icon: "🎁" },
