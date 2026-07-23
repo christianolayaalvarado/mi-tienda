@@ -1,10 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
 export default function WelcomeBenefits({ isOpen, onClose, onUpgrade, userName }) {
-  const router = useRouter();
 
   if (!isOpen) return null;
 
