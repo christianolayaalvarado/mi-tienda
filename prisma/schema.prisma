@@ -18,6 +18,7 @@ model User {
   verificationSentAt DateTime?
   sellerCode    String?
   isVerified    Boolean  @default(false)
+  plan          String   @default("free")
   city          String?
   address       String?
   phone         String?

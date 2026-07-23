@@ -7,20 +7,20 @@ import PendingOrdersModal from "@/components/PendingOrdersModal";
 import MascotWelcomeModal from "@/components/MascotWelcomeModal";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Inicio", icon: "🏠" },
-  { href: "/dashboard/products", label: "Productos", icon: "📦" },
-  { href: "/dashboard/orders", label: "Mis Órdenes", icon: "🧾" },
-  { href: "/dashboard/favorites", label: "Favoritos", icon: "❤️" },
-  { href: "/dashboard/seller/orders", label: "Ventas", icon: "💰" },
-  { href: "/dashboard/seller/sold-products", label: "Productos vendidos", icon: "📊" },
-  { href: "/dashboard/seller/analytics", label: "Visitantes", icon: "🗺️" },
-  { href: "/dashboard/seller/marketing", label: "Email Marketing", icon: "📧" },
-  { href: "/dashboard/seller/reviews", label: "Reseñas", icon: "⭐" },
-  { href: "/dashboard/payment-methods", label: "Formas de pago", icon: "📍" },
-  { href: "/dashboard/referrals", label: "Invitar amigos", icon: "🎁" },
-  { href: "/spin-wheel", label: "Ruleta", icon: "🎰" },
-  { href: "/dashboard/profile/edit", label: "Editar Perfil", icon: "👤" },
-  { href: "/dashboard/mascotas", label: "Mascotas", icon: "🎭" },
+  { href: "/dashboard", label: "Inicio", icon: "🏠", plan: "free" },
+  { href: "/dashboard/products", label: "Productos", icon: "📦", plan: "free" },
+  { href: "/dashboard/orders", label: "Mis Órdenes", icon: "🧾", plan: "free" },
+  { href: "/dashboard/favorites", label: "Favoritos", icon: "❤️", plan: "free" },
+  { href: "/dashboard/seller/orders", label: "Ventas", icon: "💰", plan: "full" },
+  { href: "/dashboard/seller/sold-products", label: "Productos vendidos", icon: "📊", plan: "full" },
+  { href: "/dashboard/seller/analytics", label: "Visitantes", icon: "🗺️", plan: "full" },
+  { href: "/dashboard/seller/marketing", label: "Email Marketing", icon: "📧", plan: "full" },
+  { href: "/dashboard/seller/reviews", label: "Reseñas", icon: "⭐", plan: "full" },
+  { href: "/dashboard/payment-methods", label: "Formas de pago", icon: "📍", plan: "free" },
+  { href: "/dashboard/referrals", label: "Invitar amigos", icon: "🎁", plan: "free" },
+  { href: "/spin-wheel", label: "Ruleta", icon: "🎰", plan: "free" },
+  { href: "/dashboard/profile/edit", label: "Editar Perfil", icon: "👤", plan: "free" },
+  { href: "/dashboard/mascotas", label: "Mascotas", icon: "🎭", plan: "full" },
 ];
 
 const ADMIN_ITEMS = [
@@ -33,11 +33,18 @@ const ADMIN_ITEMS = [
   { href: "/dashboard/admin/marketing", label: "Email Marketing", icon: "📧" },
 ];
 
-export default function DashboardShell({ children, userName, userEmail, userRole }) {
+export default function DashboardShell({ children, userName, userEmail, userRole, userPlan }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const pathname = usePathname();
   const isAdmin = userRole === "admin" || userRole === "ADMIN";
+  const isFull = userPlan === "full" || isAdmin;
+
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (item.plan === "free") return true;
+    if (item.plan === "full" && isFull) return true;
+    return false;
+  });
 
   useEffect(() => {
     fetch("/api/seller/pending-count", { credentials: "include" })
@@ -68,7 +75,7 @@ export default function DashboardShell({ children, userName, userEmail, userRole
         <p className="text-xs mb-3 text-gray-300 break-all">{userEmail}</p>
 
         <nav className="flex flex-col gap-0.5 flex-1">
-          {NAV_ITEMS.map((item) => (
+          {visibleItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -87,6 +94,19 @@ export default function DashboardShell({ children, userName, userEmail, userRole
               )}
             </Link>
           ))}
+
+          {!isFull && (
+            <>
+              <div className="border-t border-gray-700 my-1.5" />
+              <Link
+                href="/upgrade"
+                className="px-3 py-2 rounded transition text-sm flex items-center gap-2 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30"
+              >
+                <span>🚀</span>
+                <span>Upgrade a Full</span>
+              </Link>
+            </>
+          )}
 
           {isAdmin && (
             <>
@@ -137,7 +157,7 @@ export default function DashboardShell({ children, userName, userEmail, userRole
         <p className="text-xs mb-3 text-gray-300 break-all">{userEmail}</p>
 
         <nav className="flex-1 flex flex-col gap-0.5 overflow-y-auto">
-          {NAV_ITEMS.map((item) => (
+          {visibleItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -157,6 +177,20 @@ export default function DashboardShell({ children, userName, userEmail, userRole
               )}
             </Link>
           ))}
+
+          {!isFull && (
+            <>
+              <div className="border-t border-gray-700 my-1.5" />
+              <Link
+                href="/upgrade"
+                onClick={() => setSidebarOpen(false)}
+                className="px-3 py-2 rounded transition text-sm flex items-center gap-2 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30"
+              >
+                <span>🚀</span>
+                <span>Upgrade a Full</span>
+              </Link>
+            </>
+          )}
 
           {isAdmin && (
             <>

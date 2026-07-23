@@ -13,9 +13,10 @@ export default async function DashboardLayout({ children }) {
   const userName = user?.name ?? null;
   const userEmail = user?.email ?? null;
   const userRole = user?.role ?? null;
+  const userPlan = user?.plan ?? "free";
 
   return (
-    <DashboardShell userName={userName} userEmail={userEmail} userRole={userRole}>
+    <DashboardShell userName={userName} userEmail={userEmail} userRole={userRole} userPlan={userPlan}>
       {children}
     </DashboardShell>
   );

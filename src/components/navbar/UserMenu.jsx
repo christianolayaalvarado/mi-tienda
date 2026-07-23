@@ -57,12 +57,18 @@ export default function UserMenu() {
 
   const name = displayUser.name || displayUser.email || "Usuario";
   const shortName = name.length > 8 ? name.slice(0, 8) + "…" : name;
+  const userPlan = displayUser.plan || "free";
 
   return (
     <div className="flex items-center gap-1 sm:gap-3 text-sm shrink-0">
       <div className="flex items-center gap-1 sm:gap-2">
         <span className="text-gray-600 text-xs hidden sm:inline">{name}</span>
         <span className="text-gray-600 text-xs sm:hidden">{shortName}</span>
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+          userPlan === "full" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
+        }`}>
+          {userPlan === "full" ? "FULL" : "FREE"}
+        </span>
         <div role="button" tabIndex={0} onClick={() => router.push("/dashboard")} onKeyDown={(e) => { if (e.key === "Enter") router.push("/dashboard"); }} className="cursor-pointer hover:text-green-600 min-w-[44px] min-h-[44px] flex items-center justify-center">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
           <span className="hidden sm:inline ml-1">Dashboard</span>

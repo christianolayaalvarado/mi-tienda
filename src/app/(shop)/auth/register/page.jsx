@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import WelcomeBenefits from "@/components/WelcomeBenefits";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", password: "", storeName: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [showPassword, setShowPassword] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [registeredName, setRegisteredName] = useState("");
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -30,20 +33,27 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (res.ok) {
-        const storeName = data.stores?.[0]?.name ? ` con la tienda "${data.stores[0].name}"` : "";
-        setMessage({ type: "success", text: `Cuenta creada${storeName}. Redirigiendo...` });
-        setTimeout(() => {
-          router.push(`/auth/confirm-code?email=${encodeURIComponent(form.email)}`);
-        }, 1200);
+        setRegisteredName(form.name || "");
+        setShowWelcome(true);
       } else {
         setMessage({ type: "error", text: data.message || data.error || "Error al registrar" });
       }
     } catch (err) {
       console.error(err);
-      setMessage({ type: "error", text: "Error de conexión. Intenta de nuevo." });
+      setMessage({ type: "error", text: "Error de conexion. Intenta de nuevo." });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleWelcomeClose = () => {
+    setShowWelcome(false);
+    router.push(`/auth/confirm-code?email=${encodeURIComponent(form.email)}`);
+  };
+
+  const handleWelcomeUpgrade = () => {
+    setShowWelcome(false);
+    router.push("/upgrade?from=register");
   };
 
   return (
@@ -56,8 +66,8 @@ export default function RegisterPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Crear cuenta de Vendedor</h1>
-          <p className="text-sm text-gray-500 mt-1">Registra tu tienda y comienza a vender</p>
+          <h1 className="text-2xl font-bold text-gray-900">Crear cuenta</h1>
+          <p className="text-sm text-gray-500 mt-1">Registrate gratis y empieza a comprar</p>
         </div>
 
         {/* Card */}
@@ -78,7 +88,7 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Correo electronico</label>
               <input
                 type="email"
                 name="email"
@@ -90,9 +100,9 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Contraseña */}
+            {/* Contrasena */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contrasena</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -101,7 +111,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   required
                   minLength={6}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Minimo 6 caracteres"
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition pr-10"
                 />
                 <button
@@ -116,19 +126,6 @@ export default function RegisterPage() {
                   )}
                 </button>
               </div>
-            </div>
-
-            {/* Nombre Tienda */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Tienda</label>
-              <input
-                name="storeName"
-                value={form.storeName}
-                onChange={handleChange}
-                required
-                placeholder="Ej: Mi Tienda Online"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
-              />
             </div>
 
             {/* Messages */}
@@ -159,7 +156,7 @@ export default function RegisterPage() {
                   Creando cuenta...
                 </>
               ) : (
-                "Registrarse"
+                "Registrarse gratis"
               )}
             </button>
           </form>
@@ -167,14 +164,26 @@ export default function RegisterPage() {
           {/* Footer */}
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>
-              ¿Ya tienes cuenta?{" "}
+              Ya tienes cuenta?{" "}
               <Link href="/login" className="text-green-600 font-medium hover:underline">
-                Iniciar sesión
+                Iniciar sesion
               </Link>
             </p>
           </div>
         </div>
+
+        {/* Free vs Full hint */}
+        <p className="text-center text-xs text-gray-400 mt-4">
+          Gratis para comprar. <Link href="/upgrade" className="text-green-600 hover:underline">Quieres vender? Conoce Full</Link>
+        </p>
       </div>
+
+      <WelcomeBenefits
+        isOpen={showWelcome}
+        onClose={handleWelcomeClose}
+        onUpgrade={handleWelcomeUpgrade}
+        userName={registeredName}
+      />
     </div>
   );
 }
