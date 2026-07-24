@@ -27,7 +27,6 @@ export async function GET() {
     });
     if (!dbUser) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
 
-    // Buscar o crear código de referido
     let referral = await prisma.referral.findFirst({
       where: { referrerId: dbUser.id },
     });
@@ -46,12 +45,10 @@ export async function GET() {
       });
     }
 
-    // Contar referidos
     const referralCount = await prisma.referral.count({
       where: { referrerId: dbUser.id, referredId: { not: null } },
     });
 
-    // Listar referidos (últimos 10)
     const referredUsers = await prisma.referral.findMany({
       where: { referrerId: dbUser.id, referredId: { not: null } },
       include: { referred: { select: { name: true, email: true, createdAt: true } } },

@@ -93,12 +93,14 @@ export async function GET(req) {
       }
     });
 
-    // CSV export: unique contacts (from ALL views, including email proxy)
+    // CSV export: unique contacts (from REAL views only, not email proxy)
     if (exportCsv) {
       const contactMap = {};
-      views.forEach((v) => {
-        const key = v.email || v.phone || v.ip || Math.random().toString();
-        if (!contactMap[key] && (v.email || v.phone)) {
+      realViews.forEach((v) => {
+        if (!v.email && !v.phone) return;
+        if (v.email && (v.email === "admin@demo.com" || v.email === user.email)) return;
+        const key = v.email || v.phone;
+        if (!contactMap[key]) {
           contactMap[key] = {
             email: v.email || "",
             phone: v.phone || "",
@@ -159,10 +161,12 @@ export async function GET(req) {
       daily[day]++;
     });
 
-    // Contacts with email or phone (deduplicated, from ALL views)
+    // Contacts: only from REAL views (filtered), not email proxy traffic
     const contactMap = {};
-    views.forEach((v) => {
+    realViews.forEach((v) => {
       if (!v.email && !v.phone) return;
+      // Skip if this is the admin's own email (don't capture own data)
+      if (v.email && (v.email === "admin@demo.com" || v.email === user.email)) return;
       const key = v.email || v.phone;
       if (!contactMap[key]) {
         contactMap[key] = {
@@ -170,6 +174,7 @@ export async function GET(req) {
           phone: v.phone || null,
           city: v.city || null,
           country: v.country || null,
+          region: v.region || null,
           lastVisit: v.createdAt,
           viewCount: 0,
         };

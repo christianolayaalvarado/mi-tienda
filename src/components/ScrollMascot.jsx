@@ -154,7 +154,7 @@ export default function ScrollMascot({ onClick }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/user/mascot", { credentials: "include", cache: "no-store" })
+    fetch("/api/user-profile/mascot", { credentials: "include", cache: "no-store" })
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (!cancelled && d?.mascot) { setMascotType(d.mascot); localStorage.setItem("selectedMascot", d.mascot); } })
       .catch(() => {});
@@ -170,7 +170,7 @@ export default function ScrollMascot({ onClick }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/user/mascot-names", { credentials: "include", cache: "no-store" })
+    fetch("/api/user-profile/mascot-names", { credentials: "include", cache: "no-store" })
       .then((r) => r.ok ? r.json() : null)
       .then((d) => {
         if (cancelled) return;

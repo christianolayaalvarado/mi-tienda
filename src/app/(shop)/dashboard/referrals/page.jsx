@@ -8,7 +8,7 @@ export default function ReferralsPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    fetch("/api/user/referral")
+    fetch("/api/user-profile/referral")
       .then((r) => r.json())
       .then((d) => {
         setData(d);

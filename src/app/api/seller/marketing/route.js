@@ -38,11 +38,18 @@ export async function POST(req) {
       // Send to specific selected emails
       emails = targetEmails.filter((e) => e && typeof e === "string" && e.includes("@"));
     } else {
-      // Send to all contacts
+      // Send to all contacts (filter out email proxy traffic + admin's own email)
       const contacts = await prisma.productView.findMany({
         where: {
           productId: { in: productIds },
           email: { not: null },
+          NOT: {
+            email: { in: ["admin@demo.com", user.email] },
+          },
+          OR: [
+            { userAgent: null },
+            { NOT: { userAgent: { contains: "gmail", mode: "insensitive" } } },
+          ],
         },
         select: { email: true },
         distinct: ["email"],

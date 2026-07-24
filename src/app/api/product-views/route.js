@@ -85,9 +85,10 @@ export async function POST(req) {
     await prisma.productView.create({
       data: {
         productId,
-        userId,
-        email,
-        phone,
+        // Only save contact info for logged-in users, never for anonymous visitors
+        userId: userId || null,
+        email: userId ? email : null,
+        phone: userId ? phone : null,
         ip: ip || null,
         country,
         region,

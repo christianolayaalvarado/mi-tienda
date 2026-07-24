@@ -32,7 +32,7 @@ export function ThemeProvider({ children }) {
 
   // Cargar preferencias del servidor
   useEffect(() => {
-    fetch("/api/user/preferences", { cache: "no-store" })
+    fetch("/api/user-profile/preferences", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (d.theme) setThemeState(d.theme);
@@ -183,7 +183,7 @@ function findPalette(id, customPalettes) {
 }
 
 function persist(data) {
-  fetch("/api/user/preferences", {
+  fetch("/api/user-profile/preferences", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

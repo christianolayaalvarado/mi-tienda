@@ -24,7 +24,7 @@ export default function MascotGallery() {
       try {
         const [achRes, namesRes] = await Promise.all([
           fetch("/api/achievements"),
-          fetch("/api/user/mascot-names"),
+          fetch("/api/user-profile/mascot-names"),
         ]);
         if (achRes.ok) {
           const data = await achRes.json();
@@ -58,7 +58,7 @@ export default function MascotGallery() {
 
     setSaving(true);
     try {
-      const res = await fetch("/api/user/mascot", {
+      const res = await fetch("/api/user-profile/mascot", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mascotId }),
@@ -98,7 +98,7 @@ export default function MascotGallery() {
       return;
     }
     try {
-      const res = await fetch("/api/user/mascot-names", {
+      const res = await fetch("/api/user-profile/mascot-names", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mascotId, name: trimmed }),

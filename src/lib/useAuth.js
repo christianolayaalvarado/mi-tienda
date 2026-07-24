@@ -107,6 +107,12 @@ export function useAuth({ initialFetch = true } = {}) {
         localStorage.removeItem("refreshToken");
       } catch (e) { }
 
+      // Limpiar carrito en localStorage al cerrar sesión
+      try {
+        localStorage.removeItem("mi_tienda_cart");
+        localStorage.removeItem("mi_tienda_cart_last_update");
+      } catch (e) { }
+
       try {
         sessionStorage.clear();
       } catch (e) { }

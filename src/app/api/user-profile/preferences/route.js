@@ -42,7 +42,6 @@ export async function GET() {
       where: { userId: dbUser.id },
     });
 
-    // Contar ventas del vendedor
     const totalSales = await prisma.orderItem.count({
       where: {
         order: {
@@ -51,7 +50,6 @@ export async function GET() {
       },
     });
 
-    // Determinar paletas premium desbloqueadas
     const unlockedPremium = PREMIUM_PALETTES.filter(
       (p) => totalSales >= p.requiredSales
     ).map((p) => p.id);
@@ -96,13 +94,11 @@ export async function PUT(req) {
     const body = await req.json();
     const { theme, selectedPalette, customPalettes, editPalette } = body;
 
-    // Validar tema legacy
     const validThemes = ["default", "pastel", "grayscale", "vibrant", "dark"];
     if (theme !== undefined && !validThemes.includes(theme)) {
       return NextResponse.json({ error: "Tema inválido" }, { status: 400 });
     }
 
-    // Validar selectedPalette
     if (selectedPalette !== undefined) {
       const allBuiltin = BUILTIN_PALETTES.map((p) => p.id);
       const allPremium = PREMIUM_PALETTES.map((p) => p.id);
@@ -111,7 +107,6 @@ export async function PUT(req) {
         return NextResponse.json({ error: "Paleta inválida" }, { status: 400 });
       }
 
-      // Verificar premium unlock
       if (allPremium.includes(selectedPalette)) {
         const totalSales = await prisma.orderItem.count({
           where: { order: { store: { userId: dbUser.id } } },
@@ -123,7 +118,6 @@ export async function PUT(req) {
       }
     }
 
-    // Guardar paleta custom individual (edición)
     if (editPalette) {
       const { id, name, colors } = editPalette;
 
@@ -143,7 +137,6 @@ export async function PUT(req) {
         return NextResponse.json({ error: "Todos los colores deben ser hex válidos (#RRGGBB)" }, { status: 400 });
       }
 
-      // Obtener paletas actuales
       const prefs = await prisma.userPreferences.findUnique({
         where: { userId: dbUser.id },
       });
@@ -174,7 +167,6 @@ export async function PUT(req) {
       return NextResponse.json({ success: true, customPalettes: palettes });
     }
 
-    // Guardar paletas custom completas
     if (customPalettes !== undefined) {
       if (!Array.isArray(customPalettes)) {
         return NextResponse.json({ error: "customPalettes debe ser un array" }, { status: 400 });
@@ -194,7 +186,6 @@ export async function PUT(req) {
       }
     }
 
-    // Construir update
     const updateData = {};
     if (theme !== undefined) updateData.theme = theme;
     if (selectedPalette !== undefined) updateData.selectedPalette = selectedPalette;

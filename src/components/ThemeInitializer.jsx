@@ -9,7 +9,7 @@ import { BUILTIN_PALETTES, PREMIUM_PALETTES, paletteToCSSVars, shouldInvertLogo 
  */
 export default function ThemeInitializer() {
   useEffect(() => {
-    fetch("/api/user/preferences", { cache: "no-store" })
+    fetch("/api/user-profile/preferences", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         const paletteId = d.selectedPalette || "builtin-default";

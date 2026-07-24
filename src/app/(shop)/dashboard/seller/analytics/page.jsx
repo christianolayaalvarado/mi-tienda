@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Component } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
@@ -8,6 +8,21 @@ const MapContainer = dynamic(() => import("react-leaflet").then((m) => m.MapCont
 const TileLayer = dynamic(() => import("react-leaflet").then((m) => m.TileLayer), { ssr: false });
 const Marker = dynamic(() => import("react-leaflet").then((m) => m.Marker), { ssr: false });
 const Popup = dynamic(() => import("react-leaflet").then((m) => m.Popup), { ssr: false });
+
+class MapErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center text-gray-500 text-sm">
+          Error al cargar el mapa
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function useLeafletIcon() {
   const [icon, setIcon] = useState(null);
@@ -33,6 +48,14 @@ function ViewerMap({ locations }) {
     () => locations.filter((l) => l.lat && l.lon),
     [locations]
   );
+
+  if (!icon) {
+    return (
+      <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center text-gray-500 text-sm">
+        Cargando mapa...
+      </div>
+    );
+  }
 
   if (validLocations.length === 0) {
     return (
@@ -81,7 +104,9 @@ export default function SellerAnalytics() {
     setLoading(true);
     fetch(`/api/seller/product-viewers?days=${days}`, { credentials: "include" })
       .then((r) => r.json())
-      .then(setData)
+      .then((json) => {
+        if (json.error) { setData(null); } else { setData(json); }
+      })
       .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, [days]);
@@ -165,7 +190,9 @@ export default function SellerAnalytics() {
           {/* Map */}
           <div className="mb-6">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Mapa de visitantes</h2>
-            <ViewerMap locations={data.locations || []} />
+            <MapErrorBoundary>
+              <ViewerMap locations={data.locations || []} />
+            </MapErrorBoundary>
           </div>
 
           {/* Location table */}
