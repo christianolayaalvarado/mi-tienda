@@ -48,8 +48,10 @@ function renderBlockHTML(block, width) {
   }
 }
 
-export function generateEmailHTML(blocks, width, storeName) {
+export function generateEmailHTML(blocks, width, storeName, unsubUrl) {
   const blocksHTML = blocks.map((b) => renderBlockHTML(b, width)).join("\n");
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const link = unsubUrl || `${baseUrl}/api/unsubscribe?email=__EMAIL__`;
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -62,7 +64,7 @@ export function generateEmailHTML(blocks, width, storeName) {
   ${blocksHTML}
   <tr><td style="background:#f9fafb;padding:20px;text-align:center;border-top:1px solid #e5e7eb">
     <p style="margin:0 0 8px;font-size:12px;color:#6b7280">Enviado desde <strong>${storeName || "Mi Tienda"}</strong></p>
-    <p style="margin:0;font-size:11px;color:#9ca3af">Si no deseas recibir estos correos, puedes <a href="#" style="color:#16a34a">cancelar tu suscripcion</a></p>
+    <p style="margin:0;font-size:11px;color:#9ca3af">Si no deseas recibir estos correos, puedes <a href="${link}" style="color:#16a34a">cancelar tu suscripcion</a></p>
   </td></tr>
 </table>
 </td></tr></table>

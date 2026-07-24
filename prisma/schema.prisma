@@ -47,6 +47,7 @@ model User {
   sessions       Session[]
   coinTransactions CoinTransaction[]
   productViews    ProductView[]
+  campaigns       Campaign[]
 }
 
 model Store {
@@ -527,4 +528,28 @@ model SpinWheelPrize {
   createdAt   DateTime @default(now())
 
   @@index([userId])
+}
+
+model Campaign {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String   @db.ObjectId
+  user           User     @relation(fields: [userId], references: [id])
+  subject        String
+  recipientCount Int      @default(0)
+  sentCount      Int      @default(0)
+  failedCount    Int      @default(0)
+  templateType   String?  // "custom", "we-miss-you", "weekly-offers", "seasonal"
+  status         String   @default("sent") // "sent", "scheduled", "failed"
+  scheduledAt    DateTime?
+  sentAt         DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([sentAt])
+}
+
+model Unsubscribe {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  createdAt DateTime @default(now())
 }
