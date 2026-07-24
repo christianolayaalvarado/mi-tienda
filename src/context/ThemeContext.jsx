@@ -32,7 +32,7 @@ export function ThemeProvider({ children }) {
 
   // Cargar preferencias del servidor
   useEffect(() => {
-    fetch("/api/user-profile/preferences", { cache: "no-store" })
+    fetch("/api/user-profile/preferences", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
       .then((d) => {
         if (d.theme) setThemeState(d.theme);
