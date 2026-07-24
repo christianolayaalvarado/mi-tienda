@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 const BLOCK_TYPES = [
   { type: "text", icon: "📝", label: "Texto" },
@@ -208,9 +208,20 @@ const BLOCK_EDITORS = {
 export default function EmailBlockEditor({ blocks, onChange, width = 600, onWidthChange, storeName = "Mi Tienda" }) {
   const [selectedId, setSelectedId] = useState(null);
   const [dragIndex, setDragIndex] = useState(null);
+  const blockListRef = useRef(null);
+
+  // Auto-scroll to selected block in the list
+  useEffect(() => {
+    if (selectedId && blockListRef.current) {
+      const el = blockListRef.current.querySelector(`[data-block-id="${selectedId}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [selectedId]);
 
   const addBlock = (type) => {
-    onChange([...blocks, createBlock(type)]);
+    const newBlock = createBlock(type);
+    onChange([...blocks, newBlock]);
+    setSelectedId(newBlock.id);
   };
 
   const updateBlock = (index, newBlock) => {
@@ -297,10 +308,11 @@ export default function EmailBlockEditor({ blocks, onChange, width = 600, onWidt
         {/* Block list */}
         <div className="bg-white rounded-xl border border-gray-200 p-3">
           <label className="text-xs font-semibold text-gray-600 mb-2 block">Bloques ({blocks.length})</label>
-          <div className="space-y-1">
+          <div ref={blockListRef} className="space-y-1 max-h-[40vh] overflow-y-auto">
             {blocks.map((b, i) => (
               <div
                 key={b.id}
+                data-block-id={b.id}
                 draggable
                 onDragStart={() => handleDragStart(i)}
                 onDragOver={(e) => handleDragOver(e, i)}

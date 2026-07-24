@@ -25,7 +25,7 @@ export async function GET() {
 
     const dbUser = await prisma.user.findUnique({
       where: { email: user.email },
-      select: { id: true },
+      select: { id: true, role: true },
     });
 
     if (!dbUser) {
@@ -37,6 +37,8 @@ export async function GET() {
         totalSales: 0,
       });
     }
+
+    const isAdmin = dbUser.role === "admin" || dbUser.role === "ADMIN";
 
     const prefs = await prisma.userPreferences.findUnique({
       where: { userId: dbUser.id },
@@ -50,9 +52,10 @@ export async function GET() {
       },
     });
 
-    const unlockedPremium = PREMIUM_PALETTES.filter(
-      (p) => totalSales >= p.requiredSales
-    ).map((p) => p.id);
+    // Admin users get all premium palettes unlocked
+    const unlockedPremium = isAdmin
+      ? PREMIUM_PALETTES.map((p) => p.id)
+      : PREMIUM_PALETTES.filter((p) => totalSales >= p.requiredSales).map((p) => p.id);
 
     return NextResponse.json({
       theme: prefs?.theme || "default",
@@ -84,12 +87,14 @@ export async function PUT(req) {
 
     const dbUser = await prisma.user.findUnique({
       where: { email: user.email },
-      select: { id: true },
+      select: { id: true, role: true },
     });
 
     if (!dbUser) {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     }
+
+    const isAdmin = dbUser.role === "admin" || dbUser.role === "ADMIN";
 
     const body = await req.json();
     const { theme, selectedPalette, customPalettes, editPalette } = body;
@@ -107,7 +112,8 @@ export async function PUT(req) {
         return NextResponse.json({ error: "Paleta inválida" }, { status: 400 });
       }
 
-      if (allPremium.includes(selectedPalette)) {
+      // Skip premium check for admin users
+      if (allPremium.includes(selectedPalette) && !isAdmin) {
         const totalSales = await prisma.orderItem.count({
           where: { order: { store: { userId: dbUser.id } } },
         });
