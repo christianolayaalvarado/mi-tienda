@@ -10,6 +10,10 @@ const CATEGORIES = [
     icon: "📌",
     description: "Acceso rápido a las páginas principales",
     gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    photoGradient: "linear-gradient(160deg, #1e1b4b 0%, #4338ca 40%, #818cf8 100%)",
+    monoBg: "#eef2ff",
+    monoAccent: "#4338ca",
+    monoText: "#3730a3",
     itemGradient: "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)",
     items: [
       {
@@ -38,6 +42,10 @@ const CATEGORIES = [
     icon: "🛍️",
     description: "Gestiona tus productos, órdenes y reseñas",
     gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+    photoGradient: "linear-gradient(160deg, #831843 0%, #be185d 40%, #f472b6 100%)",
+    monoBg: "#fdf2f8",
+    monoAccent: "#be185d",
+    monoText: "#9d174d",
     itemGradient: "linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)",
     items: [
       {
@@ -75,6 +83,10 @@ const CATEGORIES = [
     icon: "💰",
     description: "Analiza tus ventas, visitantes y rendimiento",
     gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+    photoGradient: "linear-gradient(160deg, #0c4a6e 0%, #0369a1 40%, #38bdf8 100%)",
+    monoBg: "#f0f9ff",
+    monoAccent: "#0369a1",
+    monoText: "#075985",
     itemGradient: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
     items: [
       {
@@ -112,6 +124,10 @@ const CATEGORIES = [
     icon: "📧",
     description: "Campañas de email y contacto con clientes",
     gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+    photoGradient: "linear-gradient(160deg, #064e3b 0%, #047857 40%, #34d399 100%)",
+    monoBg: "#ecfdf5",
+    monoAccent: "#047857",
+    monoText: "#065f46",
     itemGradient: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)",
     items: [
       {
@@ -141,6 +157,10 @@ const CATEGORIES = [
     icon: "🎮",
     description: "Gamificación, ruleta y referidos",
     gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+    photoGradient: "linear-gradient(160deg, #7c2d12 0%, #dc2626 40%, #fbbf24 100%)",
+    monoBg: "#fffbeb",
+    monoAccent: "#dc2626",
+    monoText: "#991b1b",
     itemGradient: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
     items: [
       {
@@ -178,6 +198,10 @@ const CATEGORIES = [
     icon: "👤",
     description: "Configura tu perfil, pagos y preferencias",
     gradient: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)",
+    photoGradient: "linear-gradient(160deg, #3b0764 0%, #7c3aed 40%, #c084fc 100%)",
+    monoBg: "#faf5ff",
+    monoAccent: "#7c3aed",
+    monoText: "#6d28d9",
     itemGradient: "linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)",
     items: [
       {
@@ -206,6 +230,10 @@ const CATEGORIES = [
     icon: "🔧",
     description: "Panel de administración (solo administradores)",
     gradient: "linear-gradient(135deg, #434343 0%, #1a1a2e 100%)",
+    photoGradient: "linear-gradient(160deg, #0f172a 0%, #1e293b 40%, #475569 100%)",
+    monoBg: "#f8fafc",
+    monoAccent: "#1e293b",
+    monoText: "#0f172a",
     itemGradient: "linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)",
     adminOnly: true,
     items: [
@@ -311,40 +339,68 @@ export default function DashboardCards({ userRole, isFull }) {
           <button
             key={cat.id}
             onClick={() => handleOpen(cat)}
-            className="group relative overflow-hidden rounded-2xl text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer border border-gray-100"
-            style={{ background: cat.gradient }}
+            className="group relative overflow-hidden rounded-2xl text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer border border-gray-100 bg-white"
           >
-            <div className="relative z-10 p-5 sm:p-6">
-              <span className="text-4xl sm:text-5xl block mb-3 group-hover:scale-110 transition-transform duration-300">
-                {cat.icon}
-              </span>
-              <h3 className="text-lg font-bold text-white mb-1">{cat.label}</h3>
-              <p className="text-xs text-white/75 leading-relaxed">{cat.description}</p>
+            {/* Photo area - desktop only */}
+            <div
+              className="hidden sm:block relative h-32 overflow-hidden"
+              style={{ background: cat.photoGradient }}
+            >
+              {/* Decorative shapes */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-25" style={{ background: "rgba(255,255,255,0.3)" }} />
+              <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full opacity-15" style={{ background: "rgba(255,255,255,0.25)" }} />
+              <div className="absolute top-4 right-10 w-8 h-8 rounded-full opacity-30" style={{ background: "rgba(255,255,255,0.4)" }} />
+              <div className="absolute bottom-6 left-8 w-5 h-5 rounded-full opacity-20" style={{ background: "rgba(255,255,255,0.35)" }} />
+              {/* Grid pattern */}
+              <div className="absolute inset-0 opacity-[0.07]" style={{
+                backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+                backgroundSize: "20px 20px"
+              }} />
+              {/* Icon */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-6xl drop-shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  {cat.icon}
+                </span>
+              </div>
+            </div>
 
-              <div className="mt-4 flex items-center gap-1 text-white/60 group-hover:text-white transition-colors">
+            {/* Mobile: monochromatic header */}
+            <div
+              className="sm:hidden flex items-center gap-3 p-4"
+              style={{ background: cat.monoBg }}
+            >
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                style={{ background: cat.monoAccent }}
+              >
+                <span className="filter brightness-0 invert">{cat.icon}</span>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold" style={{ color: cat.monoText }}>{cat.label}</h3>
+                <p className="text-xs mt-0.5" style={{ color: cat.monoAccent, opacity: 0.7 }}>{cat.description}</p>
+              </div>
+            </div>
+
+            {/* Text area - desktop */}
+            <div className="hidden sm:block p-4">
+              <h3 className="text-base font-bold text-gray-900 mb-1">{cat.label}</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">{cat.description}</p>
+              <div className="mt-3 flex items-center gap-1 text-gray-400 group-hover:text-green-600 transition-colors">
                 <span className="text-xs font-medium">
                   {cat.items.length} {cat.items.length === 1 ? "sección" : "secciones"}
                 </span>
-                <svg
-                  className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
             </div>
 
-            {/* Decorative circles */}
-            <div
-              className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-20 group-hover:scale-150 transition-transform duration-500"
-              style={{ background: "rgba(255,255,255,0.3)" }}
-            />
-            <div
-              className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-700"
-              style={{ background: "rgba(255,255,255,0.3)" }}
-            />
+            {/* Mobile: sections count */}
+            <div className="sm:hidden px-4 pb-3">
+              <span className="text-xs font-medium" style={{ color: cat.monoAccent }}>
+                {cat.items.length} {cat.items.length === 1 ? "sección" : "secciones"} →
+              </span>
+            </div>
           </button>
         ))}
       </div>
