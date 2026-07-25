@@ -27,12 +27,8 @@ export default async function DashboardHome() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Welcome */}
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-          Hola, {user.name || "Usuario"} 👋
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-500">
           Selecciona una sección para comenzar
         </p>
       </div>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthContext } from "@/context/AuthProvider";
 import PendingOrdersModal from "@/components/PendingOrdersModal";
 import MascotWelcomeModal from "@/components/MascotWelcomeModal";
 import WelcomeBenefits from "@/components/WelcomeBenefits";
@@ -10,49 +11,15 @@ export default function DashboardShell({ children, userName, userEmail, userRole
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const router = useRouter();
+  const { logout } = useAuthContext() || {};
   const isAdmin = userRole === "admin" || userRole === "ADMIN";
   const isFull = userPlan === "full" || isAdmin;
-
-  async function handleLogout() {
-    try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-    } catch {}
-    localStorage.removeItem("mi_tienda_cart");
-    localStorage.removeItem("mi_tienda_cart_last_update");
-    router.push("/");
-    router.refresh();
-  }
 
   return (
     <div className="flex flex-col min-h-0 overflow-x-hidden">
       {/* Top bar */}
-      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg sm:text-xl font-bold text-gray-900">Dashboard</h1>
-          {isAdmin && (
-            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-              ADMIN
-            </span>
-          )}
-          {!isFull && !isAdmin && (
-            <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-              FREE
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">{userName || "Usuario"}</p>
-            <p className="text-xs text-gray-500 truncate max-w-[180px]">{userEmail}</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-xs text-gray-500 hover:text-red-600 transition px-2 py-1 rounded hover:bg-red-50"
-          >
-            Salir
-          </button>
-        </div>
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center shrink-0">
+        <h1 className="text-lg sm:text-xl font-bold text-gray-900">Dashboard</h1>
       </header>
 
       {/* Main content */}
