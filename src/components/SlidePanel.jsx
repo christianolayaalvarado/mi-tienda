@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function SlidePanel({ open, onClose, category }) {
-  const panelRef = useRef(null);
   const pathname = usePathname();
+  const [hoveredItem, setHoveredItem] = useState(null);
 
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
+      setHoveredItem(null);
     }
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, [open]);
 
   useEffect(() => {
@@ -26,6 +25,10 @@ export default function SlidePanel({ open, onClose, category }) {
     if (open) window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [open, onClose]);
+
+  useEffect(() => {
+    setHoveredItem(null);
+  }, [category]);
 
   if (!category) return null;
 
@@ -39,9 +42,67 @@ export default function SlidePanel({ open, onClose, category }) {
         onClick={onClose}
       />
 
-      {/* Panel */}
+      {/* Detail Panel (left of main panel) */}
       <div
-        ref={panelRef}
+        className={`fixed top-0 h-full w-full sm:w-80 bg-white shadow-2xl z-50 flex flex-col transition-all duration-300 ease-out ${
+          open && hoveredItem
+            ? "translate-x-0 opacity-100 pointer-events-auto"
+            : "translate-x-full opacity-0 pointer-events-none"
+        }`}
+        style={{ right: "min(24rem, 100vw)" }}
+      >
+        {hoveredItem && (
+          <>
+            {/* Photo area */}
+            <div
+              className="h-48 sm:h-56 w-full flex items-center justify-center shrink-0 relative overflow-hidden"
+              style={{ background: hoveredItem.photoGradient || category.gradient }}
+            >
+              <span className="text-7xl sm:text-8xl drop-shadow-lg relative z-10">
+                {hoveredItem.icon}
+              </span>
+              {/* Decorative shapes */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-20" style={{ background: "rgba(255,255,255,0.4)" }} />
+              <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full opacity-15" style={{ background: "rgba(255,255,255,0.3)" }} />
+              <div className="absolute top-8 right-12 w-8 h-8 rounded-full opacity-25" style={{ background: "rgba(255,255,255,0.5)" }} />
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-5 overflow-y-auto">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">{hoveredItem.label}</h3>
+              <p className="text-sm text-gray-600 leading-relaxed mb-4">
+                {hoveredItem.longDescription || hoveredItem.description}
+              </p>
+
+              {/* Features list */}
+              {hoveredItem.features && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Funciones</p>
+                  {hoveredItem.features.map((f, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-green-500 mt-0.5 shrink-0">✓</span>
+                      <span className="text-xs text-gray-600">{f}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Go button */}
+              <Link
+                href={hoveredItem.href}
+                onClick={onClose}
+                className="mt-6 block w-full text-center py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg"
+                style={{ background: category.gradient }}
+              >
+                Ir a {hoveredItem.label}
+              </Link>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Main Panel */}
+      <div
         className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
@@ -70,41 +131,50 @@ export default function SlidePanel({ open, onClose, category }) {
         {/* Items */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {category.items.map((item) => (
-            <Link
+            <div
               key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={`flex items-start gap-3 p-3 rounded-xl transition-all group ${
-                pathname === item.href
-                  ? "bg-green-50 border-2 border-green-400 shadow-sm"
-                  : "bg-gray-50 border-2 border-transparent hover:bg-gray-100 hover:border-gray-200"
-              }`}
+              onMouseEnter={() => setHoveredItem(item)}
+              onMouseLeave={() => setHoveredItem(null)}
             >
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0"
-                style={{ background: item.gradient || category.itemGradient }}
-              >
-                {item.icon}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className={`text-sm font-semibold ${pathname === item.href ? "text-green-700" : "text-gray-800"}`}>
-                  {item.label}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                  {item.description}
-                </p>
-              </div>
-              <svg
-                className={`w-4 h-4 mt-1 shrink-0 transition-transform group-hover:translate-x-1 ${
-                  pathname === item.href ? "text-green-500" : "text-gray-300"
+              <Link
+                href={item.href}
+                onClick={onClose}
+                className={`flex items-start gap-3 p-3 rounded-xl transition-all group ${
+                  pathname === item.href
+                    ? "bg-green-50 border-2 border-green-400 shadow-sm"
+                    : hoveredItem?.href === item.href
+                    ? "bg-gray-100 border-2 border-gray-300"
+                    : "bg-gray-50 border-2 border-transparent hover:bg-gray-100 hover:border-gray-200"
                 }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0"
+                  style={{ background: item.gradient || category.itemGradient }}
+                >
+                  {item.icon}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className={`text-sm font-semibold ${
+                    pathname === item.href ? "text-green-700" : "text-gray-800"
+                  }`}>
+                    {item.label}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                    {item.description}
+                  </p>
+                </div>
+                <svg
+                  className={`w-4 h-4 mt-1 shrink-0 transition-transform ${
+                    hoveredItem?.href === item.href ? "translate-x-1 text-gray-600" : "text-gray-300"
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
           ))}
         </div>
       </div>

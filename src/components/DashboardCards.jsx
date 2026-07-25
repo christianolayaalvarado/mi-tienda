@@ -12,8 +12,24 @@ const CATEGORIES = [
     gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
     itemGradient: "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)",
     items: [
-      { href: "/dashboard", label: "Inicio", icon: "🏠", description: "Panel principal con resumen de métricas y actividad reciente" },
-      { href: "/dashboard/favorites", label: "Favoritos", icon: "❤️", description: "Productos que has marcado como favoritos para comprar después" },
+      {
+        href: "/dashboard",
+        label: "Inicio",
+        icon: "🏠",
+        description: "Panel principal con resumen de métricas",
+        longDescription: "Tu centro de control principal. Visualiza un resumen completo de métricas clave de tu tienda: productos, órdenes recientes, ingresos y actividad de visitantes. Todo lo que necesitas saber de un vistazo.",
+        photoGradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        features: ["Resumen de métricas en tiempo real", "Accesos directos a funciones principales", "Vista general de tu tienda"],
+      },
+      {
+        href: "/dashboard/favorites",
+        label: "Favoritos",
+        icon: "❤️",
+        description: "Productos marcados como favoritos",
+        longDescription: "Gestiona tu lista de productos favoritos. Aquí encuentras todos los artículos que has guardado para comprar después, comparar precios o simplemente tener a mano tus productos preferidos.",
+        photoGradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+        features: ["Guarda productos para después", "Acceso rápido a compras futuras", "Organiza tu lista de deseos"],
+      },
     ],
   },
   {
@@ -24,9 +40,33 @@ const CATEGORIES = [
     gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
     itemGradient: "linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)",
     items: [
-      { href: "/dashboard/products", label: "Productos", icon: "📦", description: "Administra tu catálogo: crear, editar, precios, stock e imágenes" },
-      { href: "/dashboard/orders", label: "Mis Órdenes", icon: "🧾", description: "Visualiza y gestiona las órdenes de compra de tus clientes" },
-      { href: "/dashboard/seller/reviews", label: "Reseñas", icon: "⭐", description: "Lee y responde las reseñas que tus clientes dejan en tus productos" },
+      {
+        href: "/dashboard/products",
+        label: "Productos",
+        icon: "📦",
+        description: "Administra tu catálogo completo",
+        longDescription: "Administra el catálogo completo de tu tienda. Crea nuevos productos, edita descripciones, precios, imágenes y controla el stock. Organiza por categorías y mantén tu inventario siempre actualizado.",
+        photoGradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+        features: ["Crear y editar productos", "Subir imágenes desde tu galería", "Control de precios e inventario", "Organizar por categorías", "Eliminar productos"],
+      },
+      {
+        href: "/dashboard/orders",
+        label: "Mis Órdenes",
+        icon: "🧾",
+        description: "Gestiona las órdenes de tus clientes",
+        longDescription: "Visualiza y gestiona todas las órdenes de compra de tus clientes. Actualiza estados (pendiente, procesando, enviado, entregado), confirma pagos y gestiona devoluciones de forma sencilla.",
+        photoGradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+        features: ["Ver órdenes por estado", "Confirmar pagos recibidos", "Actualizar estado de envío", "Gestionar cancelaciones", "Exportar historial"],
+      },
+      {
+        href: "/dashboard/seller/reviews",
+        label: "Reseñas",
+        icon: "⭐",
+        description: "Lee y responde reseñas de clientes",
+        longDescription: "Mantén la reputación de tu tienda leyendo y respondiendo las reseñas que tus clientes dejan en tus productos. Construye confianza y mejora la experiencia de compra.",
+        photoGradient: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
+        features: ["Leer reseñas de clientes", "Responder a cada reseña", "Filtrar por estrellas", "Mejorar reputación de tienda"],
+      },
     ],
   },
   {
@@ -37,9 +77,33 @@ const CATEGORIES = [
     gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
     itemGradient: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
     items: [
-      { href: "/dashboard/seller/orders", label: "Ventas", icon: "💰", description: "Historial completo de ventas con estados, pagos y seguimiento" },
-      { href: "/dashboard/seller/sold-products", label: "Productos vendidos", icon: "📊", description: "Ranking de productos más vendidos y análisis de demanda" },
-      { href: "/dashboard/seller/analytics", label: "Visitantes", icon: "🗺️", description: "Mapa interactivo con ubicación geográfica de tus visitantes" },
+      {
+        href: "/dashboard/seller/orders",
+        label: "Ventas",
+        icon: "💰",
+        description: "Historial completo de ventas",
+        longDescription: "Accede al historial completo de todas tus ventas con estados detallados, montos, métodos de pago y seguimiento. Filtra por fecha, estado o cliente para encontrar lo que necesitas.",
+        photoGradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+        features: ["Historial detallado de ventas", "Filtrar por fecha y estado", "Ver detalles de cada venta", "Exportar datos de ventas", "Seguimiento de pagos"],
+      },
+      {
+        href: "/dashboard/seller/sold-products",
+        label: "Productos vendidos",
+        icon: "📊",
+        description: "Ranking de productos más vendidos",
+        longDescription: "Conoce cuáles son tus productos estrella. Analiza el ranking de ventas, tendencias de demanda y toma decisiones informadas sobre tu catálogo y estrategia de precios.",
+        photoGradient: "linear-gradient(135deg, #34d399 0%, #10b981 100%)",
+        features: ["Ranking de productos más vendidos", "Análisis de tendencias", "Datos de demanda por producto", "Toma decisiones informadas"],
+      },
+      {
+        href: "/dashboard/seller/analytics",
+        label: "Visitantes",
+        icon: "🗺️",
+        description: "Mapa interactivo de visitantes",
+        longDescription: "Visualiza en un mapa interactivo la ubicación geográfica de los visitantes de tu tienda. Conoce de dónde vienen tus compradores potenciales y adapta tu estrategia de envío y marketing.",
+        photoGradient: "linear-gradient(135deg, #818cf8 0%, #6366f1 100%)",
+        features: ["Mapa interactivo con Leaflet", "Ubicación geográfica de visitantes", "Filtros por rango de fechas", "Estadísticas de tráfico por región"],
+      },
     ],
   },
   {
@@ -50,20 +114,52 @@ const CATEGORIES = [
     gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
     itemGradient: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)",
     items: [
-      { href: "/dashboard/seller/marketing", label: "Email Marketing", icon: "📧", description: "Crea y envía campañas de email con plantillas, filtros y programación" },
+      {
+        href: "/dashboard/seller/marketing",
+        label: "Email Marketing",
+        icon: "📧",
+        description: "Campañas de email con plantillas",
+        longDescription: "Crea y envía campañas de email marketing efectivas. Utiliza plantillas rápidas como 'Te extrañamos' o 'Ofertas de la semana', segmenta tus contactos por ciudad o actividad, y programa envíos automáticos.",
+        photoGradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+        features: ["Plantillas rápidas predefinidas", "Filtros de contactos avanzados", "Programación de envíos", "Historial de campañas", "Vista previa antes de enviar", "Sistema de unsubscribe"],
+      },
     ],
   },
   {
     id: "engagement",
     label: "Engagement",
     icon: "🎮",
-    description: "Gamificación, ruleta y referidos para atraer clientes",
+    description: "Gamificación, ruleta y referidos",
     gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
     itemGradient: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
     items: [
-      { href: "/spin-wheel", label: "Ruleta", icon: "🎰", description: "Ruleta de premios: descuentos, envío gratis y más para atraer compradores" },
-      { href: "/dashboard/referrals", label: "Invitar amigos", icon: "🎁", description: "Programa de referidos: comparte tu código y gana recompensas" },
-      { href: "/dashboard/mascotas", label: "Mascotas", icon: "🎭", description: "Tu mascota virtual que gana monedas y desbloquea accesorios" },
+      {
+        href: "/spin-wheel",
+        label: "Ruleta",
+        icon: "🎰",
+        description: "Ruleta de premios para clientes",
+        longDescription: "Atrae compradores con una ruleta de premios interactiva. Ofrece descuentos porcentuales, descuentos fijos, envío gratis y más. Los clientes giran la ruleta y ganan cupones que pueden usar en su compra.",
+        photoGradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+        features: ["Descuentos de 5% a 50%", "Envío gratis como premio", "Cupones con código único", "Cooldown de 24h entre giros", "Códigos integrados al checkout"],
+      },
+      {
+        href: "/dashboard/referrals",
+        label: "Invitar amigos",
+        icon: "🎁",
+        description: "Programa de referidos",
+        longDescription: "Comparte tu código de referido con amigos y gana recompensas por cada nuevo usuario que se registre usando tu enlace. Una forma fácil de hacer crecer la comunidad.",
+        photoGradient: "linear-gradient(135deg, #f472b6 0%, #ec4899 100%)",
+        features: ["Código de referido único", "Recompensas por cada referido", "Historial de referidos", "Compartir por redes sociales"],
+      },
+      {
+        href: "/dashboard/mascotas",
+        label: "Mascotas",
+        icon: "🎭",
+        description: "Tu mascota virtual interactiva",
+        longDescription: "Tu mascota virtual que gana monedas con cada compra, desbloquea accesorios exclusivos y sube de nivel. Una experiencia de gamificación que engancha a tus clientes a volver por más.",
+        photoGradient: "linear-gradient(135deg, #c084fc 0%, #a855f7 100%)",
+        features: ["Múltiples mascotas coleccionables", "Sistema de monedas y nivel", "Accesorios exclusivos", "Chat con IA integrada", "Mood y personalidad dinámica"],
+      },
     ],
   },
   {
@@ -74,8 +170,24 @@ const CATEGORIES = [
     gradient: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)",
     itemGradient: "linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)",
     items: [
-      { href: "/dashboard/profile/edit", label: "Editar Perfil", icon: "👤", description: "Actualiza tu nombre, foto, dirección y datos personales" },
-      { href: "/dashboard/payment-methods", label: "Formas de pago", icon: "💳", description: "Configura Yape, Plin, transferencia bancaria y otros métodos de cobro" },
+      {
+        href: "/dashboard/profile/edit",
+        label: "Editar Perfil",
+        icon: "👤",
+        description: "Actualiza tus datos personales",
+        longDescription: "Mantén tu información personal actualizada. Cambia tu nombre, foto de perfil, dirección de envío, número de teléfono y otros datos importantes para tu cuenta.",
+        photoGradient: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)",
+        features: ["Editar nombre y foto", "Actualizar dirección", "Cambiar contraseña", "Gestionar datos personales"],
+      },
+      {
+        href: "/dashboard/payment-methods",
+        label: "Formas de pago",
+        icon: "💳",
+        description: "Configura métodos de cobro",
+        longDescription: "Configura los métodos de pago que aceptas en tu tienda: Yape, Plin, transferencia bancaria, depósito y más. Los clientes verán estas opciones al momento de comprar.",
+        photoGradient: "linear-gradient(135deg, #818cf8 0%, #6366f1 100%)",
+        features: ["Yape y Plin", "Transferencia bancaria", "Código QR personalizado", "Múltiples cuentas", "Instrucciones automáticas"],
+      },
     ],
   },
   {
@@ -83,18 +195,82 @@ const CATEGORIES = [
     label: "Admin",
     icon: "🔧",
     description: "Panel de administración (solo administradores)",
-    gradient: "linear-gradient(135deg, #434343 0%, #000000 100%)",
+    gradient: "linear-gradient(135deg, #434343 0%, #1a1a2e 100%)",
     itemGradient: "linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)",
     adminOnly: true,
     items: [
-      { href: "/dashboard/admin/orders", label: "Órdenes", icon: "🔧", description: "Gestiona todas las órdenes de la plataforma, aprueba y rechaza pagos" },
-      { href: "/dashboard/admin/sellers", label: "Vendedores", icon: "👥", description: "Administra vendedores registrados, sus tiendas y estados de cuenta" },
-      { href: "/dashboard/admin/plans", label: "Planes", icon: "💳", description: "Revisa solicitudes de upgrade, aprueba o rechaza planes de vendedores" },
-      { href: "/dashboard/admin/reports", label: "Reportes", icon: "📋", description: "Reportes de bugs, sugerencias y quejas de usuarios con seguimiento" },
-      { href: "/dashboard/admin/analytics", label: "Conversión", icon: "📊", description: "Métricas avanzadas de conversión, tráfico y rendimiento de la plataforma" },
-      { href: "/dashboard/admin/shipping", label: "Tarifas envío", icon: "🚚", description: "Configura tarifas por zona, transportistas y costos de envío" },
-      { href: "/dashboard/admin/coupons", label: "Cupones", icon: "🏷️", description: "Crea y gestiona cupones de descuento globales para la plataforma" },
-      { href: "/dashboard/admin/marketing", label: "Email Marketing", icon: "📧", description: "Campañas de email a nivel de plataforma para todos los usuarios" },
+      {
+        href: "/dashboard/admin/orders",
+        label: "Órdenes",
+        icon: "🔧",
+        description: "Gestiona todas las órdenes de la plataforma",
+        longDescription: "Administra todas las órdenes de la plataforma. Aprueba o rechaza pagos, gestiona estados de entrega y supervisa la actividad de compra y venta de todos los usuarios.",
+        photoGradient: "linear-gradient(135deg, #434343 0%, #1a1a2e 100%)",
+        features: ["Aprobar/rechazar pagos", "Gestionar estados de órdenes", "Supervisar actividad de compra", "Ver detalle por vendedor"],
+      },
+      {
+        href: "/dashboard/admin/sellers",
+        label: "Vendedores",
+        icon: "👥",
+        description: "Administra vendedores registrados",
+        longDescription: "Gestiona todos los vendedores registrados en la plataforma. Revisa sus tiendas, estados de cuenta, niveles de verificación y toma acciones sobre cuentas problemáticas.",
+        photoGradient: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+        features: ["Listar todos los vendedores", "Ver tiendas asociadas", "Gestionar estados de cuenta", "Verificar vendedores"],
+      },
+      {
+        href: "/dashboard/admin/plans",
+        label: "Planes",
+        icon: "💳",
+        description: "Solicitudes de upgrade de vendedores",
+        longDescription: "Revisa las solicitudes de mejora de plan de los vendedores. Cuando un vendedor paga para pasar de Free a Full, aprueba o rechaza su solicitud desde aquí.",
+        photoGradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+        features: ["Ver solicitudes pendientes", "Aprobar/rechazar upgrades", "Historial de cambios de plan", "Gestionar pagos recibidos"],
+      },
+      {
+        href: "/dashboard/admin/reports",
+        label: "Reportes",
+        icon: "📋",
+        description: "Reportes de bugs y sugerencias",
+        longDescription: "Gestiona los reportes enviados por los usuarios: bugs, sugerencias, quejas y consultas. Da seguimiento a cada reporte y resuelve los problemas de la plataforma.",
+        photoGradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+        features: ["Ver reportes por categoría", "Filtrar por estado", "Agregar notas de administrador", "Dar seguimiento a cada caso"],
+      },
+      {
+        href: "/dashboard/admin/analytics",
+        label: "Conversión",
+        icon: "📊",
+        description: "Métricas avanzadas de conversión",
+        longDescription: "Analiza el rendimiento completo de la plataforma con métricas avanzadas de conversión, tráfico, tasa de conversión de visitantes a compradores y tendencias de mercado.",
+        photoGradient: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+        features: ["Tasa de conversión", "Análisis de tráfico", "Tendencias de mercado", "Métricas por región"],
+      },
+      {
+        href: "/dashboard/admin/shipping",
+        label: "Tarifas envío",
+        icon: "🚚",
+        description: "Configura costos de envío por zona",
+        longDescription: "Configura las tarifas de envío por zona geográfica, transportistas y tipos de paquete. Define costos fijos, por peso o por distancia para cada región del país.",
+        photoGradient: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
+        features: ["Tarifas por zona geográfica", "Múltiples transportistas", "Costos por peso/distancia", "Zonas personalizadas"],
+      },
+      {
+        href: "/dashboard/admin/coupons",
+        label: "Cupones",
+        icon: "🏷️",
+        description: "Cupones de descuento globales",
+        longDescription: "Crea y gestiona cupones de descuento que funcionan en toda la plataforma. Define porcentajes, montos fijos, validez y límites de uso por cupón.",
+        photoGradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+        features: ["Cupones por porcentaje o monto fijo", "Fechas de validez", "Límite de uso por cupón", "Códigos personalizados"],
+      },
+      {
+        href: "/dashboard/admin/marketing",
+        label: "Email Marketing",
+        icon: "📧",
+        description: "Campañas a nivel de plataforma",
+        longDescription: "Gestiona campañas de email marketing a nivel de plataforma para todos los usuarios. Envía promociones, actualizaciones y notificaciones importantes a toda la base de usuarios.",
+        photoGradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+        features: ["Campañas masivas a usuarios", "Segmentación por rol", "Plantillas personalizadas", "Programación de envíos"],
+      },
     ],
   },
 ];
@@ -102,7 +278,6 @@ const CATEGORIES = [
 export default function DashboardCards({ userRole, isFull }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
-  const [hoveredCard, setHoveredCard] = useState(null);
 
   const visibleCategories = useMemo(() => {
     return CATEGORIES.filter((cat) => {
@@ -129,8 +304,6 @@ export default function DashboardCards({ userRole, isFull }) {
         {visibleCategories.map((cat) => (
           <button
             key={cat.id}
-            onMouseEnter={() => setHoveredCard(cat.id)}
-            onMouseLeave={() => setHoveredCard(null)}
             onClick={() => handleOpen(cat)}
             className="group relative overflow-hidden rounded-2xl text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer border border-gray-100"
             style={{ background: cat.gradient }}
@@ -157,7 +330,7 @@ export default function DashboardCards({ userRole, isFull }) {
               </div>
             </div>
 
-            {/* Decorative circle */}
+            {/* Decorative circles */}
             <div
               className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-20 group-hover:scale-150 transition-transform duration-500"
               style={{ background: "rgba(255,255,255,0.3)" }}
