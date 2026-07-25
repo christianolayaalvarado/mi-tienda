@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getServerAuthUser } from "@/lib/serverAuth";
-import DashboardWelcome from "@/components/DashboardWelcome";
+import prisma from "@/lib/prisma";
+import DashboardCards from "@/components/DashboardCards";
 import DashboardAnalytics from "@/components/DashboardAnalytics";
 
 export default async function DashboardHome() {
@@ -11,35 +11,41 @@ export default async function DashboardHome() {
     redirect("/login");
   }
 
+  let userPlan = "free";
+  let userRole = null;
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { plan: true, role: true },
+    });
+    userPlan = dbUser?.plan || "free";
+    userRole = dbUser?.role || null;
+  } catch {}
+
+  const isAdmin = userRole === "admin" || userRole === "ADMIN";
+  const isFull = userPlan === "full" || isAdmin;
+
   return (
-    <div className="max-w-4xl mx-auto p-3 sm:p-4">
-      <h1 className="text-xl sm:text-2xl font-bold mb-4 text-theme-primary">Panel de control</h1>
-
-      <p className="mb-6 text-theme-secondary text-sm sm:text-base">
-        Bienvenido al panel de administración de tu tienda,{" "}
-        {user.name}.
-      </p>
-
-      {/* Welcome section with tier and theme */}
-      <DashboardWelcome />
+    <div className="max-w-5xl mx-auto">
+      {/* Welcome */}
+      <div className="mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+          Hola, {user.name || "Usuario"} 👋
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Selecciona una sección para comenzar
+        </p>
+      </div>
 
       {/* Analytics */}
       <DashboardAnalytics />
 
-      <div className="mt-6 flex flex-wrap gap-3 sm:gap-4">
-        <Link
-          href="/dashboard/products"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
-        >
-          Mis Productos
-        </Link>
-
-        <Link
-          href="/dashboard/products/new"
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium"
-        >
-          Nuevo Producto
-        </Link>
+      {/* Category Cards */}
+      <div className="mt-2">
+        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          Secciones
+        </h2>
+        <DashboardCards userRole={userRole} isFull={isFull} />
       </div>
     </div>
   );
