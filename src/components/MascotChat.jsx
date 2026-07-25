@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import MascotAvatar from "@/components/MascotAvatar";
 
 /**
  * MascotChat — expandable chat bubble for talking with the mascot.
@@ -74,6 +75,7 @@ export default function MascotChat({
   onClear,
   quickActions,
   mascotName = "Shopito",
+  mascotType = "box",
   moodEmoji = "😊",
   onClose,
 }) {
@@ -123,7 +125,9 @@ export default function MascotChat({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white">
         <div className="flex items-center gap-2">
-          <span className="text-lg">{moodEmoji}</span>
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
+            <MascotAvatar type={mascotType} size={28} animate={false} view="front" />
+          </div>
           <div>
             <div className="text-xs font-bold">{mascotName}</div>
             <div className="text-[9px] opacity-80">en línea</div>
@@ -159,7 +163,9 @@ export default function MascotChat({
       >
         {messages.length === 0 && (
           <div className="text-center text-gray-400 text-[11px] py-8">
-            <div className="text-2xl mb-2">{moodEmoji}</div>
+            <div className="flex justify-center mb-2">
+              <MascotAvatar type={mascotType} size={48} animate={true} view="front" />
+            </div>
             <div>¡Hola! Puedo ayudarte a encontrar productos,</div>
             <div>responder preguntas o simplemente charlar 😊</div>
           </div>

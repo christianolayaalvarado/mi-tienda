@@ -504,6 +504,7 @@ export default function ScrollMascot({ onClick }) {
               onClear={clearMessages}
               quickActions={quickActions}
               mascotName={mascotName}
+              mascotType={mascotType}
               moodEmoji={moodEmoji}
               onClose={() => setShowChat(false)}
             />
