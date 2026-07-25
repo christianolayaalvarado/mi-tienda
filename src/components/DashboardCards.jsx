@@ -123,6 +123,16 @@ const CATEGORIES = [
         photoGradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
         features: ["Plantillas rápidas predefinidas", "Filtros de contactos avanzados", "Programación de envíos", "Historial de campañas", "Vista previa antes de enviar", "Sistema de unsubscribe"],
       },
+      {
+        href: "/dashboard/admin/marketing",
+        label: "Email Marketing Admin",
+        icon: "📣",
+        description: "Campañas a nivel de plataforma",
+        longDescription: "Gestiona campañas de email marketing a nivel de plataforma para todos los usuarios. Envía promociones, actualizaciones y notificaciones importantes a toda la base de usuarios de Mi Tienda.",
+        photoGradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+        features: ["Campañas masivas a usuarios", "Segmentación por rol", "Plantillas personalizadas", "Programación de envíos"],
+        adminOnly: true,
+      },
     ],
   },
   {
@@ -262,15 +272,7 @@ const CATEGORIES = [
         photoGradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
         features: ["Cupones por porcentaje o monto fijo", "Fechas de validez", "Límite de uso por cupón", "Códigos personalizados"],
       },
-      {
-        href: "/dashboard/admin/marketing",
-        label: "Email Marketing",
-        icon: "📧",
-        description: "Campañas a nivel de plataforma",
-        longDescription: "Gestiona campañas de email marketing a nivel de plataforma para todos los usuarios. Envía promociones, actualizaciones y notificaciones importantes a toda la base de usuarios.",
-        photoGradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-        features: ["Campañas masivas a usuarios", "Segmentación por rol", "Plantillas personalizadas", "Programación de envíos"],
-      },
+
     ],
   },
 ];
@@ -289,7 +291,11 @@ export default function DashboardCards({ userRole, isFull }) {
   }, [userRole, isFull]);
 
   function handleOpen(cat) {
-    setActiveCategory(cat);
+    const filtered = {
+      ...cat,
+      items: cat.items.filter((item) => !item.adminOnly || (userRole === "admin" || userRole === "ADMIN")),
+    };
+    setActiveCategory(filtered);
     setPanelOpen(true);
   }
 
