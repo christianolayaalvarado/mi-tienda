@@ -1,39 +1,191 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import PendingOrdersModal from "@/components/PendingOrdersModal";
 import MascotWelcomeModal from "@/components/MascotWelcomeModal";
 import WelcomeBenefits from "@/components/WelcomeBenefits";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Inicio", icon: "🏠", plan: "free" },
-  { href: "/dashboard/products", label: "Productos", icon: "📦", plan: "free" },
-  { href: "/dashboard/orders", label: "Mis Órdenes", icon: "🧾", plan: "free" },
-  { href: "/dashboard/favorites", label: "Favoritos", icon: "❤️", plan: "free" },
-  { href: "/dashboard/seller/orders", label: "Ventas", icon: "💰", plan: "full" },
-  { href: "/dashboard/seller/sold-products", label: "Productos vendidos", icon: "📊", plan: "full" },
-  { href: "/dashboard/seller/analytics", label: "Visitantes", icon: "🗺️", plan: "full" },
-  { href: "/dashboard/seller/marketing", label: "Email Marketing", icon: "📧", plan: "full" },
-  { href: "/dashboard/seller/reviews", label: "Reseñas", icon: "⭐", plan: "full" },
-  { href: "/dashboard/payment-methods", label: "Formas de pago", icon: "📍", plan: "free" },
-  { href: "/dashboard/referrals", label: "Invitar amigos", icon: "🎁", plan: "free" },
-  { href: "/spin-wheel", label: "Ruleta", icon: "🎰", plan: "free" },
-  { href: "/dashboard/profile/edit", label: "Editar Perfil", icon: "👤", plan: "free" },
-  { href: "/dashboard/mascotas", label: "Mascotas", icon: "🎭", plan: "full" },
+const MENU_CATEGORIES = [
+  {
+    id: "nav",
+    label: "Navegación",
+    icon: "📌",
+    plan: "free",
+    items: [
+      { href: "/dashboard", label: "Inicio", icon: "🏠" },
+      { href: "/dashboard/favorites", label: "Favoritos", icon: "❤️" },
+    ],
+  },
+  {
+    id: "tienda",
+    label: "Tienda",
+    icon: "🛍️",
+    plan: "free",
+    items: [
+      { href: "/dashboard/products", label: "Productos", icon: "📦" },
+      { href: "/dashboard/orders", label: "Mis Órdenes", icon: "🧾" },
+      { href: "/dashboard/seller/reviews", label: "Reseñas", icon: "⭐", plan: "full" },
+    ],
+  },
+  {
+    id: "ventas",
+    label: "Ventas",
+    icon: "💰",
+    plan: "full",
+    items: [
+      { href: "/dashboard/seller/orders", label: "Ventas", icon: "💰", badge: "pendingCount" },
+      { href: "/dashboard/seller/sold-products", label: "Productos vendidos", icon: "📊" },
+      { href: "/dashboard/seller/analytics", label: "Visitantes", icon: "🗺️" },
+    ],
+  },
+  {
+    id: "marketing",
+    label: "Marketing",
+    icon: "📧",
+    plan: "full",
+    items: [
+      { href: "/dashboard/seller/marketing", label: "Email Marketing", icon: "📧" },
+    ],
+  },
+  {
+    id: "engagement",
+    label: "Engagement",
+    icon: "🎮",
+    plan: "free",
+    items: [
+      { href: "/spin-wheel", label: "Ruleta", icon: "🎰" },
+      { href: "/dashboard/referrals", label: "Invitar amigos", icon: "🎁" },
+      { href: "/dashboard/mascotas", label: "Mascotas", icon: "🎭", plan: "full" },
+    ],
+  },
+  {
+    id: "cuenta",
+    label: "Mi Cuenta",
+    icon: "👤",
+    plan: "free",
+    items: [
+      { href: "/dashboard/profile/edit", label: "Editar Perfil", icon: "👤" },
+      { href: "/dashboard/payment-methods", label: "Formas de pago", icon: "📍" },
+    ],
+  },
+  {
+    id: "admin",
+    label: "Admin",
+    icon: "🔧",
+    adminOnly: true,
+    items: [
+      { href: "/dashboard/admin/orders", label: "Órdenes", icon: "🔧" },
+      { href: "/dashboard/admin/sellers", label: "Vendedores", icon: "👥" },
+      { href: "/dashboard/admin/plans", label: "Planes", icon: "💳" },
+      { href: "/dashboard/admin/reports", label: "Reportes", icon: "📋" },
+      { href: "/dashboard/admin/analytics", label: "Conversión", icon: "📊" },
+      { href: "/dashboard/admin/shipping", label: "Tarifas envío", icon: "🚚" },
+      { href: "/dashboard/admin/coupons", label: "Cupones", icon: "🏷️" },
+      { href: "/dashboard/admin/marketing", label: "Email Marketing", icon: "📧" },
+    ],
+  },
 ];
 
-const ADMIN_ITEMS = [
-  { href: "/dashboard/admin/orders", label: "Ordenes admin", icon: "🔧" },
-  { href: "/dashboard/admin/sellers", label: "Vendedores", icon: "👥" },
-  { href: "/dashboard/admin/plans", label: "Planes", icon: "💳" },
-  { href: "/dashboard/admin/reports", label: "Reportes", icon: "📋" },
-  { href: "/dashboard/admin/analytics", label: "Conversion", icon: "📊" },
-  { href: "/dashboard/admin/shipping", label: "Tarifas envio", icon: "🚚" },
-  { href: "/dashboard/admin/coupons", label: "Cupones", icon: "🏷️" },
-  { href: "/dashboard/admin/marketing", label: "Email Marketing", icon: "📧" },
-];
+function getCategoryForPath(pathname) {
+  for (const cat of MENU_CATEGORIES) {
+    if (cat.items.some((i) => i.href === pathname)) return cat.id;
+  }
+  return null;
+}
+
+function SidebarNav({ pathname, expandedCategories, toggleCategory, pendingCount, isFull, isAdmin, onClickLink }) {
+  const visibleCategories = useMemo(() => {
+    return MENU_CATEGORIES.filter((cat) => {
+      if (cat.adminOnly && !isAdmin) return false;
+      if (cat.plan === "full" && !isFull) return false;
+      return true;
+    });
+  }, [isFull, isAdmin]);
+
+  return (
+    <nav className="flex flex-col gap-0.5 flex-1">
+      {visibleCategories.map((cat) => {
+        const isExpanded = expandedCategories.includes(cat.id);
+        const hasActive = cat.items.some((i) => i.href === pathname);
+        const visibleItems = cat.items.filter(
+          (i) => !i.plan || i.plan === "free" || isFull
+        );
+
+        return (
+          <div key={cat.id}>
+            <button
+              onClick={() => toggleCategory(cat.id)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded text-sm transition ${
+                hasActive
+                  ? "text-white font-medium"
+                  : "text-gray-400 hover:text-white hover:bg-gray-700"
+              }`}
+            >
+              <span>{cat.icon}</span>
+              <span className="flex-1 text-left">{cat.label}</span>
+              <svg
+                className={`w-4 h-4 transition-transform duration-200 ${
+                  isExpanded ? "rotate-90" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+
+            {isExpanded && (
+              <div className="ml-3 border-l border-gray-700 pl-2 mt-0.5 space-y-0.5">
+                {visibleItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onClickLink}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition ${
+                      pathname === item.href
+                        ? "bg-gray-700 text-white font-medium"
+                        : "text-gray-400 hover:bg-gray-700 hover:text-white"
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                    {item.badge === "pendingCount" && pendingCount > 0 && (
+                      <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold">
+                        {pendingCount > 99 ? "99+" : pendingCount}
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {!isFull && (
+        <>
+          <div className="border-t border-gray-700 my-1.5" />
+          <Link
+            href="/upgrade"
+            onClick={onClickLink}
+            className="px-3 py-2 rounded transition text-sm flex items-center gap-2 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30"
+          >
+            <span>🚀</span>
+            <span>Upgrade a Full</span>
+          </Link>
+        </>
+      )}
+    </nav>
+  );
+}
 
 export default function DashboardShell({ children, userName, userEmail, userRole, userPlan }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -45,11 +197,25 @@ export default function DashboardShell({ children, userName, userEmail, userRole
   const isAdmin = userRole === "admin" || userRole === "ADMIN";
   const isFull = userPlan === "full" || isAdmin;
 
-  const visibleItems = NAV_ITEMS.filter((item) => {
-    if (item.plan === "free") return true;
-    if (item.plan === "full" && isFull) return true;
-    return false;
+  const [expandedCategories, setExpandedCategories] = useState(() => {
+    const active = getCategoryForPath(pathname);
+    return active ? [active] : ["nav"];
   });
+
+  const toggleCategory = (catId) => {
+    setExpandedCategories((prev) =>
+      prev.includes(catId)
+        ? prev.filter((id) => id !== catId)
+        : [...prev, catId]
+    );
+  };
+
+  useEffect(() => {
+    const active = getCategoryForPath(pathname);
+    if (active && !expandedCategories.includes(active)) {
+      setExpandedCategories((prev) => [...prev, active]);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     fetch("/api/seller/pending-count", { credentials: "include" })
@@ -60,7 +226,6 @@ export default function DashboardShell({ children, userName, userEmail, userRole
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -79,62 +244,14 @@ export default function DashboardShell({ children, userName, userEmail, userRole
         ) : null}
         <p className="text-xs mb-3 text-gray-300 break-all">{userEmail}</p>
 
-        <nav className="flex flex-col gap-0.5 flex-1">
-          {visibleItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`px-3 py-2 rounded transition text-sm flex items-center gap-2 ${
-                pathname === item.href
-                  ? "bg-gray-700 text-white font-medium"
-                  : "hover:bg-gray-700 text-gray-300"
-              }`}
-            >
-              <span>{item.icon}</span>
-              <span>{item.label}</span>
-              {item.href === "/dashboard/seller/orders" && pendingCount > 0 && (
-                <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold">
-                  {pendingCount > 99 ? "99+" : pendingCount}
-                </span>
-              )}
-            </Link>
-          ))}
-
-          {!isFull && (
-            <>
-              <div className="border-t border-gray-700 my-1.5" />
-              <Link
-                href="/upgrade"
-                className="px-3 py-2 rounded transition text-sm flex items-center gap-2 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30"
-              >
-                <span>🚀</span>
-                <span>Upgrade a Full</span>
-              </Link>
-            </>
-          )}
-
-          {isAdmin && (
-            <>
-              <div className="border-t border-gray-700 my-1.5" />
-              <p className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Admin</p>
-              {ADMIN_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-3 py-2 rounded transition text-sm flex items-center gap-2 ${
-                    pathname === item.href
-                      ? "bg-gray-700 text-white font-medium"
-                      : "hover:bg-gray-700 text-gray-300"
-                  }`}
-                >
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </>
-          )}
-        </nav>
-
+        <SidebarNav
+          pathname={pathname}
+          expandedCategories={expandedCategories}
+          toggleCategory={toggleCategory}
+          pendingCount={pendingCount}
+          isFull={isFull}
+          isAdmin={isAdmin}
+        />
       </aside>
 
       {/* Mobile sidebar */}
@@ -161,70 +278,19 @@ export default function DashboardShell({ children, userName, userEmail, userRole
         ) : null}
         <p className="text-xs mb-3 text-gray-300 break-all">{userEmail}</p>
 
-        <nav className="flex-1 flex flex-col gap-0.5 overflow-y-auto">
-          {visibleItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setSidebarOpen(false)}
-              className={`px-3 py-2 rounded transition text-sm flex items-center gap-2 ${
-                pathname === item.href
-                  ? "bg-gray-700 text-white font-medium"
-                  : "hover:bg-gray-700 text-gray-300"
-              }`}
-            >
-              <span>{item.icon}</span>
-              <span>{item.label}</span>
-              {item.href === "/dashboard/seller/orders" && pendingCount > 0 && (
-                <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold">
-                  {pendingCount > 99 ? "99+" : pendingCount}
-                </span>
-              )}
-            </Link>
-          ))}
-
-          {!isFull && (
-            <>
-              <div className="border-t border-gray-700 my-1.5" />
-              <Link
-                href="/upgrade"
-                onClick={() => setSidebarOpen(false)}
-                className="px-3 py-2 rounded transition text-sm flex items-center gap-2 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30"
-              >
-                <span>🚀</span>
-                <span>Upgrade a Full</span>
-              </Link>
-            </>
-          )}
-
-          {isAdmin && (
-            <>
-              <div className="border-t border-gray-700 my-1.5" />
-              <p className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Admin</p>
-              {ADMIN_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`px-3 py-2 rounded transition text-sm flex items-center gap-2 ${
-                    pathname === item.href
-                      ? "bg-gray-700 text-white font-medium"
-                      : "hover:bg-gray-700 text-gray-300"
-                  }`}
-                >
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </>
-          )}
-        </nav>
-
+        <SidebarNav
+          pathname={pathname}
+          expandedCategories={expandedCategories}
+          toggleCategory={toggleCategory}
+          pendingCount={pendingCount}
+          isFull={isFull}
+          isAdmin={isAdmin}
+          onClickLink={() => setSidebarOpen(false)}
+        />
       </aside>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-h-0 overflow-x-hidden">
-        {/* Mobile top bar */}
         <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -246,7 +312,6 @@ export default function DashboardShell({ children, userName, userEmail, userRole
       <PendingOrdersModal />
       <MascotWelcomeModal />
 
-      {/* Upgrade banner for Free users */}
       {!isFull && !bannerDismissed && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-3 sm:p-4 flex items-center justify-between gap-3 shadow-lg md:ml-64">
           <div className="flex items-center gap-3 min-w-0">
@@ -274,7 +339,6 @@ export default function DashboardShell({ children, userName, userEmail, userRole
         </div>
       )}
 
-      {/* Upgrade modal */}
       <WelcomeBenefits
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
