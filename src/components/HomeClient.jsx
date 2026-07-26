@@ -196,30 +196,29 @@ export default function HomeClient() {
             <div className="flex items-center gap-3 sm:gap-4">
               <svg width="50" height="50" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="shrink-0 drop-shadow-lg">
                 <defs>
-                  <radialGradient id="rGradW2" cx="50%" cy="40%" r="50%">
-                    <stop offset="0%" stopColor="#fff" />
-                    <stop offset="100%" stopColor="#e8e8e8" />
-                  </radialGradient>
                   <radialGradient id="rGradR2" cx="50%" cy="40%" r="50%">
                     <stop offset="0%" stopColor="#e8304a" />
                     <stop offset="100%" stopColor="#C8102E" />
                   </radialGradient>
+                  <radialGradient id="rGradW2" cx="50%" cy="40%" r="50%">
+                    <stop offset="0%" stopColor="#fff" />
+                    <stop offset="100%" stopColor="#e8e8e8" />
+                  </radialGradient>
                 </defs>
-                <path d="M38,62 L30,95 Q33,98 36,95 L42,62Z" fill="#fff" />
-                <path d="M42,62 L36,95 Q39,98 42,95 L48,62Z" fill="#C8102E" />
-                <path d="M52,62 L46,95 Q49,98 52,95 L58,62Z" fill="#C8102E" />
-                <path d="M58,62 L52,95 Q55,98 58,95 L64,62Z" fill="#fff" />
+                <path d="M36,60 L26,96 Q30,100 34,96 L42,60Z" fill="#fff" />
+                <path d="M44,60 L38,96 Q42,100 46,96 L52,60Z" fill="#C8102E" />
+                <path d="M54,60 L48,96 Q52,100 56,96 L62,60Z" fill="#fff" />
                 {Array.from({length:14}).map((_,i) => {
                   const angle = (i * (360/14)) * Math.PI / 180;
                   const cx = 50 + Math.cos(angle) * 28;
                   const cy = 38 + Math.sin(angle) * 28;
-                  return <ellipse key={`ow${i}`} cx={cx} cy={cy} rx="13" ry="9" transform={`rotate(${i*(360/14)} ${cx} ${cy})`} fill="url(#rGradW2)" stroke="#ccc" strokeWidth="0.4" />;
+                  return <ellipse key={`ow${i}`} cx={cx} cy={cy} rx="13" ry="9" transform={`rotate(${i*(360/14)} ${cx} ${cy})`} fill="url(#rGradR2)" />;
                 })}
                 {Array.from({length:14}).map((_,i) => {
                   const angle = (i * (360/14) + 360/28) * Math.PI / 180;
                   const cx = 50 + Math.cos(angle) * 20;
                   const cy = 38 + Math.sin(angle) * 20;
-                  return <ellipse key={`ir${i}`} cx={cx} cy={cy} rx="10" ry="7" transform={`rotate(${i*(360/14)+360/28} ${cx} ${cy})`} fill="url(#rGradR2)" />;
+                  return <ellipse key={`ir${i}`} cx={cx} cy={cy} rx="10" ry="7" transform={`rotate(${i*(360/14)+360/28} ${cx} ${cy})`} fill="url(#rGradW2)" stroke="#ddd" strokeWidth="0.3" />;
                 })}
                 <circle cx="50" cy="38" r="14" fill="url(#rGradR2)" stroke="#a0082a" strokeWidth="1" />
                 <circle cx="50" cy="38" r="10" fill="none" stroke="#fff" strokeWidth="0.6" strokeDasharray="2,1.5" />
