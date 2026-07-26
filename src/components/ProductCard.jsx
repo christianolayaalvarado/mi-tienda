@@ -27,14 +27,42 @@ export default function ProductCard({ product, priority }) {
             {categoryName}
           </span>
 
+          {/* Escarapela Peruana */}
+          <div className="absolute top-1.5 right-1.5 z-10" title="Fiestas Patrias">
+            <svg width="38" height="38" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <radialGradient id="rosetteGrad" cx="50%" cy="40%" r="50%">
+                  <stop offset="0%" stopColor="#fff" />
+                  <stop offset="100%" stopColor="#f0f0f0" />
+                </radialGradient>
+              </defs>
+              {/* Ribbons */}
+              <g transform="translate(50,55)">
+                <path d="M-4,-2 L-18,40 L-10,38 L-2,0Z" fill="#C8102E" />
+                <path d="M4,-2 L18,40 L10,38 L2,0Z" fill="#C8102E" />
+                <path d="M-1,-2 L-14,35 L-8,34 L0,0Z" fill="#fff" stroke="#ddd" strokeWidth="0.3" />
+                <path d="M1,-2 L14,35 L8,34 L0,0Z" fill="#fff" stroke="#ddd" strokeWidth="0.3" />
+                <path d="M-8,2 L-28,30 L-20,30 L-4,6Z" fill="#C8102E" />
+                <path d="M8,2 L28,30 L20,30 L4,6Z" fill="#C8102E" />
+                <path d="M-6,2 L-22,26 L-16,26 L-2,5Z" fill="#fff" stroke="#ddd" strokeWidth="0.3" />
+                <path d="M6,2 L22,26 L16,26 L2,5Z" fill="#fff" stroke="#ddd" strokeWidth="0.3" />
+              </g>
+              {/* Rosette center */}
+              <circle cx="50" cy="40" r="22" fill="url(#rosetteGrad)" stroke="#C8102E" strokeWidth="2.5" />
+              <circle cx="50" cy="40" r="17" fill="none" stroke="#C8102E" strokeWidth="1" strokeDasharray="3,2" />
+              <circle cx="50" cy="40" r="12" fill="#C8102E" />
+              <text x="50" y="44" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" fontFamily="sans-serif">PE</text>
+            </svg>
+          </div>
+
           {product.originalPrice && product.originalPrice > product.price && (
-            <span className="absolute top-2 right-2 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+            <span className="absolute bottom-2 left-2 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow">
               -{product.discountPct || Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
             </span>
           )}
 
           {product.stock === 0 && (
-            <span className="absolute top-2 right-2 z-10 bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+            <span className="absolute bottom-2 left-2 z-10 bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow">
               Agotado
             </span>
           )}

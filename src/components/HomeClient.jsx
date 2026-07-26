@@ -188,6 +188,38 @@ export default function HomeClient() {
       {/* Modal de bienvenida de mascotas */}
       <MascotWelcomeModal />
 
+      {/* Banner Fiestas Patrias */}
+      {!currentSearch && !currentCategory && (
+        <a href="/ofertas" className="block mb-4 rounded-xl overflow-hidden relative group">
+          <div className="w-full h-[100px] sm:h-[120px] flex items-center justify-between px-5 sm:px-8"
+            style={{ background: "linear-gradient(135deg, #C8102E 0%, #8B0000 40%, #C8102E 70%, #fff 100%)" }}>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="shrink-0 drop-shadow-lg">
+                <circle cx="50" cy="40" r="22" fill="#fff" stroke="#C8102E" strokeWidth="2.5" />
+                <circle cx="50" cy="40" r="17" fill="none" stroke="#C8102E" strokeWidth="1" strokeDasharray="3,2" />
+                <circle cx="50" cy="40" r="12" fill="#C8102E" />
+                <text x="50" y="44" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" fontFamily="sans-serif">PE</text>
+                <g transform="translate(50,55)">
+                  <path d="M-4,-2 L-18,40 L-10,38 L-2,0Z" fill="#C8102E" />
+                  <path d="M4,-2 L18,40 L10,38 L2,0Z" fill="#C8102E" />
+                  <path d="M-8,2 L-28,30 L-20,30 L-4,6Z" fill="#C8102E" />
+                  <path d="M8,2 L28,30 L20,30 L4,6Z" fill="#C8102E" />
+                </g>
+              </svg>
+              <div>
+                <p className="text-white text-lg sm:text-2xl font-extrabold drop-shadow-lg tracking-wide">FIESTAS PATRIAS</p>
+                <p className="text-white/90 text-xs sm:text-sm font-semibold">Ofertas especiales por semana patria</p>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="bg-white text-[#C8102E] text-sm font-bold px-4 py-2 rounded-full group-hover:scale-105 transition-transform">
+                Ver ofertas →
+              </span>
+            </div>
+          </div>
+        </a>
+      )}
+
       {/* 3 banners: Featured + Mascots + Latest */}
       {!currentSearch && !currentCategory && (
         <>
