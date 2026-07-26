@@ -100,6 +100,7 @@ export default function EditProfilePage() {
 
       toast.success(data?.message || "Perfil actualizado");
       setForm((f) => ({ ...f, password: "", confirmPassword: "" }));
+      router.push("/dashboard");
     } catch (err) {
       console.error("handleSubmit error:", err);
       toast.error("Error inesperado al guardar");

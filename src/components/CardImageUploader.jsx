@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import toast from "react-hot-toast";
 
 const CATEGORIES = [
   {
@@ -153,7 +154,7 @@ export default function CardImageUploader({ onClose }) {
       const key = makeKey(selected.cardId, selected.itemHref);
       const img = images[key];
       if (!img) return;
-      await fetch("/api/admin/card-images", {
+      const res = await fetch("/api/admin/card-images", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -166,23 +167,36 @@ export default function CardImageUploader({ onClose }) {
           scale: img.scale || 1,
         }),
       });
+      if (res.ok) {
+        toast.success("Imagen guardada");
+        onClose();
+      } else {
+        toast.error("Error al guardar");
+      }
     } catch (e) {
       console.error("Save error:", e);
+      toast.error("Error de conexión");
     } finally {
       setSaving(false);
     }
-  }, [selected, images]);
+  }, [selected, images, onClose]);
 
   const handleDelete = useCallback(async () => {
     if (!selected) return;
     try {
       const params = new URLSearchParams({ cardId: selected.cardId });
       if (selected.itemHref) params.set("itemHref", selected.itemHref);
-      await fetch(`/api/admin/card-images?${params}`, { method: "DELETE", credentials: "include" });
+      const res = await fetch(`/api/admin/card-images?${params}`, { method: "DELETE", credentials: "include" });
       const key = makeKey(selected.cardId, selected.itemHref);
       setImages((prev) => { const n = { ...prev }; delete n[key]; return n; });
+      if (res.ok) {
+        toast.success("Imagen eliminada");
+      } else {
+        toast.error("Error al eliminar");
+      }
     } catch (e) {
       console.error("Delete error:", e);
+      toast.error("Error de conexión");
     }
   }, [selected]);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import useCategories from "@/hooks/useCategories";
 import PriceInput from "@/components/PriceInput";
@@ -10,6 +11,7 @@ const UPLOAD_PRESET = "mi_tienda_unsigned";
 
 export default function EditProductForm({ productId }) {
   const { categories = [], loading: loadingCategories } = useCategories();
+  const router = useRouter();
 
   const [currentUser, setCurrentUser] = useState(null);
   const [product, setProduct] = useState(null);
@@ -216,7 +218,7 @@ export default function EditProductForm({ productId }) {
       }
 
       const data = await res.json();
-      toast.success("Producto actualizado ✅");
+      toast.success("Producto actualizado");
       setProduct(data);
       setForm({
         title: data.title ?? "",
@@ -228,9 +230,9 @@ export default function EditProductForm({ productId }) {
         description: data.description ?? "",
       });
       setNewImages([]);
-      // revoke old previews
       previewImages.forEach((url) => URL.revokeObjectURL(url));
       setPreviewImages([]);
+      router.push("/dashboard/products");
     } catch (err) {
       console.error(err);
       toast.error("Error inesperado al actualizar producto");
