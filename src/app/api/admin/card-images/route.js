@@ -47,24 +47,37 @@ export async function PUT(req) {
     if (headerOffsetY !== undefined) data.headerOffsetY = headerOffsetY;
     if (headerScale !== undefined) data.headerScale = headerScale;
 
-    const key = { cardId, itemHref: itemHref || null };
+    const where = itemHref ? { cardId_itemHref: { cardId, itemHref } } : { cardId, itemHref: null };
 
-    const result = await prisma.dashboardCardImage.upsert({
-      where: { cardId_itemHref: key },
-      update: data,
-      create: {
-        cardId,
-        itemHref: itemHref || null,
-        imageUrl: imageUrl || "",
-        offsetX: offsetX || 0,
-        offsetY: offsetY || 0,
-        scale: scale || 1,
-        headerUrl: headerUrl || null,
-        headerOffsetX: headerOffsetX || 0,
-        headerOffsetY: headerOffsetY || 0,
-        headerScale: headerScale || 1,
-      },
-    });
+    let existing = null;
+    try {
+      existing = await prisma.dashboardCardImage.findFirst({ where });
+    } catch (_) {
+      existing = null;
+    }
+
+    let result;
+    if (existing) {
+      result = await prisma.dashboardCardImage.update({
+        where: { id: existing.id },
+        data,
+      });
+    } else {
+      result = await prisma.dashboardCardImage.create({
+        data: {
+          cardId,
+          itemHref: itemHref || null,
+          imageUrl: imageUrl || "",
+          offsetX: offsetX || 0,
+          offsetY: offsetY || 0,
+          scale: scale || 1,
+          headerUrl: headerUrl || null,
+          headerOffsetX: headerOffsetX || 0,
+          headerOffsetY: headerOffsetY || 0,
+          headerScale: headerScale || 1,
+        },
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error) {
@@ -98,9 +111,11 @@ export async function DELETE(req) {
     }
 
     if (itemHref) {
-      await prisma.dashboardCardImage.deleteMany({ where: { cardId, itemHref } });
+      const existing = await prisma.dashboardCardImage.findFirst({ where: { cardId, itemHref } });
+      if (existing) await prisma.dashboardCardImage.delete({ where: { id: existing.id } });
     } else {
-      await prisma.dashboardCardImage.deleteMany({ where: { cardId } });
+      const existing = await prisma.dashboardCardImage.findFirst({ where: { cardId, itemHref: null } });
+      if (existing) await prisma.dashboardCardImage.delete({ where: { id: existing.id } });
     }
     return NextResponse.json({ ok: true });
   } catch (error) {

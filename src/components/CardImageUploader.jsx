@@ -66,7 +66,7 @@ function PositionSliders({ data, onChange }) {
   const fields = [
     { key: "offsetX", label: "X", min: -50, max: 50, suffix: "%" },
     { key: "offsetY", label: "Y", min: -50, max: 50, suffix: "%" },
-    { key: "scale", label: "Zoom", min: 50, max: 200, suffix: "%", isPercent: true },
+    { key: "scale", label: "Zoom", min: 100, max: 200, suffix: "%", isPercent: true },
   ];
   return (
     <div className="mt-3 space-y-2">
@@ -301,7 +301,11 @@ export default function CardImageUploader({ onClose }) {
                     {selected.itemHref ? "Imagen del submenú" : "Imagen del Card"}
                   </h3>
                   <div
-                    className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300 cursor-pointer hover:border-green-400 transition"
+                    className={`relative w-full h-40 rounded-xl overflow-hidden cursor-pointer transition ${
+                      sel?.imageUrl
+                        ? "bg-gray-900"
+                        : "bg-gray-100 border-2 border-dashed border-gray-300 hover:border-green-400"
+                    }`}
                     onClick={() => fileRef.current?.click()}
                   >
                     {sel?.imageUrl ? (
