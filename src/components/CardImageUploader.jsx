@@ -95,7 +95,6 @@ export default function CardImageUploader({ onClose }) {
   const [expandedCats, setExpandedCats] = useState({});
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -139,7 +138,6 @@ export default function CardImageUploader({ onClose }) {
           ...prev,
           [key]: { ...current, cardId, itemHref, imageUrl: data.url },
         }));
-        setDeleteTarget({ cardId, itemHref });
       }
     } catch (e) {
       console.error("Upload error:", e);
@@ -176,18 +174,17 @@ export default function CardImageUploader({ onClose }) {
   }, [selected, images]);
 
   const handleDelete = useCallback(async () => {
-    if (!deleteTarget) return;
+    if (!selected) return;
     try {
-      const params = new URLSearchParams({ cardId: deleteTarget.cardId });
-      if (deleteTarget.itemHref) params.set("itemHref", deleteTarget.itemHref);
+      const params = new URLSearchParams({ cardId: selected.cardId });
+      if (selected.itemHref) params.set("itemHref", selected.itemHref);
       await fetch(`/api/admin/card-images?${params}`, { method: "DELETE", credentials: "include" });
-      const key = makeKey(deleteTarget.cardId, deleteTarget.itemHref);
+      const key = makeKey(selected.cardId, selected.itemHref);
       setImages((prev) => { const n = { ...prev }; delete n[key]; return n; });
-      setDeleteTarget(null);
     } catch (e) {
       console.error("Delete error:", e);
     }
-  }, [deleteTarget]);
+  }, [selected]);
 
   const updatePosition = (key, field, value) => {
     setImages((prev) => ({
@@ -318,6 +315,9 @@ export default function CardImageUploader({ onClose }) {
                       onChange={(e) => handleUpload(selected.cardId, e.target.files?.[0], selected.itemHref)}
                     />
                   </div>
+                  <p className="text-[11px] text-gray-400 mt-1.5">
+                    Recomendado: {selected.itemHref ? "800×500px" : "800×400px"}, formato JPG/PNG, máximo 2MB
+                  </p>
 
                   {sel?.imageUrl && (
                     <PositionSliders
