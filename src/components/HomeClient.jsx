@@ -194,17 +194,36 @@ export default function HomeClient() {
           <div className="w-full h-[100px] sm:h-[120px] flex items-center justify-between px-5 sm:px-8"
             style={{ background: "linear-gradient(135deg, #C8102E 0%, #8B0000 40%, #C8102E 70%, #fff 100%)" }}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="shrink-0 drop-shadow-lg">
-                <circle cx="50" cy="40" r="22" fill="#fff" stroke="#C8102E" strokeWidth="2.5" />
-                <circle cx="50" cy="40" r="17" fill="none" stroke="#C8102E" strokeWidth="1" strokeDasharray="3,2" />
-                <circle cx="50" cy="40" r="12" fill="#C8102E" />
-                <text x="50" y="44" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" fontFamily="sans-serif">PE</text>
-                <g transform="translate(50,55)">
-                  <path d="M-4,-2 L-18,40 L-10,38 L-2,0Z" fill="#C8102E" />
-                  <path d="M4,-2 L18,40 L10,38 L2,0Z" fill="#C8102E" />
-                  <path d="M-8,2 L-28,30 L-20,30 L-4,6Z" fill="#C8102E" />
-                  <path d="M8,2 L28,30 L20,30 L4,6Z" fill="#C8102E" />
-                </g>
+              <svg width="50" height="50" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="shrink-0 drop-shadow-lg">
+                <defs>
+                  <radialGradient id="rGradW2" cx="50%" cy="40%" r="50%">
+                    <stop offset="0%" stopColor="#fff" />
+                    <stop offset="100%" stopColor="#e8e8e8" />
+                  </radialGradient>
+                  <radialGradient id="rGradR2" cx="50%" cy="40%" r="50%">
+                    <stop offset="0%" stopColor="#e8304a" />
+                    <stop offset="100%" stopColor="#C8102E" />
+                  </radialGradient>
+                </defs>
+                <path d="M38,62 L30,95 Q33,98 36,95 L42,62Z" fill="#fff" />
+                <path d="M42,62 L36,95 Q39,98 42,95 L48,62Z" fill="#C8102E" />
+                <path d="M52,62 L46,95 Q49,98 52,95 L58,62Z" fill="#C8102E" />
+                <path d="M58,62 L52,95 Q55,98 58,95 L64,62Z" fill="#fff" />
+                {Array.from({length:14}).map((_,i) => {
+                  const angle = (i * (360/14)) * Math.PI / 180;
+                  const cx = 50 + Math.cos(angle) * 28;
+                  const cy = 38 + Math.sin(angle) * 28;
+                  return <ellipse key={`ow${i}`} cx={cx} cy={cy} rx="13" ry="9" transform={`rotate(${i*(360/14)} ${cx} ${cy})`} fill="url(#rGradW2)" stroke="#ccc" strokeWidth="0.4" />;
+                })}
+                {Array.from({length:14}).map((_,i) => {
+                  const angle = (i * (360/14) + 360/28) * Math.PI / 180;
+                  const cx = 50 + Math.cos(angle) * 20;
+                  const cy = 38 + Math.sin(angle) * 20;
+                  return <ellipse key={`ir${i}`} cx={cx} cy={cy} rx="10" ry="7" transform={`rotate(${i*(360/14)+360/28} ${cx} ${cy})`} fill="url(#rGradR2)" />;
+                })}
+                <circle cx="50" cy="38" r="14" fill="url(#rGradR2)" stroke="#a0082a" strokeWidth="1" />
+                <circle cx="50" cy="38" r="10" fill="none" stroke="#fff" strokeWidth="0.6" strokeDasharray="2,1.5" />
+                <text x="50" y="42" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold" fontFamily="sans-serif">PE</text>
               </svg>
               <div>
                 <p className="text-white text-lg sm:text-2xl font-extrabold drop-shadow-lg tracking-wide">FIESTAS PATRIAS</p>
