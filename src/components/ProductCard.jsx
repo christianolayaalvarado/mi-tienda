@@ -29,7 +29,7 @@ export default function ProductCard({ product, priority }) {
 
           {/* Escarapela Peruana */}
           <div className="absolute top-1.5 right-1.5 z-10" title="Fiestas Patrias">
-            <svg width="38" height="38" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <svg width="57" height="57" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <radialGradient id="rosetteGrad" cx="50%" cy="40%" r="50%">
                   <stop offset="0%" stopColor="#fff" />
