@@ -53,10 +53,12 @@ const CATEGORIES = [
     id: "admin", label: "Admin", icon: "🔧", adminOnly: true,
     items: [
       { href: "/dashboard/admin/orders", label: "Órdenes", icon: "🔧" },
-      { href: "/dashboard/admin/users", label: "Usuarios", icon: "👥" },
-      { href: "/dashboard/admin/reports", label: "Reportes", icon: "📋" },
+      { href: "/dashboard/admin/sellers", label: "Vendedores", icon: "👥" },
       { href: "/dashboard/admin/plans", label: "Planes", icon: "💳" },
-      { href: "/dashboard/admin/card-images", label: "Imágenes Cards", icon: "🖼️" },
+      { href: "/dashboard/admin/reports", label: "Reportes", icon: "📋" },
+      { href: "/dashboard/admin/analytics", label: "Conversión", icon: "📊" },
+      { href: "/dashboard/admin/shipping", label: "Tarifas envío", icon: "🚚" },
+      { href: "/dashboard/admin/coupons", label: "Cupones", icon: "🏷️" },
     ],
   },
 ];
