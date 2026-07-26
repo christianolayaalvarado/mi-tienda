@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import SlidePanel from "@/components/SlidePanel";
+import CardImageUploader from "@/components/CardImageUploader";
 
 const CATEGORIES = [
   {
@@ -308,6 +309,30 @@ const CATEGORIES = [
 export default function DashboardCards({ userRole, isFull }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
+  const [showImageUploader, setShowImageUploader] = useState(false);
+  const [cardImages, setCardImages] = useState({});
+
+  const isAdmin = userRole === "admin" || userRole === "ADMIN";
+
+  const fetchCardImages = useCallback(() => {
+    fetch("/api/admin/card-images", { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const map = {};
+          data.forEach((img) => {
+            const key = img.itemHref ? `${img.cardId}::${img.itemHref}` : img.cardId;
+            map[key] = img;
+          });
+          setCardImages(map);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchCardImages();
+  }, [fetchCardImages]);
 
   const visibleCategories = useMemo(() => {
     return CATEGORIES.filter((cat) => {
@@ -346,22 +371,35 @@ export default function DashboardCards({ userRole, isFull }) {
               className="hidden sm:block relative h-32 overflow-hidden"
               style={{ background: cat.photoGradient }}
             >
-              {/* Decorative shapes */}
-              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-25" style={{ background: "rgba(255,255,255,0.3)" }} />
-              <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full opacity-15" style={{ background: "rgba(255,255,255,0.25)" }} />
-              <div className="absolute top-4 right-10 w-8 h-8 rounded-full opacity-30" style={{ background: "rgba(255,255,255,0.4)" }} />
-              <div className="absolute bottom-6 left-8 w-5 h-5 rounded-full opacity-20" style={{ background: "rgba(255,255,255,0.35)" }} />
-              {/* Grid pattern */}
-              <div className="absolute inset-0 opacity-[0.07]" style={{
-                backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-                backgroundSize: "20px 20px"
-              }} />
-              {/* Icon */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-6xl drop-shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  {cat.icon}
-                </span>
-              </div>
+              {cardImages[cat.id]?.imageUrl ? (
+                <img
+                  src={cardImages[cat.id].imageUrl}
+                  alt={cat.label}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{
+                    transform: `translate(${cardImages[cat.id].offsetX || 0}%, ${cardImages[cat.id].offsetY || 0}%) scale(${cardImages[cat.id].scale || 1})`,
+                  }}
+                />
+              ) : (
+                <>
+                  {/* Decorative shapes */}
+                  <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-25" style={{ background: "rgba(255,255,255,0.3)" }} />
+                  <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full opacity-15" style={{ background: "rgba(255,255,255,0.25)" }} />
+                  <div className="absolute top-4 right-10 w-8 h-8 rounded-full opacity-30" style={{ background: "rgba(255,255,255,0.4)" }} />
+                  <div className="absolute bottom-6 left-8 w-5 h-5 rounded-full opacity-20" style={{ background: "rgba(255,255,255,0.35)" }} />
+                  {/* Grid pattern */}
+                  <div className="absolute inset-0 opacity-[0.07]" style={{
+                    backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+                    backgroundSize: "20px 20px"
+                  }} />
+                  {/* Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-6xl drop-shadow-lg group-hover:scale-110 transition-transform duration-300">
+                      {cat.icon}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Mobile: monochromatic header */}
@@ -405,7 +443,26 @@ export default function DashboardCards({ userRole, isFull }) {
         ))}
       </div>
 
-      <SlidePanel open={panelOpen} onClose={handleClose} category={activeCategory} />
+      {/* Admin: Personalizar imágenes */}
+      {isAdmin && (
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={() => setShowImageUploader(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Personalizar imágenes
+          </button>
+        </div>
+      )}
+
+      <SlidePanel open={panelOpen} onClose={handleClose} category={activeCategory} cardImages={cardImages} />
+
+      {showImageUploader && (
+        <CardImageUploader onClose={() => { setShowImageUploader(false); fetchCardImages(); }} />
+      )}
     </>
   );
 }

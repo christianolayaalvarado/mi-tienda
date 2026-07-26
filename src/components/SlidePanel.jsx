@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function SlidePanel({ open, onClose, category }) {
+export default function SlidePanel({ open, onClose, category, cardImages = {} }) {
   const pathname = usePathname();
   const [hoveredItem, setHoveredItem] = useState(null);
 
@@ -51,20 +51,41 @@ export default function SlidePanel({ open, onClose, category }) {
         }`}
         style={{ right: "min(24rem, 100vw)" }}
       >
-        {hoveredItem && (
+        {hoveredItem && (() => {
+          const itemKey = `${category.id}::${hoveredItem.href}`;
+          const itemImg = cardImages[itemKey];
+          const catImg = cardImages[category.id];
+          const activeImg = itemImg || catImg;
+          const hasCustom = activeImg?.imageUrl || activeImg?.headerUrl;
+          return (
           <>
             {/* Photo area */}
             <div
               className="h-48 sm:h-56 w-full flex items-center justify-center shrink-0 relative overflow-hidden"
               style={{ background: hoveredItem.photoGradient || category.gradient }}
             >
-              <span className="text-7xl sm:text-8xl drop-shadow-lg relative z-10">
-                {hoveredItem.icon}
-              </span>
-              {/* Decorative shapes */}
-              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-20" style={{ background: "rgba(255,255,255,0.4)" }} />
-              <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full opacity-15" style={{ background: "rgba(255,255,255,0.3)" }} />
-              <div className="absolute top-8 right-12 w-8 h-8 rounded-full opacity-25" style={{ background: "rgba(255,255,255,0.5)" }} />
+              {hasCustom ? (
+                <>
+                  <img
+                    src={itemImg?.imageUrl || catImg?.headerUrl}
+                    alt={hoveredItem.label}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{
+                      transform: `translate(${(itemImg?.offsetX || catImg?.headerOffsetX || 0)}%, ${(itemImg?.offsetY || catImg?.headerOffsetY || 0)}%) scale(${itemImg?.scale || catImg?.headerScale || 1})`,
+                    }}
+                  />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.3) 100%)" }} />
+                </>
+              ) : (
+                <>
+                  <span className="text-7xl sm:text-8xl drop-shadow-lg relative z-10">
+                    {hoveredItem.icon}
+                  </span>
+                  <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-20" style={{ background: "rgba(255,255,255,0.4)" }} />
+                  <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full opacity-15" style={{ background: "rgba(255,255,255,0.3)" }} />
+                  <div className="absolute top-8 right-12 w-8 h-8 rounded-full opacity-25" style={{ background: "rgba(255,255,255,0.5)" }} />
+                </>
+              )}
             </div>
 
             {/* Content */}
@@ -98,7 +119,8 @@ export default function SlidePanel({ open, onClose, category }) {
               </Link>
             </div>
           </>
-        )}
+          );
+        })()}
       </div>
 
       {/* Main Panel */}
@@ -109,17 +131,30 @@ export default function SlidePanel({ open, onClose, category }) {
       >
         {/* Header */}
         <div
-          className="px-6 py-5 flex items-center justify-between shrink-0"
+          className="px-6 py-5 flex items-center justify-between shrink-0 relative overflow-hidden"
           style={{ background: category.gradient }}
         >
-          <div>
+          {cardImages[category.id]?.headerUrl ? (
+            <>
+              <img
+                src={cardImages[category.id].headerUrl}
+                alt={category.label}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{
+                  transform: `translate(${cardImages[category.id].headerOffsetX || 0}%, ${cardImages[category.id].headerOffsetY || 0}%) scale(${cardImages[category.id].headerScale || 1})`,
+                }}
+              />
+              <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)" }} />
+            </>
+          ) : null}
+          <div className="relative z-10">
             <span className="text-3xl block mb-1">{category.icon}</span>
             <h2 className="text-lg font-bold text-white">{category.label}</h2>
             <p className="text-xs text-white/80">{category.description}</p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition"
+            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition relative z-10"
             aria-label="Cerrar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

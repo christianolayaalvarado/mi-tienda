@@ -5,11 +5,11 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import ThemeSelector from "@/components/ThemeSelector";
 
-const SECTIONS = [
+const SECTIONS_BASE = [
   { id: "personal", label: "Datos personales", icon: "👤" },
   { id: "address", label: "Dirección", icon: "📍" },
   { id: "security", label: "Seguridad", icon: "🔒" },
-  { id: "appearance", label: "Apariencia", icon: "🎨" },
+  { id: "appearance", label: "Apariencia", icon: "🎨", adminOnly: true },
 ];
 
 export default function EditProfilePage() {
@@ -19,6 +19,7 @@ export default function EditProfilePage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const initializedRef = useRef(false);
+  const [userRole, setUserRole] = useState(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -47,6 +48,7 @@ export default function EditProfilePage() {
           address: data.address ?? "",
           phone: data.phone ?? "",
         });
+        setUserRole(data.role ?? null);
       } catch {}
     })();
   }, []);
@@ -106,6 +108,15 @@ export default function EditProfilePage() {
     }
   };
 
+  const isAdmin = userRole === "admin" || userRole === "ADMIN";
+  const sections = SECTIONS_BASE.filter((s) => !s.adminOnly || isAdmin);
+
+  useEffect(() => {
+    if (activeTab === "appearance" && !isAdmin) {
+      setActiveTab("personal");
+    }
+  }, [activeTab, isAdmin]);
+
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
@@ -116,7 +127,7 @@ export default function EditProfilePage() {
       <div className="flex flex-col lg:flex-row gap-6">
         <nav className="lg:w-48 shrink-0">
           <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 scrollbar-none">
-            {SECTIONS.map((s) => (
+            {sections.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setActiveTab(s.id)}
