@@ -55,7 +55,6 @@ const CATEGORIES = [
       { href: "/dashboard/admin/orders", label: "Órdenes", icon: "🔧" },
       { href: "/dashboard/admin/users", label: "Usuarios", icon: "👥" },
       { href: "/dashboard/admin/reports", label: "Reportes", icon: "📋" },
-      { href: "/dashboard/admin/mascots", label: "Mascotas", icon: "🐾" },
       { href: "/dashboard/admin/plans", label: "Planes", icon: "💳" },
       { href: "/dashboard/admin/card-images", label: "Imágenes Cards", icon: "🖼️" },
     ],
