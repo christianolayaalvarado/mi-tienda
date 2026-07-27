@@ -205,10 +205,12 @@ export default function HomeClient() {
                     <stop offset="100%" stopColor="#e8e8e8" />
                   </radialGradient>
                 </defs>
-                <path d="M38,58 L18,96 Q22,100 26,96 L42,58Z" fill="#fff" />
-                <path d="M42,58 L26,96 Q30,100 34,96 L46,58Z" fill="#C8102E" />
-                <path d="M62,58 L58,96 Q62,100 66,96 L82,58Z" fill="#C8102E" />
-                <path d="M66,58 L66,96 Q70,100 74,96 L78,58Z" fill="#fff" />
+                <path d="M36,58 L14,96 Q18,100 22,96 L40,58Z" fill="#fff" />
+                <path d="M40,58 L22,96 Q26,100 30,96 L44,58Z" fill="#C8102E" />
+                <path d="M44,58 L30,96 Q34,100 38,96 L48,58Z" fill="#fff" />
+                <path d="M60,58 L56,96 Q60,100 64,96 L68,58Z" fill="#fff" />
+                <path d="M64,58 L64,96 Q68,100 72,96 L76,58Z" fill="#C8102E" />
+                <path d="M70,58 L72,96 Q76,100 80,96 L84,58Z" fill="#fff" />
                 {Array.from({length:14}).map((_,i) => {
                   const angle = (i * (360/14)) * Math.PI / 180;
                   const cx = 50 + Math.cos(angle) * 28;
