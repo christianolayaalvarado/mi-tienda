@@ -29,7 +29,7 @@ export default function ProductCard({ product, priority }) {
 
           {/* Escarapela Peruana */}
           <div className="absolute top-1.5 right-1.5 z-10" title="Fiestas Patrias">
-            <img src="/escarapela.svg" alt="Escarapela Peru" width="60" height="60" className="drop-shadow" />
+            <img src="/escarapela.png" alt="Escarapela Peru" width="60" height="60" className="drop-shadow" />
           </div>
 
           {product.originalPrice && product.originalPrice > product.price && (

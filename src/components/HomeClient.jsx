@@ -194,7 +194,7 @@ export default function HomeClient() {
           <div className="w-full h-[100px] sm:h-[120px] flex items-center justify-between px-5 sm:px-8"
             style={{ background: "linear-gradient(135deg, #C8102E 0%, #8B0000 40%, #C8102E 70%, #fff 100%)" }}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <img src="/escarapela.svg" alt="Escarapela Peru" width="50" height="50" className="shrink-0 drop-shadow-lg" />
+              <img src="/escarapela.png" alt="Escarapela Peru" width="50" height="50" className="shrink-0 drop-shadow-lg" />
               <div>
                 <p className="text-white text-lg sm:text-2xl font-extrabold drop-shadow-lg tracking-wide">FIESTAS PATRIAS</p>
                 <p className="text-white/90 text-xs sm:text-sm font-semibold">Ofertas especiales por semana patria</p>
