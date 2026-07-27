@@ -40,10 +40,11 @@ export default function ProductCard({ product, priority }) {
                   <stop offset="100%" stopColor="#e8e8e8" />
                 </radialGradient>
               </defs>
-              {/* Ribbons: red-white-red */}
-              <path d="M36,60 L26,96 Q30,100 34,96 L42,60Z" fill="#C8102E" />
-              <path d="M44,60 L38,96 Q42,100 46,96 L52,60Z" fill="#fff" stroke="#ddd" strokeWidth="0.3" />
-              <path d="M54,60 L48,96 Q52,100 56,96 L62,60Z" fill="#C8102E" />
+              {/* Ribbons: left and right */}
+              <path d="M38,58 L18,96 Q22,100 26,96 L42,58Z" fill="#C8102E" />
+              <path d="M42,58 L26,96 Q30,100 34,96 L46,58Z" fill="#fff" stroke="#ddd" strokeWidth="0.3" />
+              <path d="M62,58 L58,96 Q62,100 66,96 L82,58Z" fill="#fff" stroke="#ddd" strokeWidth="0.3" />
+              <path d="M66,58 L66,96 Q70,100 74,96 L78,58Z" fill="#C8102E" />
               {/* Outer petals - red */}
               <g>
                 {Array.from({length:14}).map((_,i) => {
