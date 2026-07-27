@@ -1,0 +1,58 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="gr" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#e8304a"/>
+      <stop offset="100%" stop-color="#C8102E"/>
+    </radialGradient>
+    <radialGradient id="gw" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#fff"/>
+      <stop offset="100%" stop-color="#e8e8e8"/>
+    </radialGradient>
+  </defs>
+  <!-- Left ribbon -->
+  <path d="M37,56 L18,95 Q22,99 26,95 L43,56Z" fill="#C8102E"/>
+  <path d="M43,56 L28,95 Q32,99 36,95 L49,56Z" fill="#fff" stroke="#ddd" stroke-width="0.3"/>
+  <path d="M49,56 L38,95 Q42,99 46,95 L53,56Z" fill="#C8102E"/>
+  <!-- Right ribbon -->
+  <path d="M47,56 L54,95 Q58,99 62,95 L51,56Z" fill="#C8102E"/>
+  <path d="M51,56 L62,95 Q66,99 70,95 L57,56Z" fill="#fff" stroke="#ddd" stroke-width="0.3"/>
+  <path d="M57,56 L74,95 Q78,99 82,95 L63,56Z" fill="#C8102E"/>
+  <!-- Outer red petals -->
+  <g fill="url(#gr)">
+    <ellipse cx="50" cy="10" rx="11" ry="7"/>
+    <ellipse cx="68" cy="15" rx="11" ry="7" transform="rotate(26 68 15)"/>
+    <ellipse cx="80" cy="30" rx="11" ry="7" transform="rotate(51 80 30)"/>
+    <ellipse cx="82" cy="50" rx="11" ry="7" transform="rotate(77 82 50)"/>
+    <ellipse cx="72" cy="66" rx="11" ry="7" transform="rotate(103 72 66)"/>
+    <ellipse cx="56" cy="74" rx="11" ry="7" transform="rotate(129 56 74)"/>
+    <ellipse cx="38" cy="72" rx="11" ry="7" transform="rotate(154 38 72)"/>
+    <ellipse cx="26" cy="60" rx="11" ry="7" transform="rotate(180 26 60)"/>
+    <ellipse cx="20" cy="42" rx="11" ry="7" transform="rotate(206 20 42)"/>
+    <ellipse cx="24" cy="24" rx="11" ry="7" transform="rotate(231 24 24)"/>
+    <ellipse cx="38" cy="14" rx="11" ry="7" transform="rotate(257 38 14)"/>
+    <ellipse cx="56" cy="12" rx="11" ry="7" transform="rotate(283 56 12)"/>
+    <ellipse cx="72" cy="20" rx="11" ry="7" transform="rotate(309 72 20)"/>
+    <ellipse cx="78" cy="40" rx="11" ry="7" transform="rotate(334 78 40)"/>
+  </g>
+  <!-- Inner white petals -->
+  <g fill="url(#gw)" stroke="#ddd" stroke-width="0.3">
+    <ellipse cx="50" cy="18" rx="8" ry="5.5"/>
+    <ellipse cx="63" cy="22" rx="8" ry="5.5" transform="rotate(26 63 22)"/>
+    <ellipse cx="72" cy="34" rx="8" ry="5.5" transform="rotate(51 72 34)"/>
+    <ellipse cx="73" cy="50" rx="8" ry="5.5" transform="rotate(77 73 50)"/>
+    <ellipse cx="65" cy="62" rx="8" ry="5.5" transform="rotate(103 65 62)"/>
+    <ellipse cx="52" cy="67" rx="8" ry="5.5" transform="rotate(129 52 67)"/>
+    <ellipse cx="37" cy="65" rx="8" ry="5.5" transform="rotate(154 37 65)"/>
+    <ellipse cx="28" cy="56" rx="8" ry="5.5" transform="rotate(180 28 56)"/>
+    <ellipse cx="26" cy="40" rx="8" ry="5.5" transform="rotate(206 26 40)"/>
+    <ellipse cx="30" cy="26" rx="8" ry="5.5" transform="rotate(231 30 26)"/>
+    <ellipse cx="40" cy="18" rx="8" ry="5.5" transform="rotate(257 40 18)"/>
+    <ellipse cx="54" cy="17" rx="8" ry="5.5" transform="rotate(283 54 17)"/>
+    <ellipse cx="66" cy="24" rx="8" ry="5.5" transform="rotate(309 66 24)"/>
+    <ellipse cx="72" cy="42" rx="8" ry="5.5" transform="rotate(334 72 42)"/>
+  </g>
+  <!-- Center -->
+  <circle cx="52" cy="40" r="13" fill="url(#gr)" stroke="#a0082a" stroke-width="1"/>
+  <circle cx="52" cy="40" r="9" fill="none" stroke="#fff" stroke-width="0.6" stroke-dasharray="2,1.5"/>
+  <text x="52" y="44" text-anchor="middle" fill="white" font-size="9" font-weight="bold" font-family="sans-serif">PE</text>
+</svg>
