@@ -14,8 +14,8 @@ export default function MascotFiestasPatrias({ size = 96, show = true }) {
       <div
         className="absolute"
         style={{
-          top: `${Math.round(-4 * scale)}px`,
-          right: `${Math.round(-2 * scale)}px`,
+          top: `${Math.round(28 * scale)}px`,
+          right: `${Math.round(-4 * scale)}px`,
           width: `${escSize}px`,
           height: `${escSize}px`,
           filter: `drop-shadow(0 ${Math.round(2 * scale)}px ${Math.round(4 * scale)}px rgba(0,0,0,0.3))`,
