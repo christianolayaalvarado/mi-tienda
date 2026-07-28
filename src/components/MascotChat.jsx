@@ -176,24 +176,40 @@ export default function MascotChat({
             key={msg.id}
             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
-            <div
-              className={`max-w-[85%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed ${
-                msg.role === "user"
-                  ? "bg-green-500 text-white rounded-br-sm"
-                  : "bg-gray-100 text-gray-700 rounded-bl-sm"
-              }`}
-            >
-              <MarkdownText text={msg.text} />
+            <div className="max-w-[85%]">
               <div
-                className={`text-[8px] mt-1 ${
-                  msg.role === "user" ? "text-green-200" : "text-gray-400"
+                className={`rounded-2xl px-3 py-2 text-[11px] leading-relaxed ${
+                  msg.role === "user"
+                    ? "bg-green-500 text-white rounded-br-sm"
+                    : "bg-gray-100 text-gray-700 rounded-bl-sm"
                 }`}
               >
-                {new Date(msg.timestamp).toLocaleTimeString("es", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                <MarkdownText text={msg.text} />
+                <div
+                  className={`text-[8px] mt-1 ${
+                    msg.role === "user" ? "text-green-200" : "text-gray-400"
+                  }`}
+                >
+                  {new Date(msg.timestamp).toLocaleTimeString("es", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
               </div>
+              {/* Action buttons for bot messages */}
+              {msg.role === "bot" && msg.actions?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {msg.actions.map((action, i) => (
+                    <a
+                      key={i}
+                      href={action.url}
+                      className="text-[9px] px-2 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors no-underline"
+                    >
+                      {action.label}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -209,10 +225,8 @@ export default function MascotChat({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick actions (show when few messages) */}
-      {messages.length < 4 && (
-        <QuickActions actions={quickActions || []} onSelect={onSend} />
-      )}
+      {/* Quick actions */}
+      <QuickActions actions={quickActions || []} onSelect={onSend} />
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="flex items-center gap-1 px-2 py-2 border-t border-gray-100">

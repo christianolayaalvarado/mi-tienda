@@ -22,6 +22,16 @@ const INTENTS = {
   GOODBYE: "goodbye",
   MASCOT: "mascot",
   RECOMMEND: "recommend",
+  HOW_TO_BUY: "how_to_buy",
+  HOW_TO_SELL: "how_to_sell",
+  HOW_TO_PAY: "how_to_pay",
+  HOW_TO_CREATE_STORE: "how_to_create_store",
+  HOW_TO_ADD_PRODUCTS: "how_to_add_products",
+  HOW_TO_DASHBOARD: "how_to_dashboard",
+  HOW_TO_ORDERS: "how_to_orders",
+  HOW_TO_UPGRADE: "how_to_upgrade",
+  HOW_TO_MASCOTS: "how_to_mascots",
+  HOW_TO_OFFERS: "how_to_offers",
   FALLBACK: "fallback",
 };
 
@@ -77,6 +87,48 @@ const INTENT_KEYWORDS = {
     "recomendar", "recomienda", "sugerir", "sugerencia",
     "que me recomiendas", "que recomiendas", "alguno", "que comprar",
     "que me gustaria",
+  ],
+  [INTENTS.HOW_TO_BUY]: [
+    "como compro", "como comprar", "quiero comprar", "hacer una compra",
+    "pasos para comprar", "proceso de compra", "agregar al carrito",
+    "carrito", "checkout", "pagar compra",
+  ],
+  [INTENTS.HOW_TO_SELL]: [
+    "como vendo", "como vender", "quiero vender", "vender productos",
+    "crear tienda", "abrir tienda", "tener mi tienda",
+  ],
+  [INTENTS.HOW_TO_PAY]: [
+    "como pago", "formas de pago", "metodos de pago", "que puedo pagar",
+    "yape", "plin", "transferencia", "tarjeta", "culqi",
+  ],
+  [INTENTS.HOW_TO_CREATE_STORE]: [
+    "crear mi tienda", "abrir tienda", "configurar tienda",
+    "empezar a vender", "setup tienda",
+  ],
+  [INTENTS.HOW_TO_ADD_PRODUCTS]: [
+    "agregar producto", "subir producto", "como agrego", "nuevo producto",
+    "crear producto", "publicar producto",
+  ],
+  [INTENTS.HOW_TO_DASHBOARD]: [
+    "dashboard", "panel", "panel de control", "como entro al panel",
+    "mis estadisticas", "donde veo todo",
+  ],
+  [INTENTS.HOW_TO_ORDERS]: [
+    "mis pedidos", "ver pedidos", "como veo pedidos", "seguimiento",
+    "estado del pedido", "donde esta mi pedido",
+  ],
+  [INTENTS.HOW_TO_UPGRADE]: [
+    "actualizar cuenta", "cuenta premium", "cuenta de pago",
+    "plan full", "upgrade", "versión completa", "vender sin límites",
+  ],
+  [INTENTS.HOW_TO_MASCOTS]: [
+    "mascotas", "como funciona mascota", "mis mascotas",
+    "obtener mascota", "desbloquear mascota", "mascota premium",
+    "accesorios mascota", "monedas mascota",
+  ],
+  [INTENTS.HOW_TO_OFFERS]: [
+    "ofertas", "como veo ofertas", "descuentos", "promociones",
+    "cupones", "cupon", "girar ruleta", "ruleta",
   ],
 };
 
@@ -492,6 +544,88 @@ const RESPONSES = {
     ],
   },
 
+  // --- HELP DETAILED GUIDES ---
+  [INTENTS.HOW_TO_BUY]: {
+    happy: ["¡Te explico cómo comprar! Es sencillo:"],
+    excited: ["¡¡COMPRAR ES MUY FÁCIL!! ¡Te guío paso a paso!"],
+    curious: ["¿Quieres saber cómo comprar? Déjame explicarte:"],
+    sleepy: ["Comprar... sí, es fácil... te cuento:"],
+    silly: ["¡¿COMPRAR?! ¡Es super fácil! ¡Mira!"],
+    wise: ["La compra sabia comienza con estos pasos:"],
+  },
+  [INTENTS.HOW_TO_SELL]: {
+    happy: ["¡Quieres vender? ¡Genial! Así se hace:"],
+    excited: ["¡¡VENDER!! ¡Excelente decisión! ¡Te explico!"],
+    curious: ["¿Vender en la plataforma? Interesante... así:"],
+    sleepy: ["Vender... sí... te cuento cómo:"],
+    silly: ["¡¿VENDER?! ¡YO QUIERO VENDER! ¡Así se hace!"],
+    wise: ["El camino del vendedor comienza así:"],
+  },
+  [INTENTS.HOW_TO_PAY]: {
+    happy: ["¡Tienes varias opciones de pago!:"],
+    excited: ["¡¡PAGAR!! ¡Muchas opciones disponibles!"],
+    curious: ["¿Cómo pagar? Mira las opciones:"],
+    sleepy: ["Formas de pago... hay varias..."],
+    silly: ["¡¿PAGAR?! ¡Con plata! ¡O con Yape! ¡O transferencia!"],
+    wise: ["Los métodos de pago son:"],
+  },
+  [INTENTS.HOW_TO_CREATE_STORE]: {
+    happy: ["¡Crear tu tienda es fácil! Sigue estos pasos:"],
+    excited: ["¡¡TU PROPIA TIENDA!! ¡Es genial! ¡Así!"],
+    curious: ["¿Tu propia tienda? Veamos cómo:"],
+    sleepy: ["Crear tienda... sí, es simple..."],
+    silly: ["¡¡MI TIENDA!! ¡Así la creas!"],
+    wise: ["Fundar tu tienda sabiamente:"],
+  },
+  [INTENTS.HOW_TO_ADD_PRODUCTS]: {
+    happy: ["¡Agregar productos es sencillo!:"],
+    excited: ["¡¡NUEVOS PRODUCTOS!! ¡Así los agregas!"],
+    curious: ["¿Subir productos? Veamos:"],
+    sleepy: ["Productos... agregarlos es fácil..."],
+    silly: ["¡¿PRODUCTOS?! ¡Los subes así!"],
+    wise: ["La arte de agregar productos:"],
+  },
+  [INTENTS.HOW_TO_DASHBOARD]: {
+    happy: ["¡Tu panel de control! Así accedes:"],
+    excited: ["¡¡EL DASHBOARD!! ¡Tu centro de mando!"],
+    curious: ["¿El panel? Mira cómo funciona:"],
+    sleepy: ["El dashboard... tu panel..."],
+    silly: ["¡¡PANEL DE CONTROL!! ¡Como un superhéroe!"],
+    wise: ["Tu centro de comando:"],
+  },
+  [INTENTS.HOW_TO_ORDERS]: {
+    happy: ["¡Tus pedidos! Así los ves:"],
+    excited: ["¡¡PEDIDOS!! ¡Para saber qué vendes!"],
+    curious: ["¿Ver pedidos? Así:"],
+    sleepy: ["Pedidos... sí... los ves aquí:"],
+    silly: ["¡¿PEDIDOS?! ¡Los ves así!"],
+    wise: ["Gestionar pedidos sabiamente:"],
+  },
+  [INTENTS.HOW_TO_UPGRADE]: {
+    happy: ["¡Actualizar tu cuenta! Te cuento:"],
+    excited: ["¡¡UPGRADE!! ¡Para vender sin límites!"],
+    curious: ["¿Cuenta premium? Veamos:"],
+    sleepy: ["Actualizar... sí... te cuento:"],
+    silly: ["¡¡MÁS PODER!! ¡Así lo consigues!"],
+    wise: ["Evolucionar tu cuenta:"],
+  },
+  [INTENTS.HOW_TO_MASCOTS]: {
+    happy: ["¡Tus mascotas son geniales! Así funcionan:"],
+    excited: ["¡¡MASCOTAS!! ¡Mi parte favorita! ¡Mira!"],
+    curious: ["¿Las mascotas? Veamos cómo funcionan:"],
+    sleepy: ["Mascotas... son divertidas... te cuento:"],
+    silly: ["¡¡MASCOTAS!! ¡Somos geniales! ¡Mira!"],
+    wise: ["La sabiduría de las mascotas:"],
+  },
+  [INTENTS.HOW_TO_OFFERS]: {
+    happy: ["¡Las ofertas son geniales! Así las encuentras:"],
+    excited: ["¡¡OFERTAS!! ¡Descuentos increíbles!"],
+    curious: ["¿Ofertas? Mira cómo encontrarlas:"],
+    sleepy: ["Ofertas... hay descuentos..."],
+    silly: ["¡¡OFERTAS!! ¡Barato! ¡Mira!"],
+    wise: ["Las ofertas inteligentes:"],
+  },
+
   [INTENTS.FALLBACK]: {
     happy: [
       "¡Interesante! 🤔 ¿Puedo ayudarte con algo más?",
@@ -549,8 +683,85 @@ export default function useMascotChat({ mood, mascotName, coins }) {
     const moodKey = mood || "happy";
     const responsePool = RESPONSES[intent]?.[moodKey] || RESPONSES[intent]?.happy || ["Hmm... 🤔"];
     let response = pickRandom(responsePool);
+    let actions = [];
+
+    // Detailed help guides with steps and action buttons
+    const HELP_GUIDES = {
+      [INTENTS.HOW_TO_BUY]: {
+        text: "🛒 **Cómo comprar:**\n\n1️⃣ **Busca** productos en la barra de búsqueda\n2️⃣ **Selecciona** el producto que te guste\n3️⃣ **Agrega al carrito** haciendo clic en \"Agregar\"\n4️⃣ **Revisa** tu carrito (ícono 🚗 arriba)\n5️⃣ **Confirma** tu compra y elige método de pago\n6️⃣ **Recibe** tu pedido en casa 📦",
+        actions: [
+          { label: "🔍 Buscar productos", url: "/" },
+          { label: "🔥 Ver ofertas", url: "/ofertas" },
+        ],
+      },
+      [INTENTS.HOW_TO_SELL]: {
+        text: "🏪 **Cómo vender:**\n\n1️⃣ **Crea tu cuenta** (si aún no tienes)\n2️⃣ **Configura tu tienda** desde el dashboard\n3️⃣ **Agrega productos** con fotos, precios y descripción\n4️⃣ **Recibe pedidos** de clientes\n5️⃣ **Envía** los productos\n6️⃣ **Cobra** y repite 💰",
+        actions: [
+          { label: "📋 Crear tienda", url: "/dashboard" },
+          { label: "📦 Agregar producto", url: "/dashboard/products" },
+        ],
+      },
+      [INTENTS.HOW_TO_PAY]: {
+        text: "💳 **Métodos de pago:**\n\n• **Yape** — Pago instantáneo por celular\n• **Plin** — Transferencia rápida\n• **Transferencia bancaria** — CCI o cuenta\n• **Tarjeta** — Crédito o débito vía Culqi\n• **PagoEfectivo** — En efectivo en tiendas autorizadas\n\nTodos los pagos son seguros 🔒",
+        actions: [
+          { label: "🛒 Ir a comprar", url: "/" },
+        ],
+      },
+      [INTENTS.HOW_TO_CREATE_STORE]: {
+        text: "📋 **Crear tu tienda:**\n\n1️⃣ **Regístrate** con tu email\n2️⃣ **Ve al dashboard** (menú usuario → Dashboard)\n3️⃣ **Configura** nombre y descripción de tu tienda\n4️⃣ **Sube tu logo** y banner\n5️⃣ **Agrega** tus primeros productos\n6️⃣ **¡Ya puedes vender!** 🎉",
+        actions: [
+          { label: "📋 Ir al dashboard", url: "/dashboard" },
+          { label: "📦 Mis productos", url: "/dashboard/products" },
+        ],
+      },
+      [INTENTS.HOW_TO_ADD_PRODUCTS]: {
+        text: "📦 **Agregar productos:**\n\n1️⃣ **Ve a Productos** en tu dashboard\n2️⃣ **Clic en \"Nuevo Producto\"**\n3️⃣ **Sube fotos** (arrastra o selecciona)\n4️⃣ **Escribe** nombre, descripción y precio\n5️⃣ **Selecciona** categoría\n6️⃣ **Guarda** y ¡ listo! Tu producto está publicado ✅",
+        actions: [
+          { label: "📦 Mis productos", url: "/dashboard/products" },
+        ],
+      },
+      [INTENTS.HOW_TO_DASHBOARD]: {
+        text: "📊 **Tu Dashboard:**\n\nEs tu panel de control donde puedes:\n• Ver estadísticas de ventas\n• Gestionar productos\n• Revisar pedidos\n• Configurar tu tienda\n\n**Cómo acceder:** Clic en tu avatar → Dashboard",
+        actions: [
+          { label: "📊 Abrir dashboard", url: "/dashboard" },
+          { label: "📦 Productos", url: "/dashboard/products" },
+          { label: "🧾 Órdenes", url: "/dashboard/orders" },
+        ],
+      },
+      [INTENTS.HOW_TO_ORDERS]: {
+        text: "🧾 **Tus pedidos:**\n\n1️⃣ **Ve al Dashboard**\n2️⃣ **Selecciona \"Órdenes\"**\n3️⃣ **Filtra** por estado (pendiente, enviado, entregado)\n4️⃣ **Actualiza** el estado cuando envíes\n5️⃣ **Confirma** la entrega\n\nTambién puedes ver el seguimiento de envío 📦",
+        actions: [
+          { label: "🧾 Ver órdenes", url: "/dashboard/orders" },
+        ],
+      },
+      [INTENTS.HOW_TO_UPGRADE]: {
+        text: "⬆️ **Actualizar a Plan Full:**\n\nEl plan Full te permite:\n• Vender sin límites\n• Acceso a herramientas premium\n• Soporte prioritario\n\n**Cómo actualizar:**\n1️⃣ Ve a Configuración → Planes\n2️⃣ Selecciona \"Plan Full\"\n3️⃣ Realiza el pago\n4️⃣ ¡Tu cuenta se actualiza automáticamente!",
+        actions: [
+          { label: "⬆️ Ver planes", url: "/dashboard/settings" },
+        ],
+      },
+      [INTENTS.HOW_TO_MASCOTS]: {
+        text: "🐾 **Tus mascotas:**\n\n• **Interactúa** haciendo clic en la mascota\n• **Gana monedas** explorando la tienda\n• **Compra accesorios** en la tienda de mascotas\n• **Desbloquea** mascotas premium con logros\n• **Personaliza** su nombre y accesorios\n\nLas mascotas dan bonificaciones reales 🎁",
+        actions: [
+          { label: "🛍️ Tienda de accesorios", url: "#mascot-shop" },
+        ],
+      },
+      [INTENTS.HOW_TO_OFFERS]: {
+        text: "🔥 **Ofertas y descuentos:**\n\n• **Página de ofertas** — Todos los descuentos del día\n• **Cupones** — Ingresa códigos en el checkout\n• **Ruleta** — Gira para ganar descuentos\n• **Ofertas semanales** — Cada lunes hay nuevas\n\nNo te pierdas ninguna oferta 🎯",
+        actions: [
+          { label: "🔥 Ver ofertas", url: "/ofertas" },
+          { label: "🎰 Girar ruleta", url: "/spin-wheel" },
+        ],
+      },
+    };
 
     // Context-aware enhancements
+    if (HELP_GUIDES[intent]) {
+      const guide = HELP_GUIDES[intent];
+      response = guide.text;
+      actions = guide.actions || [];
+    }
+
     if (intent === INTENTS.COINS && coins !== undefined) {
       response = `Tienes ${coins} monedas 🪙 ¡Sigue explorando para ganar más!`;
     }
@@ -569,7 +780,7 @@ export default function useMascotChat({ mood, mascotName, coins }) {
       response = `${timeGreeting}! ${response}`;
     }
 
-    return { intent, response };
+    return { intent, response, actions };
   }, [mood, coins]);
 
   const sendMessage = useCallback((text, context = {}) => {
@@ -589,13 +800,14 @@ export default function useMascotChat({ mood, mascotName, coins }) {
     const delay = 300 + Math.random() * 500;
     clearTimeout(typingTimer.current);
     typingTimer.current = setTimeout(() => {
-      const { intent, response } = generateResponse(text, context);
+      const { intent, response, actions } = generateResponse(text, context);
 
       const botMsg = {
         id: ++messageIdRef.current,
         role: "bot",
         text: response,
         intent,
+        actions,
         timestamp: Date.now(),
       };
 
@@ -615,9 +827,13 @@ export default function useMascotChat({ mood, mascotName, coins }) {
   // Quick actions for common queries
   const quickActions = [
     { label: "🛍️ Productos", message: "¿Qué productos tienes?" },
-    { label: "🪙 Monedas", message: "¿Cuántas monedas tengo?" },
-    { label: "🏪 Tienda", message: "¿Cómo funciona la tienda?" },
-    { label: "✨ Recomienda", message: "¿Qué me recomiendas?" },
+    { label: "🛒 Cómo comprar", message: "¿Cómo compro?" },
+    { label: "🏪 Cómo vender", message: "¿Cómo vendo?" },
+    { label: "💳 Pagos", message: "¿Cómo pago?" },
+    { label: "📊 Dashboard", message: "¿Cómo veo mi panel?" },
+    { label: "🐾 Mascotas", message: "¿Cómo funcionan las mascotas?" },
+    { label: "🔥 Ofertas", message: "¿Cómo veo las ofertas?" },
+    { label: "⬆️ Upgrade", message: "¿Cómo actualizo mi cuenta?" },
   ];
 
   return {
