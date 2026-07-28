@@ -1,30 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 
 export default function MascotFiestasPatrias({ size = 96, show = true }) {
-  const [sashVisible, setSashVisible] = useState(true);
-  const timerRef = useRef(null);
-
-  useEffect(() => {
-    if (!show) return;
-
-    const cycle = () => {
-      setSashVisible((v) => {
-        const next = !v;
-        // 4s visible, 3s oculta
-        timerRef.current = setTimeout(cycle, next ? 4000 : 3000);
-        return next;
-      });
-    };
-
-    timerRef.current = setTimeout(cycle, 4000);
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [show]);
-
   if (!show) return null;
 
   const scale = size / 96;
@@ -53,16 +31,22 @@ export default function MascotFiestasPatrias({ size = 96, show = true }) {
         />
       </div>
 
-      {/* Banda presidencial - aparece/desaparece con animación */}
+      {/* Banda presidencial - animación CSS: aparece y desaparece */}
+      <style>{`
+        @keyframes sashToggle {
+          0%, 45% { opacity: 1; transform: scale(1) rotate(0deg); }
+          50%, 95% { opacity: 0; transform: scale(0.7) rotate(-15deg); }
+          100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+      `}</style>
       <div
-        className="absolute transition-all duration-700 ease-in-out"
+        className="absolute"
         style={{
           top: `${Math.round(18 * scale)}px`,
           left: `${Math.round(-6 * scale)}px`,
           width: `${Math.round(100 * scale)}px`,
           height: `${Math.round(70 * scale)}px`,
-          opacity: sashVisible ? 1 : 0,
-          transform: sashVisible ? "scale(1) rotate(0deg)" : "scale(0.7) rotate(-15deg)",
+          animation: "sashToggle 7s ease-in-out infinite",
           transformOrigin: "top left",
         }}
       >
