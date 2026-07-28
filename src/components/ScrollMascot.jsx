@@ -6,6 +6,7 @@ import { useAuthContext } from "@/context/AuthProvider";
 import { useMascotContext } from "@/context/MascotProvider";
 import MascotAvatar from "@/components/MascotAvatar";
 import Mascot3D from "@/components/Mascot3D";
+import MascotFiestasPatrias from "@/components/MascotFiestasPatrias";
 import AccessoryShop from "@/components/AccessoryShop";
 import useMascotBehavior from "@/hooks/useMascotBehavior";
 
@@ -119,6 +120,7 @@ export default function ScrollMascot({ onClick }) {
   const [mascotName, setMascotName] = useState("");
   const [showShop, setShowShop] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showFiestas, setShowFiestas] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
@@ -198,6 +200,29 @@ export default function ScrollMascot({ onClick }) {
 
   useEffect(() => {
     const h = (e) => { if (e.key === "selectedMascot" && e.newValue) setMascotType(e.newValue); };
+    window.addEventListener("storage", h);
+    return () => window.removeEventListener("storage", h);
+  }, []);
+
+  // --- FIESTAS PATRIAS ---
+  useEffect(() => {
+    const now = new Date();
+    const month = now.getMonth(); // 0=Jan
+    const day = now.getDate();
+    const isFiestasSeason = month === 6 && day >= 15; // Jul 15-31
+    const manual = localStorage.getItem("showFiestasPatrias") === "true";
+    setShowFiestas(isFiestasSeason || manual);
+  }, []);
+
+  useEffect(() => {
+    const h = (e) => {
+      if (e.key === "showFiestasPatrias") {
+        const now = new Date();
+        const isFiestasSeason = now.getMonth() === 6 && now.getDate() >= 15;
+        const manual = e.newValue === "true";
+        setShowFiestas(isFiestasSeason || manual);
+      }
+    };
     window.addEventListener("storage", h);
     return () => window.removeEventListener("storage", h);
   }, []);
@@ -478,6 +503,9 @@ export default function ScrollMascot({ onClick }) {
               </div>
             );
           })}
+
+          {/* Fiestas Patrias overlay */}
+          <MascotFiestasPatrias size={96} show={showFiestas} />
         </div>
       </div>
 

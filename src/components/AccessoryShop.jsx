@@ -136,6 +136,28 @@ export default function AccessoryShop({ onClose }) {
           })}
         </div>
 
+        {/* Fiestas Patrias toggle */}
+        <div className="px-3 pt-2 shrink-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const current = localStorage.getItem("showFiestasPatrias") === "true";
+              const next = !current;
+              localStorage.setItem("showFiestasPatrias", String(next));
+              window.dispatchEvent(new Event("storage"));
+              setMessage(next ? "🎊 ¡Fiestas Patrias activadas!" : "Fiestas Patrias desactivadas");
+              setTimeout(() => setMessage(""), 2000);
+            }}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-red-50 to-white border border-red-200 hover:border-red-400 transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <img src="/escarapela.png" alt="" width="24" height="24" className="object-contain" />
+              <span className="text-sm font-medium text-gray-700">Fiestas Patrias</span>
+            </div>
+            <span className="text-xs text-gray-500">Escaparapela + Banda</span>
+          </button>
+        </div>
+
         {/* Items */}
         <div className="p-3 overflow-y-auto flex-1 min-h-0 grid grid-cols-2 gap-2">
           {filtered.map((item) => {
