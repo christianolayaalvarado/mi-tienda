@@ -118,10 +118,24 @@ export default function MascotChat({
   );
 
   return (
-    <div
-      className="flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-[fadeInScale_0.2s_ease-out] max-sm:fixed max-sm:inset-0 max-sm:rounded-none max-sm:z-[9999]"
-      style={{ width: "280px", height: "360px", maxHeight: "60vh" }}
-    >
+    <>
+      <style>{`
+        @media (max-width: 639px) {
+          .mascot-chat-panel {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            border-radius: 0 !important;
+            z-index: 99999 !important;
+          }
+        }
+      `}</style>
+      <div
+        className="mascot-chat-panel flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-[fadeInScale_0.2s_ease-out]"
+        style={{ width: "280px", height: "360px", maxHeight: "60vh" }}
+      >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 sm:py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white">
         <div className="flex items-center gap-2.5">
@@ -251,5 +265,6 @@ export default function MascotChat({
         </button>
       </form>
     </div>
+    </>
   );
 }
