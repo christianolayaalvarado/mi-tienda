@@ -40,7 +40,7 @@ function QuickActions({ actions, onSelect }) {
         <button
           key={action.label}
           onClick={() => onSelect(action.message)}
-          className="text-[11px] sm:text-[10px] px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+          className="text-sm sm:text-[10px] px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
         >
           {action.label}
         </button>
@@ -143,8 +143,8 @@ export default function MascotChat({
             <MascotAvatar type={mascotType} size={32} animate={false} view="front" />
           </div>
           <div>
-            <div className="text-sm sm:text-xs font-bold">{mascotName}</div>
-            <div className="text-[10px] sm:text-[9px] opacity-80">en línea</div>
+            <div className="text-base sm:text-xs font-bold">{mascotName}</div>
+            <div className="text-xs sm:text-[9px] opacity-80">en línea</div>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -176,7 +176,7 @@ export default function MascotChat({
         style={{ scrollBehavior: "smooth" }}
       >
         {messages.length === 0 && (
-          <div className="text-center text-gray-400 text-xs sm:text-[11px] py-8">
+          <div className="text-center text-gray-400 text-base sm:text-[11px] py-8">
             <div className="flex justify-center mb-2">
               <MascotAvatar type={mascotType} size={56} animate={true} view="front" />
             </div>
@@ -192,7 +192,7 @@ export default function MascotChat({
           >
             <div className="max-w-[85%]">
               <div
-                className={`rounded-2xl px-3.5 py-2.5 sm:px-3 sm:py-2 text-sm sm:text-[11px] leading-relaxed ${
+                className={`rounded-2xl px-3.5 py-2.5 sm:px-3 sm:py-2 text-base sm:text-[11px] leading-relaxed ${
                   msg.role === "user"
                     ? "bg-green-500 text-white rounded-br-sm"
                     : "bg-gray-100 text-gray-700 rounded-bl-sm"
@@ -200,7 +200,7 @@ export default function MascotChat({
               >
                 <MarkdownText text={msg.text} />
               <div
-                className={`text-[10px] sm:text-[8px] mt-1 ${
+                className={`text-xs sm:text-[8px] mt-1 ${
                     msg.role === "user" ? "text-green-200" : "text-gray-400"
                   }`}
                 >
@@ -217,7 +217,7 @@ export default function MascotChat({
                     <a
                       key={i}
                       href={action.url}
-                      className="text-[11px] sm:text-[9px] px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors no-underline"
+                      className="text-sm sm:text-[9px] px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors no-underline"
                     >
                       {action.label}
                     </a>
@@ -251,7 +251,7 @@ export default function MascotChat({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Escribe un mensaje..."
-          className="flex-1 text-sm sm:text-[11px] px-3.5 py-2.5 sm:px-3 sm:py-2 rounded-full bg-gray-50 border border-gray-200 outline-none focus:border-green-400 focus:ring-1 focus:ring-green-200 transition-all"
+          className="flex-1 text-base sm:text-[11px] px-3.5 py-2.5 sm:px-3 sm:py-2 rounded-full bg-gray-50 border border-gray-200 outline-none focus:border-green-400 focus:ring-1 focus:ring-green-200 transition-all"
           disabled={isTyping}
         />
         <button
