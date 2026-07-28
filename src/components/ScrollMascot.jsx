@@ -434,6 +434,7 @@ export default function ScrollMascot({ onClick }) {
       {/* Mascot */}
       <div
         ref={mascotRef}
+        data-tutorial="mascot"
         className={`absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group select-none ${showShop ? "pointer-events-none" : ""}`}
         style={{
           top: isWalking ? `${position.y}px` : atBottom ? `${endY - 40}px` : `${startY + progress * (endY - startY)}px`,

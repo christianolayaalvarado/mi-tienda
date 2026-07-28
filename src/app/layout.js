@@ -14,6 +14,7 @@ import MascotProvider from "@/context/MascotProvider";
 import RootLayoutClientInit from "@/components/RootLayoutClientInit";
 import ScrollWrapper from "@/components/ScrollWrapper";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { TutorialProvider } from "@/components/TutorialProvider";
 import PriceDropNotification from "@/components/PriceDropNotification";
 import RegisterBenefitsModal from "@/components/RegisterBenefitsModal";
 
@@ -88,6 +89,7 @@ export default function RootLayout({ children }) {
           {/* AuthProvider envuelve la app para exponer user/refresh/logout */}
           <AuthProvider>
             <ThemeProvider>
+            <TutorialProvider>
             <MascotProvider>
               <CartProvider>
               {/* Inicializador cliente que intenta refresh controlado */}
@@ -116,6 +118,7 @@ export default function RootLayout({ children }) {
 
             </CartProvider>
             </MascotProvider>
+            </TutorialProvider>
             </ThemeProvider>
           </AuthProvider>
         </Providers>

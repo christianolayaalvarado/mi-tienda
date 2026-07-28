@@ -9,6 +9,7 @@ import CartPreview from "./navbar/CartPreview";
 import UserMenu from "./navbar/UserMenu";
 import ThemeToggle from "./navbar/ThemeToggle";
 import CategoryScroller from "./navbar/CategoryScroller";
+import { useTutorial } from "@/components/TutorialProvider";
 
 import {
   buildURL,
@@ -20,6 +21,7 @@ import {
 export default function NavbarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { startTutorial } = useTutorial() || {};
   // Cart context (assume hook returns stable API)
   const cartCtx = useCart();
   const cartItems = useMemo(() => cartCtx?.cartItems ?? [], [cartCtx?.cartItems]);
@@ -178,7 +180,7 @@ export default function NavbarContent() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
         {/* Single flex row with wrap: search goes to line 2 on mobile */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-6">
-          <Link href="/" className="flex items-center shrink-0 order-1">
+          <Link href="/" className="flex items-center shrink-0 order-1" data-tutorial="logo">
             <img src="/images/logo.png" alt="Logo MiTienda" className="h-8 sm:h-10 w-auto navbar-logo animate-[fadeIn_0.5s_ease]" />
           </Link>
 
@@ -186,6 +188,7 @@ export default function NavbarContent() {
           <div className="flex items-center gap-1 sm:gap-3 ml-auto sm:ml-0 order-2 sm:order-3">
             <Link
               href="/ofertas"
+              data-tutorial="ofertas"
               className="flex items-center gap-1 text-red-600 hover:text-red-700 font-bold text-xs sm:text-sm shrink-0 min-h-[44px] px-1 sm:px-2"
             >
               <span className="text-base sm:text-lg">🔥</span>
@@ -194,6 +197,7 @@ export default function NavbarContent() {
             <button
               type="button"
               aria-label={`Abrir carrito, ${count} items`}
+              data-tutorial="cart"
               onClick={() => setCartOpen((s) => !s)}
               className="text-sm font-medium cursor-pointer relative select-none shrink-0 min-h-[44px] flex items-center justify-center px-1 sm:px-3"
               aria-haspopup="true"
@@ -210,10 +214,17 @@ export default function NavbarContent() {
             </button>
             <UserMenu />
             <ThemeToggle />
+            <button
+              onClick={() => startTutorial?.(true)}
+              className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition-all text-sm font-bold"
+              title="Ver tutorial"
+            >
+              ?
+            </button>
           </div>
 
           {/* Search: order-3 on mobile (wraps to line 2), order-2 on desktop (between logo and actions) */}
-          <div className="w-full sm:w-auto sm:flex-1 order-3 sm:order-2">
+          <div className="w-full sm:w-auto sm:flex-1 order-3 sm:order-2" data-tutorial="search">
             <SearchBox initial={currentSearch} onSearch={(val) => setSearch(val)} />
           </div>
         </div>
