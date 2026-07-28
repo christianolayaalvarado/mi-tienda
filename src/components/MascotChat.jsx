@@ -35,12 +35,12 @@ function TypingIndicator() {
 
 function QuickActions({ actions, onSelect }) {
   return (
-    <div className="flex flex-wrap gap-1 px-2 pb-1">
+    <div className="flex flex-wrap gap-1.5 px-2.5 pb-2 sm:px-2 sm:pb-1">
       {actions.map((action) => (
         <button
           key={action.label}
           onClick={() => onSelect(action.message)}
-          className="text-[10px] px-2 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+          className="text-[11px] sm:text-[10px] px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
         >
           {action.label}
         </button>
@@ -119,18 +119,18 @@ export default function MascotChat({
 
   return (
     <div
-      className="flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-[fadeInScale_0.2s_ease-out]"
+      className="flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-[fadeInScale_0.2s_ease-out] max-sm:fixed max-sm:inset-0 max-sm:rounded-none max-sm:z-[9999]"
       style={{ width: "280px", height: "360px", maxHeight: "60vh" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
-            <MascotAvatar type={mascotType} size={28} animate={false} view="front" />
+      <div className="flex items-center justify-between px-3 py-2.5 sm:py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
+            <MascotAvatar type={mascotType} size={32} animate={false} view="front" />
           </div>
           <div>
-            <div className="text-xs font-bold">{mascotName}</div>
-            <div className="text-[9px] opacity-80">en línea</div>
+            <div className="text-sm sm:text-xs font-bold">{mascotName}</div>
+            <div className="text-[10px] sm:text-[9px] opacity-80">en línea</div>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -162,9 +162,9 @@ export default function MascotChat({
         style={{ scrollBehavior: "smooth" }}
       >
         {messages.length === 0 && (
-          <div className="text-center text-gray-400 text-[11px] py-8">
+          <div className="text-center text-gray-400 text-xs sm:text-[11px] py-8">
             <div className="flex justify-center mb-2">
-              <MascotAvatar type={mascotType} size={48} animate={true} view="front" />
+              <MascotAvatar type={mascotType} size={56} animate={true} view="front" />
             </div>
             <div>¡Hola! Puedo ayudarte a encontrar productos,</div>
             <div>responder preguntas o simplemente charlar 😊</div>
@@ -178,15 +178,15 @@ export default function MascotChat({
           >
             <div className="max-w-[85%]">
               <div
-                className={`rounded-2xl px-3 py-2 text-[11px] leading-relaxed ${
+                className={`rounded-2xl px-3.5 py-2.5 sm:px-3 sm:py-2 text-sm sm:text-[11px] leading-relaxed ${
                   msg.role === "user"
                     ? "bg-green-500 text-white rounded-br-sm"
                     : "bg-gray-100 text-gray-700 rounded-bl-sm"
                 }`}
               >
                 <MarkdownText text={msg.text} />
-                <div
-                  className={`text-[8px] mt-1 ${
+              <div
+                className={`text-[10px] sm:text-[8px] mt-1 ${
                     msg.role === "user" ? "text-green-200" : "text-gray-400"
                   }`}
                 >
@@ -198,12 +198,12 @@ export default function MascotChat({
               </div>
               {/* Action buttons for bot messages */}
               {msg.role === "bot" && msg.actions?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {msg.actions.map((action, i) => (
                     <a
                       key={i}
                       href={action.url}
-                      className="text-[9px] px-2 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors no-underline"
+                      className="text-[11px] sm:text-[9px] px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors no-underline"
                     >
                       {action.label}
                     </a>
@@ -229,7 +229,7 @@ export default function MascotChat({
       <QuickActions actions={quickActions || []} onSelect={onSend} />
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="flex items-center gap-1 px-2 py-2 border-t border-gray-100">
+      <form onSubmit={handleSubmit} className="flex items-center gap-1.5 px-2.5 py-2.5 sm:px-2 sm:py-2 border-t border-gray-100">
         <input
           ref={inputRef}
           type="text"
@@ -237,13 +237,13 @@ export default function MascotChat({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Escribe un mensaje..."
-          className="flex-1 text-[11px] px-3 py-2 rounded-full bg-gray-50 border border-gray-200 outline-none focus:border-green-400 focus:ring-1 focus:ring-green-200 transition-all"
+          className="flex-1 text-sm sm:text-[11px] px-3.5 py-2.5 sm:px-3 sm:py-2 rounded-full bg-gray-50 border border-gray-200 outline-none focus:border-green-400 focus:ring-1 focus:ring-green-200 transition-all"
           disabled={isTyping}
         />
         <button
           type="submit"
           disabled={!input.trim() || isTyping}
-          className="p-2 rounded-full bg-green-500 text-white hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2.5 sm:p-2 rounded-full bg-green-500 text-white hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
