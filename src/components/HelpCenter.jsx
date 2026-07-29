@@ -1,26 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { TUTORIAL_CATEGORIES, TUTORIALS } from "@/lib/helpTutorials";
+import StepIllustration from "@/components/StepIllustration";
 
 export default function HelpCenter({ open, onClose, initialCategory }) {
   const [selectedCategory, setSelectedCategory] = useState(initialCategory || null);
   const [selectedTutorial, setSelectedTutorial] = useState(null);
+  const [activeStep, setActiveStep] = useState(0);
+  const stepsRef = useRef(null);
+
+  useEffect(() => {
+    if (initialCategory) {
+      setSelectedCategory(initialCategory);
+      setSelectedTutorial(null);
+      setActiveStep(0);
+    }
+  }, [initialCategory]);
+
+  // Track which step is visible on scroll
+  useEffect(() => {
+    if (!selectedTutorial || !stepsRef.current) return;
+    const container = stepsRef.current;
+    const handleScroll = () => {
+      const stepElements = container.querySelectorAll("[data-step]");
+      let current = 0;
+      stepElements.forEach((el, i) => {
+        const rect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        if (rect.top - containerRect.top < containerRect.height / 3) {
+          current = i;
+        }
+      });
+      setActiveStep(current);
+    };
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [selectedTutorial]);
 
   if (!open) return null;
 
   const handleCategory = (catId) => {
     setSelectedCategory(catId);
     setSelectedTutorial(null);
+    setActiveStep(0);
   };
 
   const handleTutorial = (tutorial) => {
     setSelectedTutorial(tutorial);
+    setActiveStep(0);
   };
 
   const handleBack = () => {
     if (selectedTutorial) {
       setSelectedTutorial(null);
+      setActiveStep(0);
     } else {
       setSelectedCategory(null);
     }
@@ -34,10 +68,12 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
     window.location.href = url;
   };
 
+  const currentIllustration = selectedTutorial?.steps?.[activeStep]?.illustration;
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-[fadeInScale_0.2s_ease-out]"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-[fadeInScale_0.2s_ease-out] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -45,7 +81,7 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {(selectedCategory || selectedTutorial) && (
-                <button onClick={handleBack} className="text-white/80 hover:text-white text-lg">
+                <button onClick={handleBack} className="text-white/80 hover:text-white text-lg font-bold">
                   ←
                 </button>
               )}
@@ -54,7 +90,7 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
                   {selectedTutorial ? selectedTutorial.title : selectedCategory ? TUTORIAL_CATEGORIES.find(c => c.id === selectedCategory)?.label : "Centro de Ayuda"}
                 </h2>
                 <p className="text-white/70 text-xs">
-                  {selectedTutorial ? "Guía paso a paso" : selectedCategory ? TUTORIAL_CATEGORIES.find(c => c.id === selectedCategory)?.description : "Tutoriales y guías de uso"}
+                  {selectedTutorial ? `${selectedTutorial.steps.length} pasos` : selectedCategory ? TUTORIAL_CATEGORIES.find(c => c.id === selectedCategory)?.description : "Tutoriales y guías de uso"}
                 </p>
               </div>
             </div>
@@ -63,10 +99,10 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden">
           {/* Categorías */}
           {!selectedCategory && !selectedTutorial && (
-            <div className="p-4 grid grid-cols-2 gap-3">
+            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[calc(90vh-80px)]">
               {TUTORIAL_CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
@@ -83,7 +119,7 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
 
           {/* Lista de tutoriales de una categoría */}
           {selectedCategory && !selectedTutorial && (
-            <div className="p-4 space-y-2">
+            <div className="p-4 space-y-2 overflow-y-auto max-h-[calc(90vh-80px)]">
               {TUTORIALS[selectedCategory]?.map((tutorial) => (
                 <button
                   key={tutorial.id}
@@ -101,38 +137,64 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
             </div>
           )}
 
-          {/* Tutorial detallado con pasos */}
+          {/* Tutorial detallado con pasos + ilustración */}
           {selectedTutorial && (
-            <div className="p-5">
-              {/* Pasos */}
-              <div className="space-y-3 mb-4">
-                {selectedTutorial.steps.map((step, i) => (
-                  <div key={i} className="flex gap-3">
-                    <div className="w-7 h-7 rounded-full bg-green-100 text-green-700 flex items-center justify-center shrink-0 text-xs font-bold">
-                      {i + 1}
-                    </div>
-                    <div className="text-sm text-gray-700 pt-1 leading-relaxed">{step.text}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Tip */}
-              {selectedTutorial.tip && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-                  <div className="flex items-start gap-2">
-                    <span className="text-lg">💡</span>
-                    <div className="text-xs text-amber-700 leading-relaxed">{selectedTutorial.tip}</div>
+            <div className="flex flex-col sm:flex-row h-full max-h-[calc(90vh-80px)]">
+              {/* Ilustración — visible en desktop (lado izquierdo), en mobile arriba */}
+              {currentIllustration && (
+                <div className="hidden sm:flex w-[280px] shrink-0 items-center justify-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-r border-green-100">
+                  <div className="w-full max-w-[240px] aspect-square">
+                    <StepIllustration type={currentIllustration} animate={true} className="w-full h-full" />
                   </div>
                 </div>
               )}
 
-              {/* Botón de acción */}
-              <button
-                onClick={() => handleAction(selectedTutorial.url)}
-                className="w-full py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors text-sm"
-              >
-                {selectedTutorial.urlLabel}
-              </button>
+              {/* Ilustración mobile — compacta arriba */}
+              {currentIllustration && (
+                <div className="sm:hidden shrink-0 px-4 pt-3 pb-2 bg-gradient-to-br from-green-50 to-emerald-50 border-b border-green-100">
+                  <div className="w-full h-[120px]">
+                    <StepIllustration type={currentIllustration} animate={true} className="w-full h-full" />
+                  </div>
+                </div>
+              )}
+
+              {/* Steps */}
+              <div ref={stepsRef} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2">
+                {selectedTutorial.steps.map((step, i) => (
+                  <div
+                    key={i}
+                    data-step={i}
+                    className={`flex gap-3 p-2.5 rounded-xl transition-all duration-300 ${
+                      i === activeStep ? "bg-green-50 border border-green-200 shadow-sm" : "border border-transparent"
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-colors ${
+                      i === activeStep ? "bg-green-600 text-white" : "bg-gray-100 text-gray-500"
+                    }`}>
+                      {i + 1}
+                    </div>
+                    <div className="text-sm text-gray-700 pt-0.5 leading-relaxed">{step.text}</div>
+                  </div>
+                ))}
+
+                {/* Tip */}
+                {selectedTutorial.tip && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mt-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">💡</span>
+                      <div className="text-xs text-amber-700 leading-relaxed">{selectedTutorial.tip}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botón de acción */}
+                <button
+                  onClick={() => handleAction(selectedTutorial.url)}
+                  className="w-full py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors text-sm mt-3"
+                >
+                  {selectedTutorial.urlLabel}
+                </button>
+              </div>
             </div>
           )}
         </div>
