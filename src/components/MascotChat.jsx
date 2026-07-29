@@ -176,12 +176,37 @@ export default function MascotChat({
         style={{ scrollBehavior: "smooth" }}
       >
         {messages.length === 0 && (
-          <div className="text-center text-gray-400 text-base sm:text-[11px] py-8">
+          <div className="text-center text-gray-400 text-base sm:text-[11px] py-4">
             <div className="flex justify-center mb-2">
               <MascotAvatar type={mascotType} size={56} animate={true} view="front" />
             </div>
-            <div>¡Hola! Puedo ayudarte a encontrar productos,</div>
-            <div>responder preguntas o simplemente charlar 😊</div>
+            <div className="font-medium text-gray-600 mb-1">¡Hola! Soy tu asistente 🛍️</div>
+            <div className="text-[13px] sm:text-[10px] text-gray-400 mb-3">Elige un tema o escríbeme</div>
+
+            {/* Tutorial grid */}
+            <div className="grid grid-cols-2 gap-1.5 px-1">
+              {[
+                { emoji: "🛒", label: "Cómo comprar", msg: "¿Cómo compro?" },
+                { emoji: "💳", label: "Formas de pago", msg: "¿Cómo pago?" },
+                { emoji: "🏪", label: "Crear mi tienda", msg: "¿Cómo creo mi tienda?" },
+                { emoji: "📦", label: "Agregar productos", msg: "¿Cómo agrego productos?" },
+                { emoji: "📊", label: "Mi dashboard", msg: "¿Cómo veo mi panel?" },
+                { emoji: "🧾", label: "Ver pedidos", msg: "¿Cómo veo mis pedidos?" },
+                { emoji: "⬆️", label: "Plan Full", msg: "¿Cómo actualizo mi cuenta?" },
+                { emoji: "🐾", label: "Mis mascotas", msg: "¿Cómo funcionan las mascotas?" },
+                { emoji: "🔥", label: "Ofertas", msg: "¿Cómo veo las ofertas?" },
+                { emoji: "🏪", label: "Vender", msg: "¿Cómo vendo?" },
+              ].map((t) => (
+                <button
+                  key={t.label}
+                  onClick={() => onSend(t.msg)}
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors text-left"
+                >
+                  <span className="text-base">{t.emoji}</span>
+                  <span className="text-[11px] sm:text-[9px] font-medium">{t.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

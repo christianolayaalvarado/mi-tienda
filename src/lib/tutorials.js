@@ -4,7 +4,7 @@ export const buyerSteps = [
   {
     id: "welcome",
     title: "¡Bienvenido a Mi Tienda!",
-    text: "Te guiaremos para que conozcas las principales funciones de la plataforma.",
+    text: "Te guiaremos paso a paso para que aproveches al máximo la plataforma.",
     attachTo: { element: "[data-tutorial='logo']", on: "bottom" },
     buttons: [
       { text: "Saltar", action: "cancel", classes: "shepherd-button-secondary" },
@@ -13,8 +13,8 @@ export const buyerSteps = [
   },
   {
     id: "search",
-    title: "Busca productos",
-    text: "Escribe lo que necesitas y encuentra los mejores productos de nuestros vendedores.",
+    title: "🔍 Busca productos",
+    text: "Escribe lo que necesitas en la barra de búsqueda. Puedes buscar por nombre, categoría o palabra clave.",
     attachTo: { element: "[data-tutorial='search']", on: "bottom" },
     buttons: [
       { text: "← Atrás", action: "back", classes: "shepherd-button-secondary" },
@@ -23,8 +23,8 @@ export const buyerSteps = [
   },
   {
     id: "ofertas",
-    title: "Ofertas especiales",
-    text: "Revisa las ofertas del día con descuentos increíbles.",
+    title: "🔥 Ofertas del día",
+    text: "Revisa la sección de ofertas para encontrar los mejores descuentos. ¡Nuevas ofertas cada día!",
     attachTo: { element: "[data-tutorial='ofertas']", on: "bottom" },
     buttons: [
       { text: "← Atrás", action: "back", classes: "shepherd-button-secondary" },
@@ -33,8 +33,8 @@ export const buyerSteps = [
   },
   {
     id: "cart",
-    title: "Tu carrito de compras",
-    text: "Agrega productos y revisa tu carrito antes de comprar.",
+    title: "🛒 Tu carrito",
+    text: "Agrega productos haciendo clic en 'Ver detalle' y luego 'Agregar al carrito'. Revisa tu carrito antes de pagar.",
     attachTo: { element: "[data-tutorial='cart']", on: "bottom" },
     buttons: [
       { text: "← Atrás", action: "back", classes: "shepherd-button-secondary" },
@@ -43,8 +43,8 @@ export const buyerSteps = [
   },
   {
     id: "mascot",
-    title: "Tu mascota virtual",
-    text: "Interactúa con tu mascota, gana monedas y desbloquea accesorios. ¡Haz clic en ella!",
+    title: "🐾 Tu mascota virtual",
+    text: "Haz clic en la mascota para interactuar. Gana monedas, compra accesorios y desbloquea premios.",
     attachTo: { element: "[data-tutorial='mascot']", on: "left" },
     buttons: [
       { text: "← Atrás", action: "back", classes: "shepherd-button-secondary" },
@@ -55,9 +55,9 @@ export const buyerSteps = [
 
 export const sellerSteps = [
   {
-    id: "dashboard",
-    title: "Tu panel de vendedor",
-    text: "Aquí tienes acceso rápido a todas las funciones de tu tienda.",
+    id: "welcome",
+    title: "¡Bienvenido, vendedor!",
+    text: "Tu panel de control tiene todo lo que necesitas para vender. Te mostramos las funciones principales.",
     attachTo: { element: "[data-tutorial='dashboard']", on: "bottom" },
     buttons: [
       { text: "Saltar", action: "cancel", classes: "shepherd-button-secondary" },
@@ -66,8 +66,8 @@ export const sellerSteps = [
   },
   {
     id: "products",
-    title: "Gestiona tus productos",
-    text: "Agrega, edita y administra tu catálogo de productos.",
+    title: "📦 Tus productos",
+    text: "Aquí agregas, editas y administras tu catálogo. Sube fotos atractivas y escribe buenas descripciones.",
     attachTo: { element: "[data-tutorial='products']", on: "right" },
     buttons: [
       { text: "← Atrás", action: "back", classes: "shepherd-button-secondary" },
@@ -76,8 +76,8 @@ export const sellerSteps = [
   },
   {
     id: "orders",
-    title: "Revisa tus pedidos",
-    text: "Gestiona los pedidos de tus clientes y actualiza el estado de envío.",
+    title: "🧾 Pedidos",
+    text: "Gestiona los pedidos de tus clientes. Actualiza el estado: pendiente → procesando → enviado → entregado.",
     attachTo: { element: "[data-tutorial='orders']", on: "right" },
     buttons: [
       { text: "← Atrás", action: "back", classes: "shepherd-button-secondary" },

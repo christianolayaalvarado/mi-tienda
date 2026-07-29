@@ -688,40 +688,45 @@ export default function useMascotChat({ mood, mascotName, coins }) {
     // Detailed help guides with steps and action buttons
     const HELP_GUIDES = {
       [INTENTS.HOW_TO_BUY]: {
-        text: "🛒 **Cómo comprar:**\n\n1️⃣ **Busca** productos en la barra de búsqueda\n2️⃣ **Selecciona** el producto que te guste\n3️⃣ **Agrega al carrito** haciendo clic en \"Agregar\"\n4️⃣ **Revisa** tu carrito (ícono 🚗 arriba)\n5️⃣ **Confirma** tu compra y elige método de pago\n6️⃣ **Recibe** tu pedido en casa 📦",
+        text: "🛒 **Cómo comprar paso a paso:**\n\n1️⃣ **Busca** productos en la barra de búsqueda o explora categorías\n2️⃣ **Selecciona** el producto que te guste (verás fotos, precio y descripción)\n3️⃣ **Agrega al carrito** haciendo clic en 'Agregar'\n4️⃣ **Revisa** tu carrito (ícono 🛒 arriba a la derecha)\n5️⃣ **Confirma** tu compra: elige método de pago (Yape, Plin, transferencia, tarjeta)\n6️⃣ **Recibe** tu pedido en casa 📦\n\n💡 **Tip:** Puedes agregar productos de diferentes tiendas en un solo carrito.",
         actions: [
           { label: "🔍 Buscar productos", url: "/" },
           { label: "🔥 Ver ofertas", url: "/ofertas" },
+          { label: "🛒 Mi carrito", url: "/cart" },
         ],
       },
       [INTENTS.HOW_TO_SELL]: {
-        text: "🏪 **Cómo vender:**\n\n1️⃣ **Crea tu cuenta** (si aún no tienes)\n2️⃣ **Configura tu tienda** desde el dashboard\n3️⃣ **Agrega productos** con fotos, precios y descripción\n4️⃣ **Recibe pedidos** de clientes\n5️⃣ **Envía** los productos\n6️⃣ **Cobra** y repite 💰",
+        text: "🏪 **Cómo vender en Mi Tienda:**\n\n1️⃣ **Crea tu cuenta** gratis con tu email\n2️⃣ **Ve al Dashboard** (menú usuario → Dashboard)\n3️⃣ **Configura tu tienda**: nombre, descripción, logo\n4️⃣ **Agrega productos** con fotos atractivas, precio y descripción\n5️⃣ **Recibe pedidos** de clientes y gestiona envíos\n6️⃣ **Cobra** y ¡repite! 💰\n\n💡 **Tip:** Los productos con buenas fotos venden 3x más.",
         actions: [
-          { label: "📋 Crear tienda", url: "/dashboard" },
+          { label: "📋 Crear mi tienda", url: "/dashboard" },
           { label: "📦 Agregar producto", url: "/dashboard/products" },
+          { label: "📊 Ver estadísticas", url: "/dashboard" },
         ],
       },
       [INTENTS.HOW_TO_PAY]: {
-        text: "💳 **Métodos de pago:**\n\n• **Yape** — Pago instantáneo por celular\n• **Plin** — Transferencia rápida\n• **Transferencia bancaria** — CCI o cuenta\n• **Tarjeta** — Crédito o débito vía Culqi\n• **PagoEfectivo** — En efectivo en tiendas autorizadas\n\nTodos los pagos son seguros 🔒",
+        text: "💳 **Métodos de pago disponibles:**\n\n• **Yape** — Pago instantáneo por celular (solo enviar comprobante)\n• **Plin** — Transferencia rápida\n• **Transferencia bancaria** — CCI o cuenta (BCP, Interbank)\n• **Tarjeta** — Crédito o débito vía Culqi (seguro)\n• **PagoEfectivo** — En efectivo en tiendas autorizadas\n\n🔒 Todos los pagos son 100% seguros.\n\n💡 **Tip:** Yape y Plin son los más rápidos para confirmar tu pedido.",
         actions: [
           { label: "🛒 Ir a comprar", url: "/" },
+          { label: "🔥 Ver ofertas", url: "/ofertas" },
         ],
       },
       [INTENTS.HOW_TO_CREATE_STORE]: {
-        text: "📋 **Crear tu tienda:**\n\n1️⃣ **Regístrate** con tu email\n2️⃣ **Ve al dashboard** (menú usuario → Dashboard)\n3️⃣ **Configura** nombre y descripción de tu tienda\n4️⃣ **Sube tu logo** y banner\n5️⃣ **Agrega** tus primeros productos\n6️⃣ **¡Ya puedes vender!** 🎉",
+        text: "📋 **Crear tu tienda en 6 pasos:**\n\n1️⃣ **Regístrate** gratis con tu email\n2️⃣ **Ve al Dashboard** (menú usuario → Dashboard)\n3️⃣ **Configura** nombre y descripción de tu tienda\n4️⃣ **Sube tu logo** y banner para personalizar\n5️⃣ **Agrega** tus primeros productos con fotos y precios\n6️⃣ **¡Ya puedes vender!** Tu tienda está online 🎉\n\n💡 **Tip:** El Plan Full te permite vender sin límites y acceder a herramientas premium.",
         actions: [
           { label: "📋 Ir al dashboard", url: "/dashboard" },
           { label: "📦 Mis productos", url: "/dashboard/products" },
+          { label: "⬆️ Ver Plan Full", url: "/upgrade" },
         ],
       },
       [INTENTS.HOW_TO_ADD_PRODUCTS]: {
-        text: "📦 **Agregar productos:**\n\n1️⃣ **Ve a Productos** en tu dashboard\n2️⃣ **Clic en \"Nuevo Producto\"**\n3️⃣ **Sube fotos** (arrastra o selecciona)\n4️⃣ **Escribe** nombre, descripción y precio\n5️⃣ **Selecciona** categoría\n6️⃣ **Guarda** y ¡ listo! Tu producto está publicado ✅",
+        text: "📦 **Agregar productos a tu tienda:**\n\n1️⃣ **Ve a Productos** en tu dashboard\n2️⃣ **Clic en 'Nuevo Producto'**\n3️⃣ **Sube fotos** — arrastra o selecciona (mínimo 1 foto)\n4️⃣ **Escribe** nombre del producto\n5️⃣ **Describe** el producto con detalles atractivos\n6️⃣ **Pon el precio** en soles (S/)\n7️⃣ **Selecciona** categoría (Cocina, Decoración, etc.)\n8️⃣ **Guarda** y ¡tu producto está publicado! ✅\n\n💡 **Tip:** Usa fotos claras con fondo blanco para mejor presentación.",
         actions: [
           { label: "📦 Mis productos", url: "/dashboard/products" },
+          { label: "📊 Ir al dashboard", url: "/dashboard" },
         ],
       },
       [INTENTS.HOW_TO_DASHBOARD]: {
-        text: "📊 **Tu Dashboard:**\n\nEs tu panel de control donde puedes:\n• Ver estadísticas de ventas\n• Gestionar productos\n• Revisar pedidos\n• Configurar tu tienda\n\n**Cómo acceder:** Clic en tu avatar → Dashboard",
+        text: "📊 **Tu Dashboard - Panel de control:**\n\nEs tu centro de mando donde puedes:\n• 📊 **Ver estadísticas** de ventas y visitas\n• 📦 **Gestionar productos** (crear, editar, eliminar)\n• 🧾 **Revisar pedidos** de clientes\n• ⚙️ **Configurar tu tienda** (nombre, logo, descripción)\n• 📈 **Ver análisis** de conversión y tráfico\n\n**Cómo acceder:** Clic en tu avatar → Dashboard\n\n💡 **Tip:** Revisa tus estadísticas semanalmente para mejorar.",
         actions: [
           { label: "📊 Abrir dashboard", url: "/dashboard" },
           { label: "📦 Productos", url: "/dashboard/products" },
@@ -729,28 +734,32 @@ export default function useMascotChat({ mood, mascotName, coins }) {
         ],
       },
       [INTENTS.HOW_TO_ORDERS]: {
-        text: "🧾 **Tus pedidos:**\n\n1️⃣ **Ve al Dashboard**\n2️⃣ **Selecciona \"Órdenes\"**\n3️⃣ **Filtra** por estado (pendiente, enviado, entregado)\n4️⃣ **Actualiza** el estado cuando envíes\n5️⃣ **Confirma** la entrega\n\nTambién puedes ver el seguimiento de envío 📦",
+        text: "🧾 **Gestionar tus pedidos:**\n\n1️⃣ **Ve al Dashboard** → Órdenes\n2️⃣ **Filtra** por estado:\n   • Pendiente — nuevos pedidos\n   • Procesando — preparando envío\n   • Enviado — en camino\n   • Entregado — completado\n3️⃣ **Actualiza** el estado cuando avances\n4️⃣ **Confirma** la entrega del producto\n\n📦 También puedes ver el seguimiento de envío en tiempo real.\n\n💡 **Tip:** Responde rápido a los clientes para mejorar tu reputación.",
         actions: [
           { label: "🧾 Ver órdenes", url: "/dashboard/orders" },
+          { label: "📊 Dashboard", url: "/dashboard" },
         ],
       },
       [INTENTS.HOW_TO_UPGRADE]: {
-        text: "⬆️ **Actualizar a Plan Full:**\n\nEl plan Full te permite:\n• Vender sin límites\n• Acceso a herramientas premium\n• Soporte prioritario\n\n**Cómo actualizar:**\n1️⃣ Ve a Configuración → Planes\n2️⃣ Selecciona \"Plan Full\"\n3️⃣ Realiza el pago\n4️⃣ ¡Tu cuenta se actualiza automáticamente!",
+        text: "⬆️ **Actualizar a Plan Full:**\n\nEl plan Full te permite:\n• 🏪 Vender sin límites de productos\n• 📊 Acceso a herramientas premium\n• 🎯 Mayor visibilidad en búsquedas\n• 💬 Soporte prioritario\n\n**Cómo actualizar:**\n1️⃣ Ve a tu Dashboard → Configuración\n2️⃣ Selecciona 'Plan Full'\n3️⃣ Realiza el pago (Yape, transferencia o tarjeta)\n4️⃣ ¡Tu cuenta se actualiza automáticamente! 🎉\n\n💡 **Tip:** El Plan Full cuesta solo S/ 199/año.",
         actions: [
-          { label: "⬆️ Ver planes", url: "/dashboard/settings" },
+          { label: "⬆️ Ver planes", url: "/upgrade" },
+          { label: "📊 Mi dashboard", url: "/dashboard" },
         ],
       },
       [INTENTS.HOW_TO_MASCOTS]: {
-        text: "🐾 **Tus mascotas:**\n\n• **Interactúa** haciendo clic en la mascota\n• **Gana monedas** explorando la tienda\n• **Compra accesorios** en la tienda de mascotas\n• **Desbloquea** mascotas premium con logros\n• **Personaliza** su nombre y accesorios\n\nLas mascotas dan bonificaciones reales 🎁",
+        text: "🐾 **Tus mascotas virtuales:**\n\n• 🖱️ **Interactúa** haciendo clic en la mascota\n• 🪙 **Gana monedas** explorando la tienda y comprando\n• 🛍️ **Compra accesorios** en la tienda de mascotas\n• 🎩 **Desbloquea** mascotas premium con logros\n• ✏️ **Personaliza** su nombre\n\n🎁 **Beneficios reales:** Los accesorios dan bonificaciones (más monedas, descuentos, etc.)\n\n💡 **Tip:** Haz clic en la moneda 🪙 para abrir la tienda de accesorios.",
         actions: [
-          { label: "🛍️ Tienda de accesorios", url: "#mascot-shop" },
+          { label: "🛍️ Tienda accesorios", url: "#mascot-shop" },
+          { label: "🪙 Ver monedas", url: "#mascot-coins" },
         ],
       },
       [INTENTS.HOW_TO_OFFERS]: {
-        text: "🔥 **Ofertas y descuentos:**\n\n• **Página de ofertas** — Todos los descuentos del día\n• **Cupones** — Ingresa códigos en el checkout\n• **Ruleta** — Gira para ganar descuentos\n• **Ofertas semanales** — Cada lunes hay nuevas\n\nNo te pierdas ninguna oferta 🎯",
+        text: "🔥 **Ofertas y descuentos:**\n\n• 🏷️ **Página de ofertas** — Todos los descuentos del día\n• 🎫 **Cupones** — Ingresa códigos en el checkout para descuento\n• 🎰 **Ruleta** — Gira para ganar descuentos (hasta 50%)\n• 📅 **Ofertas semanales** — Cada lunes hay nuevas promociones\n• 🎊 **Fiestas Patrias** — Ofertas especiales en temporada\n\n💡 **Tip:** Suscríbete para recibir ofertas por email cada semana.",
         actions: [
           { label: "🔥 Ver ofertas", url: "/ofertas" },
           { label: "🎰 Girar ruleta", url: "/spin-wheel" },
+          { label: "🛒 Ir a comprar", url: "/" },
         ],
       },
     };
