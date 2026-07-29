@@ -105,120 +105,124 @@ function UpgradePage() {
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6 items-start">
 
           {/* ============ FREE CARD ============ */}
-          <div className={`relative bg-white rounded-2xl shadow-lg overflow-hidden ${!isFull ? "ring-2 ring-green-500" : ""}`}>
-            <div className="bg-green-500 text-white text-xs font-bold text-center py-1.5 tracking-wide">
-              {isFull ? "TU PLAN" : "FREE"}
-            </div>
-            <div className="p-5 sm:p-6">
-              {/* Row: features (left) + title/price (right) */}
-              <div className="flex gap-4">
-                {/* Left: features */}
-                <div className="flex-1">
-                  <ul className="space-y-1.5">
-                    {FREE_FEATURES.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                        <span className="text-green-500 mt-0.5 text-xs">✅</span>
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {/* Right: title + price */}
-                <div className="shrink-0 w-[100px] sm:w-[120px] border-l border-gray-100 pl-4 flex flex-col items-end text-right">
-                  <h3 className="text-xl font-bold text-gray-900">Free</h3>
-                  <span className="text-2xl font-extrabold text-green-600 mt-1">Gratis</span>
-                  <span className="text-[10px] text-gray-400 mt-0.5">/ siempre</span>
-                  <p className="text-[10px] text-gray-400 mt-3 leading-tight">Para comprar en cualquier tienda</p>
-                </div>
-              </div>
-
-              <div className="mt-5">
-                {isFull ? (
-                  <div className="w-full py-2.5 bg-gray-100 text-gray-500 rounded-lg font-medium text-sm text-center">Plan actual</div>
-                ) : (
-                  <Link href="/" className="block w-full py-2.5 text-center border border-green-300 text-green-700 rounded-lg font-medium text-sm hover:bg-green-50 transition">
-                    Empezar a comprar
-                  </Link>
-                )}
+          <div className="relative">
+            {/* Faded images — OUTSIDE, left of card */}
+            <div className="absolute -left-20 top-1/2 -translate-y-1/2 opacity-[0.12] pointer-events-none hidden lg:block">
+              <div className="flex flex-col items-center gap-3">
+                <svg viewBox="0 0 60 90" className="w-12 h-16">
+                  <rect x="5" y="5" width="50" height="80" rx="8" fill="#7B2D8E" />
+                  <text x="30" y="22" textAnchor="middle" fontSize="7" fontWeight="bold" fill="white">Yape</text>
+                  <rect x="12" y="28" width="36" height="36" rx="4" fill="white" />
+                  <text x="30" y="50" textAnchor="middle" fontSize="12">📱</text>
+                  <text x="30" y="78" textAnchor="middle" fontSize="5" fill="white">S/ 49.90</text>
+                </svg>
+                <svg viewBox="0 0 60 40" className="w-12 h-8">
+                  <rect x="2" y="2" width="56" height="36" rx="6" fill="#7B2D8E" />
+                  <rect x="8" y="8" width="44" height="16" rx="3" fill="white" />
+                  <text x="30" y="20" textAnchor="middle" fontSize="8">💳</text>
+                  <text x="30" y="34" textAnchor="middle" fontSize="4" fill="white">Pago seguro</text>
+                </svg>
               </div>
             </div>
 
-            {/* Faded image — bottom-left */}
-            <div className="absolute bottom-4 left-3 opacity-[0.10] pointer-events-none">
-              <svg viewBox="0 0 60 90" className="w-10 h-14">
-                <rect x="5" y="5" width="50" height="80" rx="8" fill="#7B2D8E" />
-                <text x="30" y="25" textAnchor="middle" fontSize="7" fontWeight="bold" fill="white">Yape</text>
-                <rect x="12" y="30" width="36" height="36" rx="4" fill="white" />
-                <text x="30" y="52" textAnchor="middle" fontSize="12">📱</text>
-                <text x="30" y="78" textAnchor="middle" fontSize="5" fill="white">S/ 49.90</text>
-              </svg>
+            <div className={`relative bg-white rounded-2xl shadow-lg overflow-hidden ${!isFull ? "ring-2 ring-green-500" : ""}`}>
+              <div className="bg-green-500 text-white text-xs font-bold text-center py-1.5 tracking-wide">
+                {isFull ? "TU PLAN" : "FREE"}
+              </div>
+              <div className="p-5 sm:p-6">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <ul className="space-y-1.5">
+                      {FREE_FEATURES.map((f, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                          <span className="text-green-500 mt-0.5 text-xs">✅</span>
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="shrink-0 w-[100px] sm:w-[120px] border-l border-gray-100 pl-4 flex flex-col items-end text-right">
+                    <h3 className="text-xl font-bold text-gray-900">Free</h3>
+                    <span className="text-2xl font-extrabold text-green-600 mt-1">Gratis</span>
+                    <span className="text-[10px] text-gray-400 mt-0.5">/ siempre</span>
+                    <p className="text-[10px] text-gray-400 mt-3 leading-tight">Para comprar en cualquier tienda</p>
+                  </div>
+                </div>
+                <div className="mt-5">
+                  {isFull ? (
+                    <div className="w-full py-2.5 bg-gray-100 text-gray-500 rounded-lg font-medium text-sm text-center">Plan actual</div>
+                  ) : (
+                    <Link href="/" className="block w-full py-2.5 text-center border border-green-300 text-green-700 rounded-lg font-medium text-sm hover:bg-green-50 transition">
+                      Empezar a comprar
+                    </Link>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
           {/* ============ FULL CARD ============ */}
-          <div className={`relative bg-white rounded-2xl shadow-lg overflow-hidden ${isFull ? "ring-2 ring-blue-500" : ""}`}>
-            <div className="bg-blue-600 text-white text-xs font-bold text-center py-1.5 tracking-wide">
-              {isFull ? "TU PLAN" : "POPULAR"}
-            </div>
-            <div className="p-5 sm:p-6">
-              {/* Row: features (left) + title/price (right) */}
-              <div className="flex gap-4">
-                {/* Left: features */}
-                <div className="flex-1">
-                  <ul className="space-y-1.5">
-                    {FULL_FEATURES.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                        <span className="text-green-500 mt-0.5 text-xs">✅</span>
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {/* Right: title + price */}
-                <div className="shrink-0 w-[100px] sm:w-[120px] border-l border-gray-100 pl-4 flex flex-col items-end text-right">
-                  <h3 className="text-xl font-bold text-gray-900">Full</h3>
-                  <span className="text-2xl font-extrabold text-blue-600 mt-1">S/ 199</span>
-                  <span className="text-[10px] text-gray-400 mt-0.5">/ año</span>
-                  <span className="text-[10px] text-gray-400">S/ 16.58/mes</span>
-                  <p className="text-[10px] text-gray-400 mt-3 leading-tight">Para vender y gestionar tu tienda</p>
-                </div>
+          <div className="relative">
+            <div className={`relative bg-white rounded-2xl shadow-lg overflow-hidden ${isFull ? "ring-2 ring-blue-500" : ""}`}>
+              <div className="bg-blue-600 text-white text-xs font-bold text-center py-1.5 tracking-wide">
+                {isFull ? "TU PLAN" : "POPULAR"}
               </div>
-
-              <div className="mt-5">
-                {isFull ? (
-                  <div className="w-full py-2.5 bg-gray-100 text-gray-500 rounded-lg font-medium text-sm text-center">Plan activo</div>
-                ) : (
-                  <button
-                    onClick={handleRequestFull}
-                    className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition shadow-md shadow-blue-200"
-                  >
-                    Activar Full →
-                  </button>
-                )}
+              <div className="p-5 sm:p-6">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <ul className="space-y-1.5">
+                      {FULL_FEATURES.map((f, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                          <span className="text-green-500 mt-0.5 text-xs">✅</span>
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="shrink-0 w-[100px] sm:w-[120px] border-l border-gray-100 pl-4 flex flex-col items-end text-right">
+                    <h3 className="text-xl font-bold text-gray-900">Full</h3>
+                    <span className="text-2xl font-extrabold text-blue-600 mt-1">S/ 199</span>
+                    <span className="text-[10px] text-gray-400 mt-0.5">/ año</span>
+                    <span className="text-[10px] text-gray-400">S/ 16.58/mes</span>
+                    <p className="text-[10px] text-gray-400 mt-3 leading-tight">Para vender y gestionar tu tienda</p>
+                  </div>
+                </div>
+                <div className="mt-5">
+                  {isFull ? (
+                    <div className="w-full py-2.5 bg-gray-100 text-gray-500 rounded-lg font-medium text-sm text-center">Plan activo</div>
+                  ) : (
+                    <button onClick={handleRequestFull} className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition shadow-md shadow-blue-200">
+                      Activar Full →
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Faded images — bottom-right */}
-            <div className="absolute bottom-4 right-3 opacity-[0.10] pointer-events-none flex flex-col items-end gap-2">
-              <svg viewBox="0 0 50 40" className="w-10 h-8">
-                <rect x="2" y="8" width="46" height="28" rx="4" fill="#1e40af" />
-                <polygon points="25,2 2,8 48,8" fill="#3b82f6" />
-                <rect x="8" y="14" width="34" height="5" rx="2" fill="#93c5fd" />
-                <rect x="8" y="22" width="22" height="4" rx="2" fill="#93c5fd" />
-              </svg>
-              <svg viewBox="0 0 50 36" className="w-10 h-7">
-                <rect x="2" y="2" width="46" height="32" rx="4" fill="#1e40af" />
-                <rect x="6" y="6" width="38" height="18" rx="2" fill="white" />
-                <text x="25" y="18" textAnchor="middle" fontSize="10">📧</text>
-                <text x="25" y="32" textAnchor="middle" fontSize="4" fill="white">Email</text>
-              </svg>
-              <svg viewBox="0 0 50 50" className="w-10 h-10">
-                <circle cx="25" cy="22" r="14" fill="#fbbf24" />
-                <circle cx="20" cy="19" r="2" fill="#1f2937" />
-                <circle cx="30" cy="19" r="2" fill="#1f2937" />
-                <path d="M 20 26 Q 25 32 30 26" stroke="#1f2937" strokeWidth="1.5" fill="none" />
-                <text x="25" y="44" textAnchor="middle" fontSize="4" fill="#1e40af">Premium</text>
-              </svg>
+            {/* Faded images — OUTSIDE, right of card */}
+            <div className="absolute -right-20 top-1/2 -translate-y-1/2 opacity-[0.12] pointer-events-none hidden lg:block">
+              <div className="flex flex-col items-center gap-3">
+                <svg viewBox="0 0 60 50" className="w-12 h-10">
+                  <rect x="2" y="10" width="56" height="36" rx="5" fill="#1e40af" />
+                  <polygon points="30,2 2,10 58,10" fill="#3b82f6" />
+                  <rect x="10" y="18" width="40" height="6" rx="2" fill="#93c5fd" />
+                  <rect x="10" y="28" width="28" height="5" rx="2" fill="#93c5fd" />
+                  <text x="30" y="46" textAnchor="middle" fontSize="4" fill="white">Tienda</text>
+                </svg>
+                <svg viewBox="0 0 60 42" className="w-12 h-8">
+                  <rect x="2" y="2" width="56" height="38" rx="5" fill="#1e40af" />
+                  <rect x="7" y="7" width="46" height="20" rx="3" fill="white" />
+                  <text x="30" y="21" textAnchor="middle" fontSize="12">📧</text>
+                  <text x="30" y="38" textAnchor="middle" fontSize="4" fill="white">Email Marketing</text>
+                </svg>
+                <svg viewBox="0 0 60 60" className="w-12 h-12">
+                  <circle cx="30" cy="25" r="18" fill="#fbbf24" />
+                  <circle cx="24" cy="21" r="2.5" fill="#1f2937" />
+                  <circle cx="36" cy="21" r="2.5" fill="#1f2937" />
+                  <path d="M 24 30 Q 30 37 36 30" stroke="#1f2937" strokeWidth="2" fill="none" />
+                  <text x="30" y="54" textAnchor="middle" fontSize="5" fill="#1e40af">Premium</text>
+                </svg>
+              </div>
             </div>
           </div>
 
