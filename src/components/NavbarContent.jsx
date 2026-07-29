@@ -9,7 +9,7 @@ import CartPreview from "./navbar/CartPreview";
 import UserMenu from "./navbar/UserMenu";
 import ThemeToggle from "./navbar/ThemeToggle";
 import CategoryScroller from "./navbar/CategoryScroller";
-import { useTutorial } from "@/components/TutorialProvider";
+import { useHelpCenter } from "@/context/HelpCenterContext";
 
 import {
   buildURL,
@@ -21,7 +21,7 @@ import {
 export default function NavbarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { startTutorial } = useTutorial() || {};
+  const { openHelp } = useHelpCenter() || {};
   // Cart context (assume hook returns stable API)
   const cartCtx = useCart();
   const cartItems = useMemo(() => cartCtx?.cartItems ?? [], [cartCtx?.cartItems]);
@@ -180,7 +180,7 @@ export default function NavbarContent() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
         {/* Single flex row with wrap: search goes to line 2 on mobile */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-6">
-          <Link href="/" className="flex items-center shrink-0 order-1" data-tutorial="logo">
+          <Link href="/" className="flex items-center shrink-0 order-1">
             <img src="/images/logo.png" alt="Logo MiTienda" className="h-8 sm:h-10 w-auto navbar-logo animate-[fadeIn_0.5s_ease]" />
           </Link>
 
@@ -188,7 +188,6 @@ export default function NavbarContent() {
           <div className="flex items-center gap-1 sm:gap-3 ml-auto sm:ml-0 order-2 sm:order-3">
             <Link
               href="/ofertas"
-              data-tutorial="ofertas"
               className="flex items-center gap-1 text-red-600 hover:text-red-700 font-bold text-xs sm:text-sm shrink-0 min-h-[44px] px-1 sm:px-2"
             >
               <span className="text-base sm:text-lg">🔥</span>
@@ -197,7 +196,6 @@ export default function NavbarContent() {
             <button
               type="button"
               aria-label={`Abrir carrito, ${count} items`}
-              data-tutorial="cart"
               onClick={() => setCartOpen((s) => !s)}
               className="text-sm font-medium cursor-pointer relative select-none shrink-0 min-h-[44px] flex items-center justify-center px-1 sm:px-3"
               aria-haspopup="true"
@@ -215,19 +213,19 @@ export default function NavbarContent() {
             <UserMenu />
             <ThemeToggle />
             <button
-              onClick={() => startTutorial?.(true)}
+              onClick={() => openHelp?.()}
               className="hidden sm:flex items-center gap-1 px-2 py-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-all text-xs font-medium"
-              title="Ver tutoriales"
+              title="Centro de ayuda"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="hidden lg:inline">Tutoriales</span>
+              <span className="hidden lg:inline">Ayuda</span>
             </button>
           </div>
 
           {/* Search: order-3 on mobile (wraps to line 2), order-2 on desktop (between logo and actions) */}
-          <div className="w-full sm:w-auto sm:flex-1 order-3 sm:order-2" data-tutorial="search">
+          <div className="w-full sm:w-auto sm:flex-1 order-3 sm:order-2">
             <SearchBox initial={currentSearch} onSearch={(val) => setSearch(val)} />
           </div>
         </div>

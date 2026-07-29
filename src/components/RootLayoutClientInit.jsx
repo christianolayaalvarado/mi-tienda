@@ -3,7 +3,6 @@
 
 import { useEffect } from "react";
 import { isLogoutInProgress, isRecentLogout } from "@/utils/authFlags";
-import { isTutorialCompleted } from "@/lib/tutorials";
 
 export default function RootLayoutClientInit() {
   useEffect(() => {
@@ -40,18 +39,6 @@ export default function RootLayoutClientInit() {
         window.__auth_refresh_in_progress = false;
       }
     })();
-  }, []);
-
-  // Auto-launch tutorial on first visit
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (isTutorialCompleted()) return;
-
-    const timer = setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("tutorial:auto-start"));
-    }, 2000);
-
-    return () => clearTimeout(timer);
   }, []);
 
   return null;

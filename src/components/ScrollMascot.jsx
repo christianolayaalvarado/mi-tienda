@@ -10,6 +10,8 @@ import MascotFiestasPatrias from "@/components/MascotFiestasPatrias";
 import AccessoryShop from "@/components/AccessoryShop";
 import useMascotBehavior from "@/hooks/useMascotBehavior";
 
+import { useHelpCenter } from "@/context/HelpCenterContext";
+
 function SafePortal({ children, container }) {
   const [mounted, setMounted] = useState(false);
   const portalRef = useRef(null);
@@ -103,6 +105,7 @@ const CONFETTI_COLORS = ["#F87171", "#60A5FA", "#34D399", "#FBBF24", "#A78BFA", 
 export default function ScrollMascot({ onClick }) {
   const { user } = useAuthContext() || {};
   const { emotion, lastMessage: emotionMsg, emotionMessageKey, triggerInteraction } = useMascotContext() || {};
+  const { openHelp } = useHelpCenter() || {};
   const pathname = usePathname();
 
   // Core states
@@ -434,7 +437,6 @@ export default function ScrollMascot({ onClick }) {
       {/* Mascot */}
       <div
         ref={mascotRef}
-        data-tutorial="mascot"
         className={`absolute right-12 sm:right-[60px] pointer-events-auto cursor-pointer group select-none ${showShop ? "pointer-events-none" : ""}`}
         style={{
           top: isWalking ? `${position.y}px` : atBottom ? `${endY - 40}px` : `${startY + progress * (endY - startY)}px`,
@@ -536,6 +538,7 @@ export default function ScrollMascot({ onClick }) {
               mascotType={mascotType}
               moodEmoji={moodEmoji}
               onClose={() => setShowChat(false)}
+              openHelp={openHelp}
             />
           </div>
         </SafePortal>

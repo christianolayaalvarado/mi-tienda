@@ -26,7 +26,7 @@ export default async function DashboardHome() {
   const isFull = userPlan === "full" || isAdmin;
 
   return (
-    <div className="max-w-5xl mx-auto" data-tutorial="dashboard">
+    <div className="max-w-5xl mx-auto">
       <div className="mb-6">
         <p className="text-sm text-gray-500">
           Selecciona una sección para comenzar

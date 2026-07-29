@@ -28,10 +28,6 @@ const INTENTS = {
   HOW_TO_CREATE_STORE: "how_to_create_store",
   HOW_TO_ADD_PRODUCTS: "how_to_add_products",
   HOW_TO_DASHBOARD: "how_to_dashboard",
-  HOW_TO_ORDERS: "how_to_orders",
-  HOW_TO_UPGRADE: "how_to_upgrade",
-  HOW_TO_MASCOTS: "how_to_mascots",
-  HOW_TO_OFFERS: "how_to_offers",
   FALLBACK: "fallback",
 };
 
@@ -64,6 +60,10 @@ const INTENT_KEYWORDS = {
   [INTENTS.HELP]: [
     "ayuda", "help", "como funciona", "como se usa", "que puedo hacer",
     "instrucciones", "tutorial", "guia",
+    "como compro", "como compre", "como pago", "como vendo", "como creo", "como agrego",
+    "como veo", "como funcionan", "como actualizo", "como veo mis",
+    "formas de pago", "metodos de pago", "crear tienda", "agregar producto",
+    "mis pedidos", "plan full", "upgrade", "mascotas", "ofertas", "descuentos",
   ],
   [INTENTS.COMPLIMENT]: [
     "genial", "bonito", "increible", "me gusta", "hermoso",
@@ -113,27 +113,14 @@ const INTENT_KEYWORDS = {
     "dashboard", "panel", "panel de control", "como entro al panel",
     "mis estadisticas", "donde veo todo",
   ],
-  [INTENTS.HOW_TO_ORDERS]: [
-    "mis pedidos", "ver pedidos", "como veo pedidos", "seguimiento",
-    "estado del pedido", "donde esta mi pedido",
-  ],
-  [INTENTS.HOW_TO_UPGRADE]: [
-    "actualizar cuenta", "cuenta premium", "cuenta de pago",
-    "plan full", "upgrade", "versión completa", "vender sin límites",
-  ],
-  [INTENTS.HOW_TO_MASCOTS]: [
-    "mascotas", "como funciona mascota", "mis mascotas",
-    "obtener mascota", "desbloquear mascota", "mascota premium",
-    "accesorios mascota", "monedas mascota",
-  ],
-  [INTENTS.HOW_TO_OFFERS]: [
-    "ofertas", "como veo ofertas", "descuentos", "promociones",
-    "cupones", "cupon", "girar ruleta", "ruleta",
-  ],
 };
 
+function stripAccents(str) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function detectIntent(message) {
-  const lower = message.toLowerCase().trim();
+  const lower = stripAccents(message.toLowerCase().trim());
   for (const [intent, keywords] of Object.entries(INTENT_KEYWORDS)) {
     for (const kw of keywords) {
       if (lower.includes(kw)) return intent;
@@ -348,17 +335,17 @@ const RESPONSES = {
 
   [INTENTS.HELP]: {
     happy: [
-      "¡Claro! Puedo ayudarte a buscar productos, darte info de precios, o simplemente conversar 🛍️",
-      "¡Con gusto! Puedo recomendar productos, explicar la tienda, o charlar contigo 💬",
-      "¡Aquí estoy para lo que necesites! Puedo buscar productos, dar consejos, o platicar 😊",
+      "¡Usa el botón de ayuda del navbar o selecciona un tema del menú de bienvenida para ver guías paso a paso! 📖",
+      "¡Haz clic en el botón de ayuda arriba o elige un tema del menú de bienvenida! 📖",
+      "¡Tengo guías interactivas! Haz clic en Ayuda arriba o elige un tema del menú de bienvenida 📖",
     ],
     excited: [
-      "¡¡CLARO!! ¡Puedo hacer MUCHAS cosas! 🔥 ¡Pregúntame!",
-      "¡¡AYUDA!! ¡Mi especialidad! 🤩 ¡Dime qué necesitas!",
-      "¡¡ESO!! ¡Puedo buscar productos, dar info, y más! 💎",
+      "¡¡USA EL BOTÓN DE AYUDA!! ¡Tengo guías paso a paso! 📖",
+      "¡¡BUENA PREGUNTA!! ¡Haz clic en Ayuda arriba! 📖",
+      "¡¡TENEMOS TUTORIALES!! ¡Haz clic en Ayuda! 📖",
     ],
     curious: [
-      "¿Qué necesitas? 🤔 Puedo buscar productos, dar info, o conversar",
+      "¿Qué necesitas? 🤔 Usa el botón de ayuda arriba o elige un tema del menú de bienvenida",
       "Hmm, ¿qué te gustaría saber? 👀",
       "Puedo ayudarte de varias formas 🧐 ¿Qué buscas?",
     ],
@@ -685,92 +672,7 @@ export default function useMascotChat({ mood, mascotName, coins }) {
     let response = pickRandom(responsePool);
     let actions = [];
 
-    // Detailed help guides with steps and action buttons
-    const HELP_GUIDES = {
-      [INTENTS.HOW_TO_BUY]: {
-        text: "🛒 **Cómo comprar paso a paso:**\n\n1️⃣ **Busca** productos en la barra de búsqueda o explora categorías\n2️⃣ **Selecciona** el producto que te guste (verás fotos, precio y descripción)\n3️⃣ **Agrega al carrito** haciendo clic en 'Agregar'\n4️⃣ **Revisa** tu carrito (ícono 🛒 arriba a la derecha)\n5️⃣ **Confirma** tu compra: elige método de pago (Yape, Plin, transferencia, tarjeta)\n6️⃣ **Recibe** tu pedido en casa 📦\n\n💡 **Tip:** Puedes agregar productos de diferentes tiendas en un solo carrito.",
-        actions: [
-          { label: "🔍 Buscar productos", url: "/" },
-          { label: "🔥 Ver ofertas", url: "/ofertas" },
-          { label: "🛒 Mi carrito", url: "/cart" },
-        ],
-      },
-      [INTENTS.HOW_TO_SELL]: {
-        text: "🏪 **Cómo vender en Mi Tienda:**\n\n1️⃣ **Crea tu cuenta** gratis con tu email\n2️⃣ **Ve al Dashboard** (menú usuario → Dashboard)\n3️⃣ **Configura tu tienda**: nombre, descripción, logo\n4️⃣ **Agrega productos** con fotos atractivas, precio y descripción\n5️⃣ **Recibe pedidos** de clientes y gestiona envíos\n6️⃣ **Cobra** y ¡repite! 💰\n\n💡 **Tip:** Los productos con buenas fotos venden 3x más.",
-        actions: [
-          { label: "📋 Crear mi tienda", url: "/dashboard" },
-          { label: "📦 Agregar producto", url: "/dashboard/products" },
-          { label: "📊 Ver estadísticas", url: "/dashboard" },
-        ],
-      },
-      [INTENTS.HOW_TO_PAY]: {
-        text: "💳 **Métodos de pago disponibles:**\n\n• **Yape** — Pago instantáneo por celular (solo enviar comprobante)\n• **Plin** — Transferencia rápida\n• **Transferencia bancaria** — CCI o cuenta (BCP, Interbank)\n• **Tarjeta** — Crédito o débito vía Culqi (seguro)\n• **PagoEfectivo** — En efectivo en tiendas autorizadas\n\n🔒 Todos los pagos son 100% seguros.\n\n💡 **Tip:** Yape y Plin son los más rápidos para confirmar tu pedido.",
-        actions: [
-          { label: "🛒 Ir a comprar", url: "/" },
-          { label: "🔥 Ver ofertas", url: "/ofertas" },
-        ],
-      },
-      [INTENTS.HOW_TO_CREATE_STORE]: {
-        text: "📋 **Crear tu tienda en 6 pasos:**\n\n1️⃣ **Regístrate** gratis con tu email\n2️⃣ **Ve al Dashboard** (menú usuario → Dashboard)\n3️⃣ **Configura** nombre y descripción de tu tienda\n4️⃣ **Sube tu logo** y banner para personalizar\n5️⃣ **Agrega** tus primeros productos con fotos y precios\n6️⃣ **¡Ya puedes vender!** Tu tienda está online 🎉\n\n💡 **Tip:** El Plan Full te permite vender sin límites y acceder a herramientas premium.",
-        actions: [
-          { label: "📋 Ir al dashboard", url: "/dashboard" },
-          { label: "📦 Mis productos", url: "/dashboard/products" },
-          { label: "⬆️ Ver Plan Full", url: "/upgrade" },
-        ],
-      },
-      [INTENTS.HOW_TO_ADD_PRODUCTS]: {
-        text: "📦 **Agregar productos a tu tienda:**\n\n1️⃣ **Ve a Productos** en tu dashboard\n2️⃣ **Clic en 'Nuevo Producto'**\n3️⃣ **Sube fotos** — arrastra o selecciona (mínimo 1 foto)\n4️⃣ **Escribe** nombre del producto\n5️⃣ **Describe** el producto con detalles atractivos\n6️⃣ **Pon el precio** en soles (S/)\n7️⃣ **Selecciona** categoría (Cocina, Decoración, etc.)\n8️⃣ **Guarda** y ¡tu producto está publicado! ✅\n\n💡 **Tip:** Usa fotos claras con fondo blanco para mejor presentación.",
-        actions: [
-          { label: "📦 Mis productos", url: "/dashboard/products" },
-          { label: "📊 Ir al dashboard", url: "/dashboard" },
-        ],
-      },
-      [INTENTS.HOW_TO_DASHBOARD]: {
-        text: "📊 **Tu Dashboard - Panel de control:**\n\nEs tu centro de mando donde puedes:\n• 📊 **Ver estadísticas** de ventas y visitas\n• 📦 **Gestionar productos** (crear, editar, eliminar)\n• 🧾 **Revisar pedidos** de clientes\n• ⚙️ **Configurar tu tienda** (nombre, logo, descripción)\n• 📈 **Ver análisis** de conversión y tráfico\n\n**Cómo acceder:** Clic en tu avatar → Dashboard\n\n💡 **Tip:** Revisa tus estadísticas semanalmente para mejorar.",
-        actions: [
-          { label: "📊 Abrir dashboard", url: "/dashboard" },
-          { label: "📦 Productos", url: "/dashboard/products" },
-          { label: "🧾 Órdenes", url: "/dashboard/orders" },
-        ],
-      },
-      [INTENTS.HOW_TO_ORDERS]: {
-        text: "🧾 **Gestionar tus pedidos:**\n\n1️⃣ **Ve al Dashboard** → Órdenes\n2️⃣ **Filtra** por estado:\n   • Pendiente — nuevos pedidos\n   • Procesando — preparando envío\n   • Enviado — en camino\n   • Entregado — completado\n3️⃣ **Actualiza** el estado cuando avances\n4️⃣ **Confirma** la entrega del producto\n\n📦 También puedes ver el seguimiento de envío en tiempo real.\n\n💡 **Tip:** Responde rápido a los clientes para mejorar tu reputación.",
-        actions: [
-          { label: "🧾 Ver órdenes", url: "/dashboard/orders" },
-          { label: "📊 Dashboard", url: "/dashboard" },
-        ],
-      },
-      [INTENTS.HOW_TO_UPGRADE]: {
-        text: "⬆️ **Actualizar a Plan Full:**\n\nEl plan Full te permite:\n• 🏪 Vender sin límites de productos\n• 📊 Acceso a herramientas premium\n• 🎯 Mayor visibilidad en búsquedas\n• 💬 Soporte prioritario\n\n**Cómo actualizar:**\n1️⃣ Ve a tu Dashboard → Configuración\n2️⃣ Selecciona 'Plan Full'\n3️⃣ Realiza el pago (Yape, transferencia o tarjeta)\n4️⃣ ¡Tu cuenta se actualiza automáticamente! 🎉\n\n💡 **Tip:** El Plan Full cuesta solo S/ 199/año.",
-        actions: [
-          { label: "⬆️ Ver planes", url: "/upgrade" },
-          { label: "📊 Mi dashboard", url: "/dashboard" },
-        ],
-      },
-      [INTENTS.HOW_TO_MASCOTS]: {
-        text: "🐾 **Tus mascotas virtuales:**\n\n• 🖱️ **Interactúa** haciendo clic en la mascota\n• 🪙 **Gana monedas** explorando la tienda y comprando\n• 🛍️ **Compra accesorios** en la tienda de mascotas\n• 🎩 **Desbloquea** mascotas premium con logros\n• ✏️ **Personaliza** su nombre\n\n🎁 **Beneficios reales:** Los accesorios dan bonificaciones (más monedas, descuentos, etc.)\n\n💡 **Tip:** Haz clic en la moneda 🪙 para abrir la tienda de accesorios.",
-        actions: [
-          { label: "🛍️ Tienda accesorios", url: "#mascot-shop" },
-          { label: "🪙 Ver monedas", url: "#mascot-coins" },
-        ],
-      },
-      [INTENTS.HOW_TO_OFFERS]: {
-        text: "🔥 **Ofertas y descuentos:**\n\n• 🏷️ **Página de ofertas** — Todos los descuentos del día\n• 🎫 **Cupones** — Ingresa códigos en el checkout para descuento\n• 🎰 **Ruleta** — Gira para ganar descuentos (hasta 50%)\n• 📅 **Ofertas semanales** — Cada lunes hay nuevas promociones\n• 🎊 **Fiestas Patrias** — Ofertas especiales en temporada\n\n💡 **Tip:** Suscríbete para recibir ofertas por email cada semana.",
-        actions: [
-          { label: "🔥 Ver ofertas", url: "/ofertas" },
-          { label: "🎰 Girar ruleta", url: "/spin-wheel" },
-          { label: "🛒 Ir a comprar", url: "/" },
-        ],
-      },
-    };
-
     // Context-aware enhancements
-    if (HELP_GUIDES[intent]) {
-      const guide = HELP_GUIDES[intent];
-      response = guide.text;
-      actions = guide.actions || [];
-    }
-
     if (intent === INTENTS.COINS && coins !== undefined) {
       response = `Tienes ${coins} monedas 🪙 ¡Sigue explorando para ganar más!`;
     }
@@ -789,7 +691,7 @@ export default function useMascotChat({ mood, mascotName, coins }) {
       response = `${timeGreeting}! ${response}`;
     }
 
-    return { intent, response, actions };
+    return { intent, response, actions, openHelpCenter: intent === INTENTS.HELP };
   }, [mood, coins]);
 
   const sendMessage = useCallback((text, context = {}) => {
@@ -809,7 +711,7 @@ export default function useMascotChat({ mood, mascotName, coins }) {
     const delay = 300 + Math.random() * 500;
     clearTimeout(typingTimer.current);
     typingTimer.current = setTimeout(() => {
-      const { intent, response, actions } = generateResponse(text, context);
+      const { intent, response, actions, openHelpCenter } = generateResponse(text, context);
 
       const botMsg = {
         id: ++messageIdRef.current,
@@ -817,6 +719,7 @@ export default function useMascotChat({ mood, mascotName, coins }) {
         text: response,
         intent,
         actions,
+        openHelpCenter,
         timestamp: Date.now(),
       };
 
@@ -836,13 +739,7 @@ export default function useMascotChat({ mood, mascotName, coins }) {
   // Quick actions for common queries
   const quickActions = [
     { label: "🛍️ Productos", message: "¿Qué productos tienes?" },
-    { label: "🛒 Cómo comprar", message: "¿Cómo compro?" },
-    { label: "🏪 Cómo vender", message: "¿Cómo vendo?" },
-    { label: "💳 Pagos", message: "¿Cómo pago?" },
-    { label: "📊 Dashboard", message: "¿Cómo veo mi panel?" },
-    { label: "🐾 Mascotas", message: "¿Cómo funcionan las mascotas?" },
-    { label: "🔥 Ofertas", message: "¿Cómo veo las ofertas?" },
-    { label: "⬆️ Upgrade", message: "¿Cómo actualizo mi cuenta?" },
+    { label: "✨ Recomienda", message: "¿Qué me recomiendas?" },
   ];
 
   return {

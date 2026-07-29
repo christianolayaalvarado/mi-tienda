@@ -78,6 +78,7 @@ export default function MascotChat({
   mascotType = "box",
   moodEmoji = "😊",
   onClose,
+  openHelp,
 }) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef(null);
@@ -90,6 +91,15 @@ export default function MascotChat({
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isTyping]);
+
+  // Open HelpCenter when bot detects help intent
+  useEffect(() => {
+    if (!openHelp || !messages.length) return;
+    const lastBot = [...messages].reverse().find((m) => m.role === "bot");
+    if (lastBot?.openHelpCenter) {
+      setTimeout(() => openHelp(), 600);
+    }
+  }, [messages, openHelp]);
 
   // Focus input when chat opens
   useEffect(() => {
@@ -186,20 +196,20 @@ export default function MascotChat({
             {/* Tutorial grid */}
             <div className="grid grid-cols-2 gap-1.5 px-1">
               {[
-                { emoji: "🛒", label: "Cómo comprar", msg: "¿Cómo compro?" },
-                { emoji: "💳", label: "Formas de pago", msg: "¿Cómo pago?" },
-                { emoji: "🏪", label: "Crear mi tienda", msg: "¿Cómo creo mi tienda?" },
-                { emoji: "📦", label: "Agregar productos", msg: "¿Cómo agrego productos?" },
-                { emoji: "📊", label: "Mi dashboard", msg: "¿Cómo veo mi panel?" },
-                { emoji: "🧾", label: "Ver pedidos", msg: "¿Cómo veo mis pedidos?" },
-                { emoji: "⬆️", label: "Plan Full", msg: "¿Cómo actualizo mi cuenta?" },
-                { emoji: "🐾", label: "Mis mascotas", msg: "¿Cómo funcionan las mascotas?" },
-                { emoji: "🔥", label: "Ofertas", msg: "¿Cómo veo las ofertas?" },
-                { emoji: "🏪", label: "Vender", msg: "¿Cómo vendo?" },
+                { emoji: "🛒", label: "Cómo comprar", category: "compras" },
+                { emoji: "💳", label: "Formas de pago", category: "pagos" },
+                { emoji: "🏪", label: "Crear mi tienda", category: "ventas" },
+                { emoji: "📦", label: "Agregar productos", category: "ventas" },
+                { emoji: "📊", label: "Mi dashboard", category: "dashboard" },
+                { emoji: "🧾", label: "Ver pedidos", category: "ventas" },
+                { emoji: "⬆️", label: "Plan Full", category: "cuenta" },
+                { emoji: "🐾", label: "Mis mascotas", category: "mascotas" },
+                { emoji: "🔥", label: "Ofertas", category: "ofertas" },
+                { emoji: "📦", label: "Envíos", category: "envios" },
               ].map((t) => (
                 <button
                   key={t.label}
-                  onClick={() => onSend(t.msg)}
+                  onClick={() => openHelp?.(t.category)}
                   className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors text-left"
                 >
                   <span className="text-base">{t.emoji}</span>
