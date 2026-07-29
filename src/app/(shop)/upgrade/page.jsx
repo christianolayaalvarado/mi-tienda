@@ -90,7 +90,7 @@ function UpgradePage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
       {/* Header */}
       <div className="pt-6 pb-6 px-4 sm:px-8">
-        <div className="max-w-[1104px] mx-auto">
+        <div className="max-w-5xl mx-auto">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 text-left">
             {isFull ? "Tu plan actual" : "Elige tu plan"}
           </h1>
@@ -102,7 +102,7 @@ function UpgradePage() {
 
       {/* Cards */}
       <div className="px-4 sm:px-8 pb-12">
-        <div className="max-w-[1104px] mx-auto grid md:grid-cols-2 gap-6 items-start">
+        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-6 items-start">
 
           {/* ============ FREE CARD ============ */}
           <div className="relative">
