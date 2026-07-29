@@ -119,6 +119,7 @@ export default function RootLayout({ children }) {
             </CartProvider>
             </MascotProvider>
             </HelpCenterProvider>
+            </ThemeProvider>
             </AuthProvider>
         </Providers>
       </body>
