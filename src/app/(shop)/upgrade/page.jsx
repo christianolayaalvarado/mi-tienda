@@ -91,7 +91,7 @@ function UpgradePage() {
       {/* Header */}
       <div className="pt-6 pb-6 px-4 sm:px-8">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 text-left">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 text-left">
             {isFull ? "Tu plan actual" : "Elige tu plan"}
           </h1>
           <p className="text-gray-500 mt-1 text-left text-sm sm:text-base">
