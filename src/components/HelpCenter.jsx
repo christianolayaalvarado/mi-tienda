@@ -35,6 +35,17 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
     }
   }, [activeStep]);
 
+  const goStep = useCallback((dir) => {
+    if (!selectedTutorial) return;
+    const total = selectedTutorial.steps.length;
+    setActiveStep((prev) => {
+      const next = prev + dir;
+      if (next < 0) return 0;
+      if (next >= total) return total - 1;
+      return next;
+    });
+  }, [selectedTutorial]);
+
   if (!open) return null;
 
   const handleCategory = (catId) => {
@@ -64,17 +75,6 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
     }
     window.location.href = url;
   };
-
-  const goStep = useCallback((dir) => {
-    if (!selectedTutorial) return;
-    const total = selectedTutorial.steps.length;
-    setActiveStep((prev) => {
-      const next = prev + dir;
-      if (next < 0) return 0;
-      if (next >= total) return total - 1;
-      return next;
-    });
-  }, [selectedTutorial]);
 
   const currentIllustration = selectedTutorial?.steps?.[activeStep]?.illustration;
   const totalSteps = selectedTutorial?.steps?.length || 0;
