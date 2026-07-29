@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { TUTORIAL_CATEGORIES, TUTORIALS } from "@/lib/helpTutorials";
 import StepIllustration from "@/components/StepIllustration";
 
@@ -18,25 +18,22 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
     }
   }, [initialCategory]);
 
-  // Track which step is visible on scroll
+  // Reset step when tutorial changes
   useEffect(() => {
-    if (!selectedTutorial || !stepsRef.current) return;
-    const container = stepsRef.current;
-    const handleScroll = () => {
-      const stepElements = container.querySelectorAll("[data-step]");
-      let current = 0;
-      stepElements.forEach((el, i) => {
-        const rect = el.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        if (rect.top - containerRect.top < containerRect.height / 3) {
-          current = i;
-        }
-      });
-      setActiveStep(current);
-    };
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
+    setActiveStep(0);
+    if (stepsRef.current) {
+      stepsRef.current.scrollTop = 0;
+    }
   }, [selectedTutorial]);
+
+  // Scroll to active step when it changes
+  useEffect(() => {
+    if (!stepsRef.current) return;
+    const el = stepsRef.current.querySelector(`[data-step="${activeStep}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [activeStep]);
 
   if (!open) return null;
 
@@ -68,7 +65,19 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
     window.location.href = url;
   };
 
+  const goStep = useCallback((dir) => {
+    if (!selectedTutorial) return;
+    const total = selectedTutorial.steps.length;
+    setActiveStep((prev) => {
+      const next = prev + dir;
+      if (next < 0) return 0;
+      if (next >= total) return total - 1;
+      return next;
+    });
+  }, [selectedTutorial]);
+
   const currentIllustration = selectedTutorial?.steps?.[activeStep]?.illustration;
+  const totalSteps = selectedTutorial?.steps?.length || 0;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
@@ -90,7 +99,7 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
                   {selectedTutorial ? selectedTutorial.title : selectedCategory ? TUTORIAL_CATEGORIES.find(c => c.id === selectedCategory)?.label : "Centro de Ayuda"}
                 </h2>
                 <p className="text-white/70 text-xs">
-                  {selectedTutorial ? `${selectedTutorial.steps.length} pasos` : selectedCategory ? TUTORIAL_CATEGORIES.find(c => c.id === selectedCategory)?.description : "Tutoriales y guías de uso"}
+                  {selectedTutorial ? `Paso ${activeStep + 1} de ${totalSteps}` : selectedCategory ? TUTORIAL_CATEGORIES.find(c => c.id === selectedCategory)?.description : "Tutoriales y guías de uso"}
                 </p>
               </div>
             </div>
@@ -140,23 +149,81 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
           {/* Tutorial detallado con pasos + ilustración */}
           {selectedTutorial && (
             <div className="flex flex-col sm:flex-row h-full max-h-[calc(90vh-80px)]">
-              {/* Ilustración — visible en desktop (lado izquierdo), en mobile arriba */}
-              {currentIllustration && (
-                <div className="hidden sm:flex w-[280px] shrink-0 items-center justify-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-r border-green-100">
-                  <div className="w-full max-w-[240px] aspect-square">
-                    <StepIllustration type={currentIllustration} animate={true} className="w-full h-full" />
-                  </div>
+              {/* Ilustración — desktop */}
+              <div className="hidden sm:flex flex-col w-[280px] shrink-0 border-r border-green-100">
+                <div className="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-green-50 to-emerald-50">
+                  {currentIllustration && (
+                    <div className="w-full max-w-[240px] aspect-square">
+                      <StepIllustration type={currentIllustration} animate={true} className="w-full h-full" />
+                    </div>
+                  )}
                 </div>
-              )}
+                {/* Navegación desktop */}
+                <div className="shrink-0 px-4 py-3 bg-white border-t border-green-100 flex items-center justify-between">
+                  <button
+                    onClick={() => goStep(-1)}
+                    disabled={activeStep === 0}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    ← Anterior
+                  </button>
+                  <div className="flex gap-1">
+                    {selectedTutorial.steps.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setActiveStep(i)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          i === activeStep ? "bg-green-600 scale-125" : "bg-gray-300 hover:bg-gray-400"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => goStep(1)}
+                    disabled={activeStep === totalSteps - 1}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    Siguiente →
+                  </button>
+                </div>
+              </div>
 
-              {/* Ilustración mobile — compacta arriba */}
-              {currentIllustration && (
-                <div className="sm:hidden shrink-0 px-4 pt-3 pb-2 bg-gradient-to-br from-green-50 to-emerald-50 border-b border-green-100">
-                  <div className="w-full h-[120px]">
+              {/* Ilustración mobile */}
+              <div className="sm:hidden shrink-0 px-4 pt-3 pb-2 bg-gradient-to-br from-green-50 to-emerald-50 border-b border-green-100">
+                <div className="w-full h-[120px]">
+                  {currentIllustration && (
                     <StepIllustration type={currentIllustration} animate={true} className="w-full h-full" />
-                  </div>
+                  )}
                 </div>
-              )}
+                {/* Navegación mobile */}
+                <div className="flex items-center justify-between mt-2 pb-1">
+                  <button
+                    onClick={() => goStep(-1)}
+                    disabled={activeStep === 0}
+                    className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    ←
+                  </button>
+                  <div className="flex gap-1">
+                    {selectedTutorial.steps.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setActiveStep(i)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          i === activeStep ? "bg-green-600 scale-125" : "bg-gray-300 hover:bg-gray-400"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => goStep(1)}
+                    disabled={activeStep === totalSteps - 1}
+                    className="px-3 py-1 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    →
+                  </button>
+                </div>
+              </div>
 
               {/* Steps */}
               <div ref={stepsRef} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2">
@@ -164,16 +231,19 @@ export default function HelpCenter({ open, onClose, initialCategory }) {
                   <div
                     key={i}
                     data-step={i}
-                    className={`flex gap-3 p-2.5 rounded-xl transition-all duration-300 ${
-                      i === activeStep ? "bg-green-50 border border-green-200 shadow-sm" : "border border-transparent"
+                    onClick={() => setActiveStep(i)}
+                    className={`flex gap-3 p-2.5 rounded-xl cursor-pointer transition-all duration-300 ${
+                      i === activeStep ? "bg-green-50 border border-green-200 shadow-sm" : "border border-transparent hover:bg-gray-50"
                     }`}
                   >
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-colors ${
-                      i === activeStep ? "bg-green-600 text-white" : "bg-gray-100 text-gray-500"
+                      i === activeStep ? "bg-green-600 text-white" : i < activeStep ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"
                     }`}>
-                      {i + 1}
+                      {i < activeStep ? "✓" : i + 1}
                     </div>
-                    <div className="text-sm text-gray-700 pt-0.5 leading-relaxed">{step.text}</div>
+                    <div className={`text-sm pt-0.5 leading-relaxed ${i === activeStep ? "text-gray-900 font-medium" : i < activeStep ? "text-gray-500" : "text-gray-700"}`}>
+                      {step.text}
+                    </div>
                   </div>
                 ))}
 
