@@ -145,6 +145,31 @@ export default function MascotGallery() {
         </p>
       </div>
 
+      <div className="mb-6 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200 p-4">
+        <h3 className="text-sm font-bold text-orange-800 mb-3 flex items-center gap-2">
+          <span>🔑</span> ¿Cómo desbloquear mascotas premium?
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+          {[
+            { icon: "🛒", label: "Realiza tu primera compra", color: "text-green-600" },
+            { icon: "🛒", label: "Realiza 3 compras", color: "text-green-600" },
+            { icon: "💰", label: "Realiza tu primera venta", color: "text-blue-600" },
+            { icon: "📦", label: "Publica 5 productos", color: "text-blue-600" },
+            { icon: "⭐", label: "Escribe 5 reseñas", color: "text-yellow-600" },
+            { icon: "💰", label: "Gasta S/ 200 en total", color: "text-green-600" },
+            { icon: "💰", label: "Gasta S/ 500 en total", color: "text-green-600" },
+            { icon: "🏆", label: "Vende 10 productos", color: "text-blue-600" },
+            { icon: "🏆", label: "Alcanza 50 ventas", color: "text-purple-600" },
+            { icon: "👑", label: "Alcanza 100 ventas", color: "text-purple-600" },
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-gray-600">
+              <span className="text-sm">{item.icon}</span>
+              <span className={item.color}>{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {MASCOT_LIST.map((mascot) => {
           const isUnlocked = unlockedIds.includes(mascot.id);
@@ -228,9 +253,24 @@ export default function MascotGallery() {
               )}
 
               {!isUnlocked ? (
-                <p className="text-xs text-gray-500 mt-1 leading-tight">
-                  {mascot.unlockLabel}
-                </p>
+                <div className="mt-1 space-y-1">
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-orange-500 text-xs">🔒</span>
+                    <p className="text-xs text-orange-600 font-medium leading-tight">
+                      {mascot.unlockLabel}
+                    </p>
+                  </div>
+                  {mascot.unlockCondition && (() => {
+                    const achievement = ACHIEVEMENT_DEFINITIONS[mascot.unlockCondition];
+                    if (!achievement) return null;
+                    return (
+                      <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400">
+                        <span>{achievement.icon}</span>
+                        <span>{achievement.title}</span>
+                      </div>
+                    );
+                  })()}
+                </div>
               ) : (
                 <p className="text-xs text-green-600 mt-1">
                   {isSelected ? "Seleccionada" : "Desbloqueada"}
