@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
+import { optimizeCloudinary } from "@/lib/cloudinaryOptimize"
 
 function Chevron({ className = "" }) {
   return (
@@ -118,7 +119,7 @@ export default function ProductGallery({ images, title }) {
               >
                 <div className="relative w-full h-full rounded-lg overflow-hidden">
                   <Image
-                    src={img || "/images/placeholder.png"}
+                    src={optimizeCloudinary(img) || "/images/placeholder.png"}
                     alt={`${title} ${index}`}
                     fill
                     className="object-cover"
@@ -151,7 +152,7 @@ export default function ProductGallery({ images, title }) {
         >
           {selectedImage && (
             <Image
-              src={selectedImage}
+              src={optimizeCloudinary(selectedImage)}
               alt={title}
               fill
               sizes="(max-width: 768px) 90vw, (max-width: 1200px) 50vw, 40vw"
@@ -190,7 +191,7 @@ export default function ProductGallery({ images, title }) {
         >
           <div className="relative w-[90vw] h-[90vh]">
             <Image
-              src={selectedImage || "/images/placeholder.png"}
+              src={optimizeCloudinary(selectedImage) || "/images/placeholder.png"}
               alt={title}
               fill
               className="object-contain"

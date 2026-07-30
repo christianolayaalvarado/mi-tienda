@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { optimizeCloudinary } from "@/lib/cloudinaryOptimize";
 
 const PAYMENT_LABELS = {
   yape: "Yape",
@@ -128,7 +129,7 @@ export default function PaymentMethodSelector({ sellerId, onSelect }) {
                       className="shrink-0 w-20 h-20 relative rounded-lg overflow-hidden border border-gray-200 hover:border-green-500 transition-colors cursor-pointer"
                       title="Ver código QR"
                     >
-                      <Image src={m.qrImageUrl} alt={`QR ${m.type}`} fill style={{ objectFit: "contain" }} />
+                      <Image src={optimizeCloudinary(m.qrImageUrl)} alt={`QR ${m.type}`} fill style={{ objectFit: "contain" }} />
                     </button>
                   )}
                 </li>
@@ -156,7 +157,7 @@ export default function PaymentMethodSelector({ sellerId, onSelect }) {
             </button>
             <h3 className="font-semibold text-center mb-4">Código QR para Yapear</h3>
             <div className="relative w-96 h-96 mx-auto rounded-xl overflow-hidden border">
-              <Image src={qrModal} alt="Código QR Yape" fill style={{ objectFit: "contain" }} />
+              <Image src={optimizeCloudinary(qrModal)} alt="Código QR Yape" fill style={{ objectFit: "contain" }} />
             </div>
             <p className="text-sm text-gray-500 text-center mt-4">
               Abre tu app de Yape y escanea este código para pagar.

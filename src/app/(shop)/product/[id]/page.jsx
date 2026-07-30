@@ -6,6 +6,7 @@ import ReviewsSection from "@/components/ReviewsSection"
 import Image from "next/image"
 import Breadcrumbs from "@/components/Breadcrumbs"
 import ProductViewTracker from "@/components/ProductViewTracker"
+import { optimizeCloudinary } from "@/lib/cloudinaryOptimize"
 
 export default async function ProductDetail({ params }) {
 
@@ -96,7 +97,7 @@ export default async function ProductDetail({ params }) {
                   {item.images?.[0] && (
                     <div className="relative w-full h-32 mb-2">
                       <Image
-                        src={item.images[0]}
+                        src={optimizeCloudinary(item.images[0])}
                         alt={item.title}
                         fill
                         className="object-cover rounded"

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { optimizeCloudinary } from "@/lib/cloudinaryOptimize";
 
 export default function RecommendedProducts({
   categoryId: catIdProp,
@@ -113,7 +114,7 @@ export default function RecommendedProducts({
               className="relative aspect-square w-full mb-2 rounded overflow-hidden bg-gray-100"
             >
               <Image
-                src={product.image || "/images/placeholder.png"}
+                src={optimizeCloudinary(product.image) || "/images/placeholder.png"}
                 alt={product.title || "Producto"}
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"

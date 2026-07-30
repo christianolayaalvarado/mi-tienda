@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import SocialProof from "@/components/SocialProof";
+import { optimizeCloudinary } from "@/lib/cloudinaryOptimize";
 
 const imageSizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
 
@@ -46,7 +47,7 @@ export default function ProductCard({ product, priority }) {
 
           {hasValidImage ? (
             <img
-              src={product.images[0]}
+              src={optimizeCloudinary(product.images[0], { width: 600 })}
               alt={product.title || "Producto"}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               onError={() => setImgError(true)}
