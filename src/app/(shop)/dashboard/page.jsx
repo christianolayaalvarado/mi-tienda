@@ -3,6 +3,7 @@ import { getServerAuthUser } from "@/lib/serverAuth";
 import prisma from "@/lib/prisma";
 import DashboardCards from "@/components/DashboardCards";
 import DashboardAnalytics from "@/components/DashboardAnalytics";
+import CelebrationToggle from "@/components/CelebrationToggle";
 
 export default async function DashboardHome() {
   const user = await getServerAuthUser();
@@ -35,6 +36,11 @@ export default async function DashboardHome() {
 
       {/* Analytics */}
       <DashboardAnalytics />
+
+      {/* Celebration Toggle (admin only) */}
+      <div className="mt-4">
+        <CelebrationToggle />
+      </div>
 
       {/* Category Cards */}
       <div className="mt-2">

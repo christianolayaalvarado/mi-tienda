@@ -15,6 +15,7 @@ import RootLayoutClientInit from "@/components/RootLayoutClientInit";
 import ScrollWrapper from "@/components/ScrollWrapper";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { HelpCenterProvider } from "@/context/HelpCenterContext";
+import { CelebrationsProvider } from "@/context/CelebrationsContext";
 import PriceDropNotification from "@/components/PriceDropNotification";
 import RegisterBenefitsModal from "@/components/RegisterBenefitsModal";
 
@@ -90,6 +91,7 @@ export default function RootLayout({ children }) {
           <AuthProvider>
             <ThemeProvider>
             <HelpCenterProvider>
+            <CelebrationsProvider>
             <MascotProvider>
               <CartProvider>
               {/* Inicializador cliente que intenta refresh controlado */}
@@ -118,6 +120,7 @@ export default function RootLayout({ children }) {
 
             </CartProvider>
             </MascotProvider>
+            </CelebrationsProvider>
             </HelpCenterProvider>
             </ThemeProvider>
             </AuthProvider>
