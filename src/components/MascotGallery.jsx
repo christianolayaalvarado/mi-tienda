@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 export default function MascotGallery() {
   const { refresh } = useAuthContext() || {};
   const [selected, setSelected] = useState("box");
-  const [unlockedIds, setUnlockedIds] = useState(["box"]);
+  const [unlockedIds, setUnlockedIds] = useState(() => MASCOT_LIST.filter((m) => m.type === "default").map((m) => m.id));
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
