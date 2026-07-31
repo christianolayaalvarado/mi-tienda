@@ -8,7 +8,10 @@ import { getJwtSecret } from "@/lib/getJwtSecret";
 async function getAuthUserFromCookie() {
   try {
     const cookieStore = await cookies();
-    const tokenValue = cookieStore.get("token")?.value;
+    let tokenValue = cookieStore.get("token")?.value;
+    if (!tokenValue) {
+      tokenValue = cookieStore.get("next-auth.session-token")?.value;
+    }
     if (!tokenValue) return null;
     const payload = jwt.verify(decodeURIComponent(tokenValue), getJwtSecret());
     return payload?.email ? payload : null;

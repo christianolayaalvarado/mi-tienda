@@ -5,7 +5,11 @@ import { getJwtSecret } from "./getJwtSecret";
 export async function getAuthUserFromCookie() {
   try {
     const cookieStore = await cookies();
-    const tokenValue = cookieStore.get("token")?.value;
+    let tokenValue = cookieStore.get("token")?.value;
+
+    if (!tokenValue) {
+      tokenValue = cookieStore.get("next-auth.session-token")?.value;
+    }
 
     if (!tokenValue) return null;
 
