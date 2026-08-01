@@ -9,7 +9,6 @@ import Mascot3D from "@/components/Mascot3D";
 import MascotFiestasPatrias from "@/components/MascotFiestasPatrias";
 import AccessoryShop from "@/components/AccessoryShop";
 import useMascotBehavior from "@/hooks/useMascotBehavior";
-import { useCelebrations } from "@/context/CelebrationsContext";
 
 import { useHelpCenter } from "@/context/HelpCenterContext";
 
@@ -124,6 +123,7 @@ export default function ScrollMascot({ onClick }) {
   const [mascotName, setMascotName] = useState("");
   const [showShop, setShowShop] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showFiestas, setShowFiestas] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
@@ -148,7 +148,6 @@ export default function ScrollMascot({ onClick }) {
   const { mood, moodEmoji, lastDialogue, dialogueKey, speak } = useMascotPersonality();
   const { coins, newCoinAnimation, addScrollCoins, getEquippedDisplay, getScrollSpeed, getWalkSpeed, equipped } = useMascotCoins();
   const { messages, isTyping, sendMessage, clearMessages, quickActions } = useMascotChat({ mood, mascotName, coins });
-  const { active: celebration } = useCelebrations();
 
   // --- PERSISTENCE ---
   useEffect(() => {
@@ -204,6 +203,29 @@ export default function ScrollMascot({ onClick }) {
 
   useEffect(() => {
     const h = (e) => { if (e.key === "selectedMascot" && e.newValue) setMascotType(e.newValue); };
+    window.addEventListener("storage", h);
+    return () => window.removeEventListener("storage", h);
+  }, []);
+
+  // --- FIESTAS PATRIAS ---
+  useEffect(() => {
+    const now = new Date();
+    const month = now.getMonth(); // 0=Jan
+    const day = now.getDate();
+    const isFiestasSeason = month === 6 && day >= 15; // Jul 15-31
+    const manual = localStorage.getItem("showFiestasPatrias") === "true";
+    setShowFiestas(isFiestasSeason || manual);
+  }, []);
+
+  useEffect(() => {
+    const h = (e) => {
+      if (e.key === "showFiestasPatrias") {
+        const now = new Date();
+        const isFiestasSeason = now.getMonth() === 6 && now.getDate() >= 15;
+        const manual = e.newValue === "true";
+        setShowFiestas(isFiestasSeason || manual);
+      }
+    };
     window.addEventListener("storage", h);
     return () => window.removeEventListener("storage", h);
   }, []);
@@ -485,8 +507,8 @@ export default function ScrollMascot({ onClick }) {
             );
           })}
 
-          {/* Celebración overlay */}
-          <MascotFiestasPatrias size={96} show={!!celebration} image={celebration?.mascotImage} />
+          {/* Fiestas Patrias overlay */}
+          <MascotFiestasPatrias size={96} show={showFiestas} />
         </div>
       </div>
 

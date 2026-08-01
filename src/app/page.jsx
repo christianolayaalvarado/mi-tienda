@@ -1,6 +1,16 @@
 import prisma from "@/lib/prisma"
 import HomeClient from "@/components/HomeClient"
 
+export const metadata = {
+  title: {
+    default: "Mi Tienda — Compra y Venta de Productos en Perú",
+    template: "%s | Mi Tienda",
+  },
+  description:
+    "Mi Tienda es tu marketplace en Perú. Compra y vende productos de calidad: electrodomésticos, cocina, muebles, decoración, fitness y más. Ofertas exclusivas y envíos a todo el país.",
+  alternates: { canonical: "https://mi-tienda-app-theta.vercel.app" },
+};
+
 export default async function HomePage({ searchParams }) {
 
   const params = await searchParams

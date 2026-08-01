@@ -2,8 +2,6 @@
 
 import { useState, useCallback } from "react";
 import useMascotCoins from "@/hooks/useMascotCoins";
-import { useCelebrations } from "@/context/CelebrationsContext";
-import { useAuthContext } from "@/context/AuthProvider";
 
 const CATEGORIES = [
   { id: "all", label: "Todos", emoji: "🎨" },
@@ -25,13 +23,9 @@ const CATEGORY_COLORS = {
 
 export default function AccessoryShop({ onClose }) {
   const { coins, owned, equipped, accessories, buyAccessory, equipAccessory, lastBonusMsg } = useMascotCoins();
-  const { active: celebration, activate, celebrations } = useCelebrations();
-  const { user } = useAuthContext() || {};
   const [activeCategory, setActiveCategory] = useState("all");
   const [message, setMessage] = useState("");
   const [buyingId, setBuyingId] = useState(null);
-
-  const isAdmin = user?.role === "admin" || user?.email === "admin@demo.com";
 
   const filtered = activeCategory === "all"
     ? accessories
@@ -142,42 +136,27 @@ export default function AccessoryShop({ onClose }) {
           })}
         </div>
 
-        {/* Selector de celebraciones (solo admin) */}
-        {isAdmin && (
-          <div className="px-3 pt-2 shrink-0 space-y-1">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-1">Celebraciones</p>
-            {celebrations.map((c) => {
-              const isActive = celebration?.id === c.id;
-              return (
-                <button
-                  key={c.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (isActive) {
-                      activate(null);
-                      setMessage(`${c.emoji} ${c.name} desactivada`);
-                    } else {
-                      activate(c.id);
-                      setMessage(`${c.emoji} ¡${c.name} activada!`);
-                    }
-                    setTimeout(() => setMessage(""), 2000);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-all
-                    ${isActive
-                      ? "bg-green-50 border-green-300"
-                      : "bg-white border-gray-200 hover:border-gray-300"
-                    }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <img src={c.cardImage} alt="" width="24" height="24" className="object-contain" />
-                    <span className="text-sm font-medium text-gray-700">{c.name}</span>
-                  </div>
-                  {isActive && <span className="text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded-full">Activa</span>}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Fiestas Patrias toggle */}
+        <div className="px-3 pt-2 shrink-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const current = localStorage.getItem("showFiestasPatrias") === "true";
+              const next = !current;
+              localStorage.setItem("showFiestasPatrias", String(next));
+              window.dispatchEvent(new Event("storage"));
+              setMessage(next ? "🎊 ¡Fiestas Patrias activadas!" : "Fiestas Patrias desactivadas");
+              setTimeout(() => setMessage(""), 2000);
+            }}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-red-50 to-white border border-red-200 hover:border-red-400 transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <img src="/escarapela.png" alt="" width="24" height="24" className="object-contain" />
+              <span className="text-sm font-medium text-gray-700">Fiestas Patrias</span>
+            </div>
+            <span className="text-xs text-gray-500">Escaparapela + Banda</span>
+          </button>
+        </div>
 
         {/* Items */}
         <div className="p-3 overflow-y-auto flex-1 min-h-0 grid grid-cols-2 gap-2">

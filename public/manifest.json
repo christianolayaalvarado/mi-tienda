@@ -7,6 +7,9 @@
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
   "orientation": "portrait-primary",
+  "lang": "es",
+  "dir": "ltr",
+  "id": "/",
   "icons": [
     {
       "src": "/images/icon-192.png",
