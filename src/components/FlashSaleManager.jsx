@@ -49,7 +49,6 @@ export default function FlashSaleManager() {
   const [loadingSales, setLoadingSales] = useState(false);
 
   const isAdmin = user?.role === "admin" || user?.email === "admin@demo.com";
-  if (!isAdmin) return null;
 
   useEffect(() => {
     if (!expanded) return;
@@ -83,6 +82,8 @@ export default function FlashSaleManager() {
     }, 400);
     return () => clearTimeout(timer);
   }, [productSearch]);
+
+  if (!isAdmin) return null;
 
   const toggleProduct = (p) => {
     setSelectedProducts((prev) => {
