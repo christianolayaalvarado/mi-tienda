@@ -193,6 +193,13 @@ export default function NavbarContent() {
               <span className="text-base sm:text-lg">🔥</span>
               <span className="hidden sm:inline">Ofertas</span>
             </Link>
+            <Link
+              href="/blog"
+              className="flex items-center gap-1 text-gray-600 hover:text-green-600 font-medium text-xs sm:text-sm shrink-0 min-h-[44px] px-1 sm:px-2"
+            >
+              <span className="text-base sm:text-lg">📝</span>
+              <span className="hidden sm:inline">Blog</span>
+            </Link>
             <button
               type="button"
               aria-label={`Abrir carrito, ${count} items`}

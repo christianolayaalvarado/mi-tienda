@@ -5,6 +5,9 @@ import DashboardCards from "@/components/DashboardCards";
 import DashboardAnalytics from "@/components/DashboardAnalytics";
 import CelebrationToggle from "@/components/CelebrationToggle";
 import CelebrationImageManager from "@/components/CelebrationImageManager";
+import VendorStats from "@/components/VendorStats";
+import ReferralBanner from "@/components/ReferralBanner";
+import FlashSaleManager from "@/components/FlashSaleManager";
 
 export default async function DashboardHome() {
   const user = await getServerAuthUser();
@@ -35,16 +38,27 @@ export default async function DashboardHome() {
         </p>
       </div>
 
-      {/* Analytics */}
-      <DashboardAnalytics />
+      {/* Vendor Stats */}
+      <VendorStats />
 
-      {/* Celebrations (admin only) */}
+      {/* Referral Banner */}
+      <div className="mt-4">
+        <ReferralBanner />
+      </div>
+
+      {/* Admin panels */}
       {isAdmin && (
         <div className="mt-4 space-y-3">
           <CelebrationToggle />
+          <FlashSaleManager />
           <CelebrationImageManager />
         </div>
       )}
+
+      {/* Analytics */}
+      <div className="mt-4">
+        <DashboardAnalytics />
+      </div>
 
       {/* Category Cards */}
       <div className="mt-2">

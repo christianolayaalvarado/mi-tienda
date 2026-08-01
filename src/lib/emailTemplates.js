@@ -598,6 +598,69 @@ export const lowStockTemplate = ({ sellerName, productTitle, currentStock, produ
   `;
 };
 
+export const abandonedCartEmail = (userName, cartItems, cartTotal) => {
+  const itemsHtml = cartItems.map(item => `
+    <tr>
+      <td style="padding:12px;border-bottom:1px solid #eee;">
+        <img src="${item.image || 'https://mi-tienda-app-theta.vercel.app/images/placeholder.png'}" width="60" style="border-radius:8px;vertical-align:middle;" />
+      </td>
+      <td style="padding:12px;border-bottom:1px solid #eee;">
+        <strong>${item.title}</strong><br/>
+        <span style="color:#666;">${item.qty || 1} x S/ ${item.price}</span>
+      </td>
+    </tr>
+  `).join('');
+
+  return `
+<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+  <div style="background:#16a34a;color:#fff;padding:20px;text-align:center;border-radius:10px 10px 0 0;">
+    <h1 style="margin:0;font-size:24px;">🛒 ¡Olvidaste algo en tu carrito!</h1>
+  </div>
+  <div style="background:#f9fafb;padding:20px;border:1px solid #e5e7eb;">
+    <p>Hola <strong>${userName || 'comprador'}</strong>,</p>
+    <p>Tienes productos increíbles esperándote. ¡No dejes que se escapen!</p>
+    <table style="width:100%;border-collapse:collapse;">${itemsHtml}</table>
+    <div style="text-align:center;margin:20px 0;">
+      <p style="font-size:24px;font-weight:bold;color:#16a34a;">Total: S/ ${cartTotal}</p>
+    </div>
+    <div style="text-align:center;">
+      <a href="https://mi-tienda-app-theta.vercel.app/cart" style="display:inline-block;background:#16a34a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">Completar mi compra →</a>
+    </div>
+    <p style="color:#999;font-size:12px;text-align:center;margin-top:20px;">Este carrito se guarda por 7 días. ¡No esperes mucho!</p>
+  </div>
+</body></html>`;
+};
+
+export const flashSaleEmail = (userName, saleTitle, discountPct, products, endDate) => {
+  const itemsHtml = products.slice(0, 6).map(p => `
+    <a href="https://mi-tienda-app-theta.vercel.app/product/${p.id}" style="display:inline-block;text-decoration:none;margin:4px;">
+      <img src="${p.images?.[0] || 'https://mi-tienda-app-theta.vercel.app/images/placeholder.png'}" width="120" style="border-radius:8px;" />
+      <p style="font-size:12px;margin:4px 0 0;color:#333;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.title}</p>
+      <p style="font-size:14px;font-weight:bold;color:#dc2626;margin:2px 0 0;">S/ ${p.price}</p>
+    </a>
+  `).join('');
+
+  return `
+<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+  <div style="background:linear-gradient(135deg,#dc2626,#f59e0b);color:#fff;padding:20px;text-align:center;border-radius:10px 10px 0 0;">
+    <h1 style="margin:0;font-size:24px;">⚡ ¡OFERTA RELÁMPAGO!</h1>
+    <p style="margin:5px 0 0;font-size:18px;">${discountPct}% de descuento</p>
+  </div>
+  <div style="background:#fef2f2;padding:20px;border:1px solid #fecaca;">
+    <p>Hola <strong>${userName || 'comprador'}</strong>,</p>
+    <p><strong>${saleTitle}</strong> — ¡Solo por tiempo limitado!</p>
+    <div style="text-align:center;margin:15px 0;padding:10px;background:#fff;border-radius:8px;border:2px dashed #dc2626;">
+      <p style="font-size:14px;color:#666;margin:0;">Termina en:</p>
+      <p style="font-size:20px;font-weight:bold;color:#dc2626;margin:5px 0 0;" id="countdown">${endDate}</p>
+    </div>
+    <div style="text-align:center;">${itemsHtml}</div>
+    <div style="text-align:center;margin:20px 0;">
+      <a href="https://mi-tienda-app-theta.vercel.app/ofertas" style="display:inline-block;background:#dc2626;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;">Ver todas las ofertas →</a>
+    </div>
+  </div>
+</body></html>`;
+};
+
 export default {
   verificationCodeTemplate,
   proofTemplate,
@@ -614,4 +677,6 @@ export default {
   seasonalTemplate,
   abandonedCartTemplate,
   lowStockTemplate,
+  abandonedCartEmail,
+  flashSaleEmail,
 };

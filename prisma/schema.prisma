@@ -571,3 +571,70 @@ model DashboardCardImage {
 
   @@unique([cardId, itemHref])
 }
+
+model FeaturedProduct {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId   String   @db.ObjectId
+  userId      String   @db.ObjectId
+  plan        String   @default("basic") // basic=7days S/5, boost=14days S/10, premium=30days S/20
+  startDate   DateTime @default(now())
+  endDate     DateTime
+  status      String   @default("active") // active, expired, cancelled
+  paymentMethod String? // yape, transfer, culqi
+  paymentRef  String?
+  createdAt   DateTime @default(now())
+
+  @@index([productId])
+  @@index([userId])
+  @@index([status])
+}
+
+model FlashSale {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  discountPct Int      // 10-90
+  startDate   DateTime
+  endDate     DateTime
+  productIds  String[] // product IDs included
+  categoryId  String?  @db.ObjectId
+  minPrice    Float?
+  maxPrice    Float?
+  status      String   @default("scheduled") // scheduled, active, ended
+  createdBy   String   @db.ObjectId
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+  @@index([startDate])
+}
+
+model VendorCommission {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId     String   @db.ObjectId
+  sellerId    String   @db.ObjectId
+  amount      Float    // sale amount
+  commission  Float    // platform commission (5%)
+  status      String   @default("pending") // pending, paid, deducted
+  createdAt   DateTime @default(now())
+
+  @@index([sellerId])
+  @@index([status])
+}
+
+model BlogPost {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  slug        String   @unique
+  content     String   // HTML content
+  excerpt     String?
+  coverImage  String?
+  tags        String[]
+  category    String   @default("general") // general, tips, guides, news
+  authorId    String   @db.ObjectId
+  published   Boolean  @default(false)
+  views       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([published])
+}
