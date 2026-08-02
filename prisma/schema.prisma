@@ -638,3 +638,10 @@ model BlogPost {
 
   @@index([published])
 }
+
+model CelebrationState {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key       String   @unique // "activeCelebration"
+  value     String?  // celebration ID or null
+  updatedAt DateTime @updatedAt
+}

@@ -11,6 +11,7 @@ import AccessoryShop from "@/components/AccessoryShop";
 import useMascotBehavior from "@/hooks/useMascotBehavior";
 
 import { useHelpCenter } from "@/context/HelpCenterContext";
+import { useCelebrations } from "@/context/CelebrationsContext";
 
 function SafePortal({ children, container }) {
   const [mounted, setMounted] = useState(false);
@@ -124,6 +125,7 @@ export default function ScrollMascot({ onClick }) {
   const [showShop, setShowShop] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showFiestas, setShowFiestas] = useState(false);
+  const { active: celebration } = useCelebrations();
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
@@ -207,28 +209,24 @@ export default function ScrollMascot({ onClick }) {
     return () => window.removeEventListener("storage", h);
   }, []);
 
-  // --- FIESTAS PATRIAS ---
+  // --- CELEBRATION OVERLAY ---
   useEffect(() => {
-    const now = new Date();
-    const month = now.getMonth(); // 0=Jan
-    const day = now.getDate();
-    const isFiestasSeason = month === 6 && day >= 15; // Jul 15-31
     const manual = localStorage.getItem("showFiestasPatrias") === "true";
-    setShowFiestas(isFiestasSeason || manual);
-  }, []);
+    const celebrationActive = celebration?.id === "fiestas_patrias";
+    setShowFiestas(celebrationActive || manual);
+  }, [celebration]);
 
   useEffect(() => {
     const h = (e) => {
       if (e.key === "showFiestasPatrias") {
-        const now = new Date();
-        const isFiestasSeason = now.getMonth() === 6 && now.getDate() >= 15;
         const manual = e.newValue === "true";
-        setShowFiestas(isFiestasSeason || manual);
+        const celebrationActive = celebration?.id === "fiestas_patrias";
+        setShowFiestas(celebrationActive || manual);
       }
     };
     window.addEventListener("storage", h);
     return () => window.removeEventListener("storage", h);
-  }, []);
+  }, [celebration]);
 
   // --- LAYOUT ---
   useEffect(() => {
@@ -508,7 +506,7 @@ export default function ScrollMascot({ onClick }) {
           })}
 
           {/* Fiestas Patrias overlay */}
-          <MascotFiestasPatrias size={96} show={showFiestas} />
+          <MascotFiestasPatrias size={96} show={showFiestas} image={celebration?.mascotImage} />
         </div>
       </div>
 

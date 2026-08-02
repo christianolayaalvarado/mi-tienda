@@ -6,11 +6,13 @@ import { useState } from "react";
 import SocialProof from "@/components/SocialProof";
 import { optimizeCloudinary } from "@/lib/cloudinaryOptimize";
 import FeaturedBadge from "@/components/FeaturedBadge";
+import { useCelebrations } from "@/context/CelebrationsContext";
 
 const imageSizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
 
 export default function ProductCard({ product, priority }) {
   const [imgError, setImgError] = useState(false);
+  const { active: celebration } = useCelebrations();
 
   if (!product) return null;
 
@@ -35,10 +37,12 @@ export default function ProductCard({ product, priority }) {
             </div>
           )}
 
-          {/* Escarapela Peruana */}
-          <div className="absolute top-1.5 right-1.5 z-10" title="Fiestas Patrias">
-            <img src="/escarapela.png" alt="Escarapela Peru" width="60" height="60" className="drop-shadow" />
-          </div>
+          {/* Imagen de celebración activa */}
+          {celebration && celebration.cardImage && (
+            <div className="absolute top-1.5 right-1.5 z-10" title={celebration.name}>
+              <img src={celebration.cardImage} alt={celebration.name} width="60" height="60" className="drop-shadow object-contain" />
+            </div>
+          )}
 
           {product.originalPrice && product.originalPrice > product.price && (
             <span className="absolute bottom-2 left-2 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow">

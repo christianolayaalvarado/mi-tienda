@@ -13,10 +13,12 @@ import EmptyState from "@/components/EmptyState";
 import AbandonedCartBanner from "@/components/AbandonedCartBanner";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+import { useCelebrations } from "@/context/CelebrationsContext";
 
 export default function HomeClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { active: celebration } = useCelebrations();
 
   // ---------------- PARAMS (lectura segura y memoizada)
   const currentSearch = searchParams?.get("search") || "";
@@ -188,20 +190,23 @@ export default function HomeClient() {
       {/* Modal de bienvenida de mascotas */}
       <MascotWelcomeModal />
 
-      {/* Banner Fiestas Patrias */}
-      {!currentSearch && !currentCategory && (
-        <a href="/ofertas" className="block mb-4 rounded-xl overflow-hidden relative group">
+      {/* Banner de Celebración */}
+      {!currentSearch && !currentCategory && celebration && (
+        <a href={celebration.bannerLink || "/ofertas"} className="block mb-4 rounded-xl overflow-hidden relative group">
           <div className="w-full h-[100px] sm:h-[120px] flex items-center justify-between px-5 sm:px-8"
-            style={{ background: "linear-gradient(135deg, #C8102E 0%, #8B0000 40%, #C8102E 70%, #fff 100%)" }}>
+            style={{ background: celebration.bannerGradient || "linear-gradient(135deg, #C8102E 0%, #8B0000 40%, #C8102E 70%, #fff 100%)", color: celebration.bannerTextColor || "#fff" }}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <img src="/escarapela.png" alt="Escarapela Peru" width="50" height="50" className="shrink-0 drop-shadow-lg" />
+              {celebration.bannerImage && (
+                <img src={celebration.bannerImage} alt={celebration.name} width="50" height="50" className="shrink-0 drop-shadow-lg object-contain" />
+              )}
               <div>
-                <p className="text-white text-lg sm:text-2xl font-extrabold drop-shadow-lg tracking-wide">FIESTAS PATRIAS</p>
-                <p className="text-white/90 text-xs sm:text-sm font-semibold">Ofertas especiales por semana patria</p>
+                <p className="text-lg sm:text-2xl font-extrabold drop-shadow-lg tracking-wide" style={{ color: celebration.bannerTextColor || "#fff" }}>{celebration.bannerTitle || celebration.name}</p>
+                <p className="text-xs sm:text-sm font-semibold opacity-90" style={{ color: celebration.bannerTextColor || "#fff" }}>{celebration.bannerSubtitle}</p>
               </div>
             </div>
             <div className="hidden sm:flex items-center gap-2">
-              <span className="bg-white text-[#C8102E] text-sm font-bold px-4 py-2 rounded-full group-hover:scale-105 transition-transform">
+              <span className="bg-white text-sm font-bold px-4 py-2 rounded-full group-hover:scale-105 transition-transform"
+                style={{ color: celebration.bannerGradient?.includes("#C8102E") ? "#C8102E" : "#111" }}>
                 Ver ofertas →
               </span>
             </div>

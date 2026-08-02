@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { CELEBRATIONS, CELEBRATION_LIST, isCelebrationInSeason } from "@/lib/celebrations";
+import { CELEBRATIONS, CELEBRATION_LIST } from "@/lib/celebrations";
 
 const CelebrationsContext = createContext(null);
 
@@ -24,20 +24,23 @@ export function CelebrationsProvider({ children }) {
   useEffect(() => {
     setMounted(true);
     setCustomImages(getStoredImages());
-    try {
-      const stored = localStorage.getItem("activeCelebration");
-      if (stored && CELEBRATIONS[stored]) {
-        setActiveId(stored);
-        return;
-      }
-    } catch {}
-    for (const c of CELEBRATION_LIST) {
-      if (isCelebrationInSeason(c)) {
-        setActiveId(c.id);
-        return;
-      }
-    }
-    setActiveId(null);
+    fetch("/api/celebrations")
+      .then(r => r.json())
+      .then(data => {
+        if (data.activeId && CELEBRATIONS[data.activeId]) {
+          setActiveId(data.activeId);
+        } else {
+          setActiveId(null);
+        }
+      })
+      .catch(() => {
+        try {
+          const stored = localStorage.getItem("activeCelebration");
+          if (stored && CELEBRATIONS[stored]) {
+            setActiveId(stored);
+          }
+        } catch {}
+      });
   }, []);
 
   useEffect(() => {
@@ -66,6 +69,12 @@ export function CelebrationsProvider({ children }) {
         localStorage.removeItem("activeCelebration");
       }
     } catch {}
+    fetch("/api/celebrations", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ activeId: celebrationId || null }),
+    }).catch(() => {});
     try { window.dispatchEvent(new Event("storage")); } catch {}
   }, []);
 

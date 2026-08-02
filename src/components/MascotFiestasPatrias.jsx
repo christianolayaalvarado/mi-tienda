@@ -2,7 +2,7 @@
 
 import React from "react";
 
-export default function MascotFiestasPatrias({ size = 96, show = true }) {
+export default function MascotFiestasPatrias({ size = 96, show = true, image }) {
   if (!show) return null;
 
   const scale = size / 96;
@@ -22,8 +22,8 @@ export default function MascotFiestasPatrias({ size = 96, show = true }) {
         }}
       >
         <img
-          src="/escarapela.png"
-          alt="Escarapela"
+          src={image || "/escarapela.png"}
+          alt="Celebración"
           width={escSize}
           height={escSize}
           draggable={false}
