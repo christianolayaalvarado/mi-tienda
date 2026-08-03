@@ -25,6 +25,7 @@ export default function AddProductForm() {
   const [previews, setPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [flashSaleAllowed, setFlashSaleAllowed] = useState(true);
 
   useEffect(() => {
     return () => previews.forEach((p) => URL.revokeObjectURL(p));
@@ -245,6 +246,25 @@ export default function AddProductForm() {
             placeholder="Describe tu producto..."
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition resize-none"
           />
+        </div>
+
+        {/* Flash Sale Toggle */}
+        <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-gray-800">Permitir en Ofertas Flash</p>
+            <p className="text-xs text-gray-500">Permite que la plataforma incluya este producto en ofertas flash</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFlashSaleAllowed(!flashSaleAllowed)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              flashSaleAllowed ? "bg-orange-500" : "bg-gray-300"
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              flashSaleAllowed ? "translate-x-6" : "translate-x-1"
+            }`} />
+          </button>
         </div>
 
         {/* Imágenes */}

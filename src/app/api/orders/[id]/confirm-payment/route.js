@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
 import { sendPaymentConfirmedToBuyer, sendPaymentConfirmedToSeller, sendProofReceivedEmail } from "@/lib/email";
+import { calculateCommission } from "@/lib/commissionTiers";
 
 const isValidId = (id) => typeof id === "string" && id.length > 0;
 
@@ -107,6 +108,40 @@ export async function POST(req, context) {
               stockDeducted: true,
             },
           });
+
+          // Crear comisiones por cada tienda vendedora
+          for (const oi of orderItemsToPay) {
+            try {
+              const store = await tx.store.findUnique({
+                where: { id: oi.storeId },
+                select: { userId: true, user: { select: { createdAt: true } } },
+              });
+              if (!store?.userId) continue;
+
+              const itemTotal = (oi.items || []).reduce((sum, p) => sum + (Number(p.price) * Number(p.quantity)), 0);
+              if (itemTotal <= 0) continue;
+
+              const commission = calculateCommission(itemTotal, store.user.createdAt);
+              if (commission <= 0) continue;
+
+              const existing = await tx.vendorCommission.findFirst({
+                where: { orderId, sellerId: store.userId },
+              });
+              if (existing) continue;
+
+              await tx.vendorCommission.create({
+                data: {
+                  orderId,
+                  sellerId: store.userId,
+                  amount: itemTotal,
+                  commission,
+                  status: "pending",
+                },
+              });
+            } catch (e) {
+              console.warn("No se pudo crear comisión:", e?.message || e);
+            }
+          }
         }
 
         // Auditoría
@@ -218,6 +253,40 @@ export async function POST(req, context) {
             where: { id: orderId },
             data: { paymentStatus: "paid", status: "processing", paidAt: new Date(), paymentVerifiedBy: sessionUserId, paymentVerifiedAt: new Date(), stockDeducted: true },
           });
+
+          // Crear comisiones por cada tienda vendedora
+          for (const oi of refreshed.orderItems || []) {
+            try {
+              const store = await tx.store.findUnique({
+                where: { id: oi.storeId },
+                select: { userId: true, user: { select: { createdAt: true } } },
+              });
+              if (!store?.userId) continue;
+
+              const itemTotal = (oi.items || []).reduce((sum, p) => sum + (Number(p.price) * Number(p.quantity)), 0);
+              if (itemTotal <= 0) continue;
+
+              const commission = calculateCommission(itemTotal, store.user.createdAt);
+              if (commission <= 0) continue;
+
+              const existing = await tx.vendorCommission.findFirst({
+                where: { orderId, sellerId: store.userId },
+              });
+              if (existing) continue;
+
+              await tx.vendorCommission.create({
+                data: {
+                  orderId,
+                  sellerId: store.userId,
+                  amount: itemTotal,
+                  commission,
+                  status: "pending",
+                },
+              });
+            } catch (e) {
+              console.warn("No se pudo crear comisión:", e?.message || e);
+            }
+          }
 
           await tx.orderHistory.create({
             data: { orderId, action: "mark_paid_after_all_stores", byUserId: sessionUserId, note: "Orden marcada como pagada porque todas las tiendas confirmaron pago" },

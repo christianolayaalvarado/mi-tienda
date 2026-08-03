@@ -37,6 +37,10 @@ export default function PromoteProductModal({ open, onClose }) {
       setToast({ type: "error", msg: "Ingresa tu numero de telefono" });
       return;
     }
+    if (!paymentRef.trim()) {
+      setToast({ type: "error", msg: "Ingresa el ID de la transaccion" });
+      return;
+    }
     setLoading(true);
     setToast(null);
     try {
@@ -53,7 +57,7 @@ export default function PromoteProductModal({ open, onClose }) {
       });
       const data = await res.json();
       if (data.success) {
-        setToast({ type: "success", msg: "Producto destacado exitosamente. Aparecera en la portada." });
+        setToast({ type: "success", msg: "Solicitud enviada. Tu producto sera destacado tras verificacion del pago (1-24 horas)." });
         setTimeout(() => {
           setToast(null);
           onClose();
@@ -157,12 +161,12 @@ export default function PromoteProductModal({ open, onClose }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ID de transaccion (opcional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ID de transaccion (requerido)</label>
             <input
               type="text"
               value={paymentRef}
               onChange={(e) => setPaymentRef(e.target.value)}
-              placeholder="Codigo de operacion"
+              placeholder="Codigo de operacion Yape o transferencia"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
@@ -177,7 +181,7 @@ export default function PromoteProductModal({ open, onClose }) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={loading || !selectedProduct || !phone.trim()}
+            disabled={loading || !selectedProduct || !phone.trim() || !paymentRef.trim()}
             className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition"
           >
             {loading ? "Procesando..." : `Pagar S/ ${plan?.price} y destacar`}

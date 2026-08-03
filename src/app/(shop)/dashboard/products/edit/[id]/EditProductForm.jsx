@@ -361,6 +361,40 @@ export default function EditProductForm({ productId }) {
         </select>
       </div>
 
+      {isOwner && (
+        <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-gray-800">Permitir en Ofertas Flash</p>
+            <p className="text-xs text-gray-500">Si está desactivado, tu producto no aparecerá en ofertas flash de la plataforma</p>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              const newVal = !(product.flashSaleAllowed !== false);
+              try {
+                await fetch(`/api/products/${productId}/flash-sale`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({ flashSaleAllowed: newVal }),
+                });
+                setProduct(prev => ({ ...prev, flashSaleAllowed: newVal }));
+                toast.success(newVal ? "Producto habilitado para ofertas flash" : "Producto excluido de ofertas flash");
+              } catch {
+                toast.error("Error al actualizar");
+              }
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              product.flashSaleAllowed !== false ? "bg-orange-500" : "bg-gray-300"
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              product.flashSaleAllowed !== false ? "translate-x-6" : "translate-x-1"
+            }`} />
+          </button>
+        </div>
+      )}
+
       <div>
         <label htmlFor="edit-desc" className={labelClass}>Descripción</label>
         <textarea

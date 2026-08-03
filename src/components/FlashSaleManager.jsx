@@ -69,10 +69,11 @@ export default function FlashSaleManager() {
     }
     setLoadingProducts(true);
     const timer = setTimeout(() => {
-      fetch(`/api/products?search=${encodeURIComponent(productSearch)}&limit=20`, { credentials: "include" })
+      fetch(`/api/products?search=${encodeURIComponent(productSearch)}&limit=50`, { credentials: "include" })
         .then((r) => r.json())
         .then((data) => {
-          setProductResults(data.products || data || []);
+          const all = data.products || data || [];
+          setProductResults(all.filter(p => p.flashSaleAllowed !== false));
           setLoadingProducts(false);
         })
         .catch(() => {

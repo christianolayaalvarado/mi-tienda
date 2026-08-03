@@ -18,6 +18,10 @@ export async function POST(req) {
   const { productId, plan, paymentMethod, paymentRef } = await req.json();
   if (!productId || !PLANS[plan]) return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
 
+  if (!paymentRef || !paymentRef.trim()) {
+    return NextResponse.json({ error: "Debes ingresar el ID de la transacción" }, { status: 400 });
+  }
+
   const product = await prisma.product.findUnique({ where: { id: productId }, select: { userId: true } });
   if (!product || product.userId !== dbUser.id) {
     return NextResponse.json({ error: "Producto no encontrado o no es tuyo" }, { status: 403 });
@@ -33,10 +37,16 @@ export async function POST(req) {
       userId: dbUser.id,
       plan,
       endDate,
+      status: "pending_verification",
       paymentMethod: paymentMethod || null,
       paymentRef: paymentRef || null,
     },
   });
 
-  return NextResponse.json({ success: true, featured, plan: planConfig });
+  return NextResponse.json({
+    success: true,
+    featured,
+    plan: planConfig,
+    message: "Solicitud enviada. Será activada tras verificación del pago.",
+  });
 }

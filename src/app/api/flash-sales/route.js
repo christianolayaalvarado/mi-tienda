@@ -20,7 +20,7 @@ export async function GET() {
       const allIds = [...new Set(sales.flatMap(s => s.productIds))];
       if (allIds.length > 0) {
         products = await prisma.product.findMany({
-          where: { id: { in: allIds }, deletedAt: null },
+          where: { id: { in: allIds }, deletedAt: null, flashSaleAllowed: true },
           include: { category: true, store: true },
         });
       }

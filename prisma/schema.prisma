@@ -87,6 +87,7 @@ model Product {
   discountPct      Float?
   favorites        Favorite[]
   views            ProductView[]
+  flashSaleAllowed Boolean  @default(true)
 
   @@index([categoryId])
   @@index([storeId])
