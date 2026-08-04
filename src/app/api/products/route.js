@@ -2,7 +2,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
-import cloudinary from "@/lib/cloudinary";
 import { validateCsrf } from "@/lib/csrf";
 
 /* Helpers */
@@ -129,13 +128,23 @@ export async function POST(req) {
           if (!image) continue;
           if (isUrl(image)) { uploadedImages.push(image); continue; }
           if (isDataUri(image)) {
-            const uploaded = await cloudinary.uploader.upload(image, { folder: "mi_tienda" });
-            if (uploaded?.secure_url) uploadedImages.push(uploaded.secure_url);
+            // Convert data URI to File for Uploadthing
+            const arr = image.split(",");
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            const file = new File([u8arr], `product_${Date.now()}.jpg`, { type: mime });
+
+            const { utapi } = await import("uploadthing/server");
+            const uploaded = await utapi.uploadFiles([file]);
+            if (uploaded?.[0]?.data?.url) uploadedImages.push(uploaded[0].data.url);
             continue;
           }
           console.warn("Imagen ignorada (no es URL ni dataURI)");
         } catch (imgErr) {
-          console.error("Error subiendo imagen a Cloudinary:", imgErr);
+          console.error("Error subiendo imagen:", imgErr);
         }
       }
     }
@@ -206,7 +215,7 @@ export async function PUT(req) {
     const isStoreOwner = storeUserId && String(storeUserId) === String(user.id);
     if (!isOwner && !isAdmin && !isStoreOwner) return NextResponse.json({ error: "No autorizado para editar este producto" }, { status: 403 });
 
-    // Preparar imágenes (subidas) — igual que antes
+    // Preparar imágenes (subidas)
     const uploadedImages = [];
     if (Array.isArray(body.newImages) && body.newImages.length > 0) {
       for (const img of body.newImages) {
@@ -214,8 +223,17 @@ export async function PUT(req) {
           if (!img) continue;
           if (isUrl(img)) { uploadedImages.push(img); continue; }
           if (isDataUri(img)) {
-            const uploaded = await cloudinary.uploader.upload(img, { folder: "mi_tienda" });
-            if (uploaded?.secure_url) uploadedImages.push(uploaded.secure_url);
+            const arr = img.split(",");
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            const file = new File([u8arr], `product_${Date.now()}.jpg`, { type: mime });
+
+            const { utapi } = await import("uploadthing/server");
+            const uploaded = await utapi.uploadFiles([file]);
+            if (uploaded?.[0]?.data?.url) uploadedImages.push(uploaded[0].data.url);
             continue;
           }
           console.warn("Imagen nueva ignorada (no es URL ni dataURI)");

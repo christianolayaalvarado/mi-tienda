@@ -64,19 +64,8 @@ export default function AddProductForm() {
   };
 
   const uploadToCloudinary = async (file) => {
-    const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("upload_preset", UPLOAD_PRESET);
-    fd.append("folder", "mi_tienda");
-
-    const res = await fetch(url, { method: "POST", body: fd });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Cloudinary upload failed: ${res.status} ${text}`);
-    }
-    const data = await res.json();
-    return data.secure_url;
+    const { uploadImage } = await import("@/lib/upload");
+    return uploadImage(file);
   };
 
   const validate = () => {

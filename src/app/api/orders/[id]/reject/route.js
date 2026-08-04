@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/authOptions"
-import cloudinary from "@/lib/cloudinary"
 
 // 🔹 validar ObjectId
 const isValidObjectId = (id) => {
@@ -65,23 +64,18 @@ export async function POST(req, context) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // 🔥 subir a Cloudinary
-    const uploadResult = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: "payment_proofs" },
-        (error, result) => {
-          if (error) reject(error)
-          else resolve(result)
-        }
-      )
-      stream.end(buffer)
-    })
+    // Subir comprobante a Uploadthing
+    const { utapi } = await import("uploadthing/server")
+    const uploadFile = new File([buffer], `comprobante_rechazo_${orderId}.jpg`, { type: file.type || "image/jpeg" })
+    const uploadResult = await utapi.uploadFiles([uploadFile])
 
-    // 🔥 actualizar orden
+    const proofUrl = uploadResult?.[0]?.data?.url
+
+    // Actualizar orden
     await prisma.order.update({
       where: { id: orderId },
       data: {
-        paymentProof: uploadResult.secure_url,
+        paymentProof: proofUrl,
         paymentStatus: "pending_verification",
       },
     })

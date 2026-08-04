@@ -1,12 +1,6 @@
 // app/api/uploads/image/route.js
 import { NextResponse } from "next/server";
-import { v2 as cloudinary } from "cloudinary";
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { utapi } from "uploadthing/server";
 
 export async function POST(req) {
   try {
@@ -18,13 +12,13 @@ export async function POST(req) {
       return NextResponse.json({ error: "No se envió archivo" }, { status: 400 });
     }
 
-    // Validar tamaño (5MB max)
-    const maxBytes = 5 * 1024 * 1024;
+    // Validar tamaño (4MB max para Uploadthing free)
+    const maxBytes = 4 * 1024 * 1024;
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     if (buffer.length > maxBytes) {
-      return NextResponse.json({ error: "Archivo demasiado grande (máx 5MB)" }, { status: 400 });
+      return NextResponse.json({ error: "Archivo demasiado grande (máx 4MB)" }, { status: 400 });
     }
 
     // Detectar tipo real por magic bytes
@@ -43,27 +37,17 @@ export async function POST(req) {
       return NextResponse.json({ error: "Tipo no permitido. Solo JPG, PNG o WEBP." }, { status: 400 });
     }
 
-    const base64 = buffer.toString("base64");
-    const dataUri = `data:${realMime};base64,${base64}`;
+    // Subir a Uploadthing
+    const uploadResult = await utapi.uploadFiles([file]);
 
-    const uploadResult = await cloudinary.uploader.upload(dataUri, {
-      folder: String(folder),
-      resource_type: "image",
-      overwrite: true,
-      use_filename: true,
-      unique_filename: true,
-    });
-
-    if (!uploadResult || !uploadResult.secure_url) {
-      return NextResponse.json({ error: "Error subiendo a Cloudinary" }, { status: 500 });
+    if (!uploadResult || !uploadResult[0]?.data?.url) {
+      return NextResponse.json({ error: "Error subiendo imagen" }, { status: 500 });
     }
 
     return NextResponse.json({
-      url: uploadResult.secure_url,
-      publicId: uploadResult.public_id,
-      format: uploadResult.format,
-      width: uploadResult.width,
-      height: uploadResult.height,
+      url: uploadResult[0].data.url,
+      name: uploadResult[0].data.name,
+      size: uploadResult[0].data.size,
     });
   } catch (err) {
     console.error("ERROR /api/uploads/image:", err?.message || err);

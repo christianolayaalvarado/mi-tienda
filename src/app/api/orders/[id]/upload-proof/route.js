@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
-import { v2 as cloudinary } from "cloudinary";
 import { sendProofReceivedEmail } from "@/lib/email";
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 /**
  * Nota:
@@ -136,27 +129,24 @@ export async function POST(req, context) {
     const base64 = buffer.toString("base64");
     const dataUri = `data:${realMime};base64,${base64}`;
 
-    // Subir a Cloudinary en carpeta por orden
-    const folder = `comprobantes/${orderId}`;
-    const uploadResult = await cloudinary.uploader.upload(dataUri, {
-      folder,
-      resource_type: "image",
-      overwrite: true,
-      use_filename: true,
-      unique_filename: false,
-    });
+    // Subir comprobante de pago
+    const file = new File([buffer], `comprobante_${orderId}.${realMime.split("/")[1]}`, { type: realMime });
+    const { utapi } = await import("uploadthing/server");
+    const uploadResult = await utapi.uploadFiles([file]);
 
-    if (!uploadResult || !uploadResult.secure_url) {
-      console.error("Cloudinary upload failed:", uploadResult);
-      return NextResponse.json({ error: "Error subiendo a Cloudinary" }, { status: 500 });
+    if (!uploadResult || !uploadResult[0]?.data?.url) {
+      console.error("Upload failed:", uploadResult);
+      return NextResponse.json({ error: "Error subiendo comprobante" }, { status: 500 });
     }
+
+    const proofUrl = uploadResult[0].data.url;
 
     // Actualizar orden en DB
     const updated = await prisma.order.update({
       where: { id: orderId },
       data: {
-        paymentProof: uploadResult.secure_url,
-        paymentProofMime: uploadResult.format ? `image/${uploadResult.format}` : realMime,
+        paymentProof: proofUrl,
+        paymentProofMime: realMime,
         paymentStatus: "pending_verification",
       },
     });

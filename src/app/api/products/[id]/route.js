@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
-import cloudinary from "@/lib/cloudinary";
 
 // helper validar ObjectId
 const isValidObjectId = (id) => {
@@ -80,22 +79,34 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    // Subir nuevas imágenes (si las hay). Subir todas primero; si falla alguna, abortar.
+    // Subir nuevas imágenes (si las hay)
     let uploadedImages = [];
     if (Array.isArray(body.newImages) && body.newImages.length > 0) {
       for (const img of body.newImages) {
         try {
-          // img se espera como data URL o URL válida según tu front
-          const uploaded = await cloudinary.uploader.upload(img, { folder: "mi_tienda" });
-          if (uploaded && uploaded.secure_url) {
-            uploadedImages.push(uploaded.secure_url);
+          if (!img) continue;
+          if (img.startsWith("http")) {
+            uploadedImages.push(img);
+            continue;
+          }
+          // Convert data URI to File for Uploadthing
+          const arr = img.split(",");
+          const mime = arr[0].match(/:(.*?);/)[1];
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) u8arr[n] = bstr.charCodeAt(n);
+          const file = new File([u8arr], `product_${Date.now()}.jpg`, { type: mime });
+
+          const { utapi } = await import("uploadthing/server");
+          const uploaded = await utapi.uploadFiles([file]);
+          if (uploaded?.[0]?.data?.url) {
+            uploadedImages.push(uploaded[0].data.url);
           } else {
-            console.warn("Cloudinary returned no secure_url for image:", img);
-            // Decide: continuar o abortar. Aquí abortamos para evitar inconsistencias.
             throw new Error("Error subiendo imagen");
           }
         } catch (e) {
-          console.error("Error subiendo imagen a Cloudinary:", e?.message || e);
+          console.error("Error subiendo imagen:", e?.message || e);
           return NextResponse.json({ error: "Error subiendo imágenes" }, { status: 500 });
         }
       }

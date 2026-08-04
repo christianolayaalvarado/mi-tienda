@@ -613,14 +613,6 @@ export async function POST(req, context) {
     const file = formData.get("file");
     if (!file) return NextResponse.json({ error: "No se encontró el archivo en formData" }, { status: 400 });
 
-    // Subir a Cloudinary (igual que upload-proof/route.js)
-    const { v2: cloudinary } = await import("cloudinary");
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-    });
-
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
@@ -644,20 +636,16 @@ export async function POST(req, context) {
       return NextResponse.json({ error: "Tipo no permitido. Solo JPG, PNG o WEBP." }, { status: 400 });
     }
 
-    const base64 = buffer.toString("base64");
-    const dataUri = `data:${realMime};base64,${base64}`;
+    // Subir a Uploadthing
+    const uploadFile = new File([buffer], `comprobante_${orderId}.${realMime.split("/")[1]}`, { type: realMime });
+    const { utapi } = await import("uploadthing/server");
+    const uploadResult = await utapi.uploadFiles([uploadFile]);
 
-    const uploadResult = await cloudinary.uploader.upload(dataUri, {
-      folder: `comprobantes/${orderId}`,
-      resource_type: "image",
-      overwrite: true,
-      use_filename: true,
-      unique_filename: false,
-    });
-
-    if (!uploadResult || !uploadResult.secure_url) {
-      return NextResponse.json({ error: "Error subiendo a Cloudinary" }, { status: 500 });
+    if (!uploadResult || !uploadResult[0]?.data?.url) {
+      return NextResponse.json({ error: "Error subiendo comprobante" }, { status: 500 });
     }
+
+    const proofUrl = uploadResult[0].data.url;
 
     const updated = await prisma.order.update({
       where: { id: orderId },
@@ -668,7 +656,7 @@ export async function POST(req, context) {
       },
     });
 
-    return NextResponse.json({ success: true, order: updated, url: uploadResult.secure_url });
+    return NextResponse.json({ success: true, order: updated, url: proofUrl });
   } catch (err) {
     console.error("ERROR UPLOAD PROOF:", err);
     return NextResponse.json({ error: "Error subiendo comprobante" }, { status: 500 });
