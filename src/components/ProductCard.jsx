@@ -58,7 +58,7 @@ export default function ProductCard({ product, priority }) {
 
           {hasValidImage ? (
             <img
-              src={optimizeCloudinary(product.images[0], { width: 600 })}
+              src={optimizeCloudinary(product.images[0], { width: 400 })}
               alt={product.title || "Producto"}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               onError={() => setImgError(true)}

@@ -114,7 +114,7 @@ export default function RecommendedProducts({
               className="relative aspect-square w-full mb-2 rounded overflow-hidden bg-gray-100"
             >
               <Image
-                src={optimizeCloudinary(product.image) || "/images/placeholder.png"}
+                src={optimizeCloudinary(product.image, { width: 200 }) || "/images/placeholder.png"}
                 alt={product.title || "Producto"}
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"

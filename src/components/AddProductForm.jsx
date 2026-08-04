@@ -31,6 +31,8 @@ export default function AddProductForm() {
     return () => previews.forEach((p) => URL.revokeObjectURL(p));
   }, [previews]);
 
+  const MAX_IMAGES = 5;
+
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files || []);
     if (selected.length === 0) return;
@@ -40,8 +42,14 @@ export default function AddProductForm() {
       toast.error("Algunas imágenes exceden 10MB y no serán añadidas.");
     }
 
-    const newPreviews = filtered.map((f) => URL.createObjectURL(f));
-    setFiles((prev) => [...prev, ...filtered]);
+    const totalNow = files.length + filtered.length;
+    const allowed = filtered.slice(0, Math.max(0, MAX_IMAGES - files.length));
+    if (totalNow > MAX_IMAGES) {
+      toast.error(`Máximo ${MAX_IMAGES} imágenes. Se añadieron ${allowed.length} de ${filtered.length}.`);
+    }
+
+    const newPreviews = allowed.map((f) => URL.createObjectURL(f));
+    setFiles((prev) => [...prev, ...allowed]);
     setPreviews((prev) => [...prev, ...newPreviews]);
     if (fieldErrors.images) setFieldErrors((prev) => ({ ...prev, images: "" }));
   };
@@ -270,7 +278,7 @@ export default function AddProductForm() {
         {/* Imágenes */}
         <div>
           <label htmlFor="prod-images" className="block text-sm font-medium text-gray-700 mb-1">
-            Imágenes (10MB cada una)
+            Imágenes (máximo 5, 10MB cada una)
           </label>
           <input
             id="prod-images"

@@ -145,7 +145,7 @@ export default async function ProductDetail({ params }) {
                   {item.images?.[0] && (
                     <div className="relative w-full h-32 mb-2">
                       <Image
-                        src={optimizeCloudinary(item.images[0])}
+                        src={optimizeCloudinary(item.images[0], { width: 200 })}
                         alt={item.title}
                         fill
                         className="object-cover rounded"

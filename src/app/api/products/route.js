@@ -111,6 +111,10 @@ export async function POST(req) {
       return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
     }
 
+    // Limitar a 5 imágenes por producto para reducir consumo de créditos
+    const MAX_IMAGES = 5;
+    const imageList = Array.isArray(images) ? images.slice(0, MAX_IMAGES) : [];
+
     const user = await prisma.user.findUnique({ where: { email: session.email }, include: { stores: true } });
     if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     if (!user.stores || user.stores.length === 0) {
@@ -119,8 +123,8 @@ export async function POST(req) {
     const store = user.stores[0];
 
     const uploadedImages = [];
-    if (Array.isArray(images) && images.length > 0) {
-      for (const image of images) {
+    if (imageList.length > 0) {
+      for (const image of imageList) {
         try {
           if (!image) continue;
           if (isUrl(image)) { uploadedImages.push(image); continue; }

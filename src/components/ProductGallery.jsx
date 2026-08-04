@@ -119,7 +119,7 @@ export default function ProductGallery({ images, title }) {
               >
                 <div className="relative w-full h-full rounded-lg overflow-hidden">
                   <Image
-                    src={optimizeCloudinary(img) || "/images/placeholder.png"}
+                    src={optimizeCloudinary(img, { width: 200 }) || "/images/placeholder.png"}
                     alt={`${title} ${index}`}
                     fill
                     className="object-cover"
@@ -152,7 +152,7 @@ export default function ProductGallery({ images, title }) {
         >
           {selectedImage && (
             <Image
-              src={optimizeCloudinary(selectedImage)}
+              src={optimizeCloudinary(selectedImage, { width: 600 })}
               alt={title}
               fill
               sizes="(max-width: 768px) 90vw, (max-width: 1200px) 50vw, 40vw"
