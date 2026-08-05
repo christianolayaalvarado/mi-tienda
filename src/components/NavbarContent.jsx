@@ -185,7 +185,7 @@ export default function NavbarContent() {
           </Link>
 
           {/* Actions: ml-auto on mobile pushes to right edge, sm:order-3 on desktop */}
-          <div className="flex items-center gap-1 sm:gap-3 ml-auto sm:ml-0 order-2 sm:order-3">
+          <div className="flex items-center gap-1 sm:gap-3 ml-auto sm:ml-0 order-2 sm:order-3 shrink-0">
             <Link
               href="/ofertas"
               className="flex items-center gap-1 text-red-600 hover:text-red-700 font-bold text-xs sm:text-sm shrink-0 min-h-[44px] px-1 sm:px-2"

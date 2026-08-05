@@ -43,13 +43,12 @@ export default function UserMenu() {
   if (!isLoggedIn) {
     return (
       <div className="flex items-center gap-1 sm:gap-3 text-sm shrink-0">
-        <div role="button" tabIndex={0} onClick={() => router.push("/login")} onKeyDown={(e) => { if (e.key === "Enter") router.push("/login"); }} className="cursor-pointer flex items-center gap-1 hover:text-green-600 min-h-[44px] justify-center px-1">
-          <User size={18} />
-          <span className="hidden sm:inline">Login</span>
+        <div role="button" tabIndex={0} onClick={() => router.push("/login")} onKeyDown={(e) => { if (e.key === "Enter") router.push("/login"); }} className="cursor-pointer flex items-center gap-1 hover:text-green-600 min-h-[44px] justify-center px-2 sm:px-1 rounded-lg border border-green-300 text-green-700 hover:bg-green-50">
+          <User size={16} />
+          <span className="text-xs sm:text-sm">Iniciar sesión</span>
         </div>
         <div role="button" tabIndex={0} onClick={() => router.push("/register")} onKeyDown={(e) => { if (e.key === "Enter") router.push("/register"); }} className="cursor-pointer bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 min-h-[40px] flex items-center whitespace-nowrap">
-          <span className="sm:hidden text-xs">Registrate</span>
-          <span className="hidden sm:inline">Registrarse</span>
+          <span className="text-xs sm:text-sm">Registrarse</span>
         </div>
       </div>
     );
