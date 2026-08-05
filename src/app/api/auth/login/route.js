@@ -2,6 +2,7 @@
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getJwtSecret } from "@/lib/getJwtSecret";
 const TOKEN_MAX_AGE = 60 * 60 * 24; // 1 day in seconds
@@ -119,6 +120,24 @@ export async function POST(req) {
       domain: COOKIE_DOMAIN,
     });
 
+    // Clear stale NextAuth session cookie (from Google/Facebook login)
+    const clearNextAuth = buildSetCookieHeader("next-auth.session-token", "", {
+      maxAge: 0,
+      path: "/",
+      httpOnly: true,
+      sameSite: COOKIE_SAMESITE,
+      secure: IS_PROD,
+      domain: COOKIE_DOMAIN,
+    });
+    const clearSecureNextAuth = buildSetCookieHeader("__Secure-next-auth.session-token", "", {
+      maxAge: 0,
+      path: "/",
+      httpOnly: true,
+      sameSite: COOKIE_SAMESITE,
+      secure: IS_PROD,
+      domain: COOKIE_DOMAIN,
+    });
+
     const safeUser = {
       id: user.id,
       email: user.email,
@@ -130,13 +149,13 @@ export async function POST(req) {
       storeCode: user.stores?.[0]?.code || null,
     };
 
-    return new Response(JSON.stringify({ ok: true, user: safeUser }), {
-      status: 200,
-      headers: {
-        "Set-Cookie": cookie,
-        "Content-Type": "application/json",
-      },
-    });
+    const response = NextResponse.json({ ok: true, user: safeUser });
+
+    response.headers.append("Set-Cookie", cookie);
+    response.headers.append("Set-Cookie", clearNextAuth);
+    response.headers.append("Set-Cookie", clearSecureNextAuth);
+
+    return response;
   } catch (err) {
     console.error("[/api/auth/login] error:", err?.message || err, err?.stack || "");
     return new Response(JSON.stringify({ ok: false, message: "Error interno del servidor" }), { status: 500, headers: { "Content-Type": "application/json" } });
