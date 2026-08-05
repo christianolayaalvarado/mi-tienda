@@ -7,7 +7,7 @@ const utapi = new UTApi();
 export async function POST(req) {
   try {
     const formData = await req.formData();
-    const file = formData.get("file") || formData.get("image");
+    const file = formData.get("files") || formData.get("file") || formData.get("image");
 
     if (!file) {
       return NextResponse.json({ error: "No se envió archivo" }, { status: 400 });
