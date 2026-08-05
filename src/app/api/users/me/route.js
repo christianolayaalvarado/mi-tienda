@@ -31,35 +31,39 @@ async function verifyNextAuthJWT(tokenValue) {
 
 async function resolveUserId(req) {
   const cookieHeader = req.headers.get("cookie") || "";
-  const nextAuthToken = getCookieValue(cookieHeader, "next-auth.session-token") || getCookieValue(cookieHeader, "__Secure-next-auth.session-token");
 
-  // 1. Try NextAuth session first (getServerSession)
+  // 1. Custom token cookie first (credentials login — most recent explicit login)
+  let tokenStr = getCookieValue(cookieHeader, "token");
+  if (tokenStr) {
+    try {
+      const payload = jwt.verify(decodeURIComponent(tokenStr), getJwtSecret());
+      if (payload?.id) return payload.id;
+    } catch {}
+  }
+
+  // 2. NextAuth session (Google/Facebook login)
   const session = await getServerSession(authOptions);
   if (session?.user?.id) return session.user.id;
 
-  // 2. If getServerSession failed but NextAuth cookie exists, verify JWT manually
+  // 3. Manual NextAuth JWT verification
+  const nextAuthToken = getCookieValue(cookieHeader, "next-auth.session-token") || getCookieValue(cookieHeader, "__Secure-next-auth.session-token");
   if (nextAuthToken) {
     try { var decoded = decodeURIComponent(nextAuthToken); } catch { decoded = nextAuthToken; }
     const payload = await verifyNextAuthJWT(decoded);
     if (payload?.id) return payload.id;
-    // JWT verification failed but cookie exists — don't fall back to custom token
     return null;
   }
 
-  // 3. Fall back to custom token cookie (credentials login only)
-  let tokenStr = getCookieValue(cookieHeader, "token");
-  if (!tokenStr) {
-    const auth = req.headers.get("authorization");
-    if (auth?.startsWith("Bearer ")) tokenStr = auth.slice(7);
+  // 4. Bearer token
+  const auth = req.headers.get("authorization");
+  if (auth?.startsWith("Bearer ")) {
+    try {
+      const payload = jwt.verify(auth.slice(7), getJwtSecret());
+      if (payload?.id) return payload.id;
+    } catch {}
   }
-  if (!tokenStr) return null;
 
-  try {
-    const payload = jwt.verify(tokenStr, getJwtSecret());
-    return payload.id ?? null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 export async function GET(req) {
