@@ -1,28 +1,18 @@
 // components/navbar/UserMenu.jsx
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useAuthContext } from "@/context/AuthProvider";
 
 export default function UserMenu() {
   const router = useRouter();
   const { user, logout, loading: authLoading } = useAuthContext();
-  const { data: nextAuthSession, status: nextAuthStatus } = useSession();
   const [signingOut, setSigningOut] = useState(false);
 
-  const displayUser = useMemo(() => {
-    if (user) return user;
-    if (nextAuthSession?.user?.email || nextAuthSession?.user?.id) {
-      return nextAuthSession.user;
-    }
-    return null;
-  }, [user, nextAuthSession]);
-
-  const isLoggedIn = !!displayUser;
-  const isLoading = authLoading || nextAuthStatus === "loading";
+  const isLoggedIn = !!user;
+  const isLoading = authLoading;
 
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
@@ -54,9 +44,9 @@ export default function UserMenu() {
     );
   }
 
-  const name = displayUser.name || displayUser.email || "Usuario";
+  const name = user.name || user.email || "Usuario";
   const shortName = name.length > 8 ? name.slice(0, 8) + "…" : name;
-  const userPlan = displayUser.plan || "free";
+  const userPlan = user.plan || "free";
 
   return (
     <div className="flex items-center gap-1 sm:gap-3 text-sm shrink-0">
