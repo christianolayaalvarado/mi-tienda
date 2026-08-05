@@ -9,6 +9,11 @@ const nextConfig = {
         hostname: "res.cloudinary.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "6h9f7lxba9.ufs.sh",
+        pathname: "/**",
+      },
     ],
   },
   webpack: (config, { isServer }) => {
