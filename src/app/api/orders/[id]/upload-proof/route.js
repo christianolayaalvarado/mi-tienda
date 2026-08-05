@@ -130,9 +130,10 @@ export async function POST(req, context) {
     const dataUri = `data:${realMime};base64,${base64}`;
 
     // Subir comprobante de pago
-    const file = new File([buffer], `comprobante_${orderId}.${realMime.split("/")[1]}`, { type: realMime });
-    const { utapi } = await import("uploadthing/server");
-    const uploadResult = await utapi.uploadFiles([file]);
+    const uploadFile = new File([buffer], `comprobante_${orderId}.${realMime.split("/")[1]}`, { type: realMime });
+    const { UTApi } = await import("uploadthing/server");
+    const utapi = new UTApi();
+    const uploadResult = await utapi.uploadFiles([uploadFile]);
 
     if (!uploadResult || !uploadResult[0]?.data?.url) {
       console.error("Upload failed:", uploadResult);

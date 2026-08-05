@@ -98,7 +98,8 @@ export async function PUT(req, { params }) {
           while (n--) u8arr[n] = bstr.charCodeAt(n);
           const file = new File([u8arr], `product_${Date.now()}.jpg`, { type: mime });
 
-          const { utapi } = await import("uploadthing/server");
+          const { UTApi } = await import("uploadthing/server");
+          const utapi = new UTApi();
           const uploaded = await utapi.uploadFiles([file]);
           if (uploaded?.[0]?.data?.url) {
             uploadedImages.push(uploaded[0].data.url);

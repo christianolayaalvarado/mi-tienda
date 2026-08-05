@@ -638,7 +638,8 @@ export async function POST(req, context) {
 
     // Subir a Uploadthing
     const uploadFile = new File([buffer], `comprobante_${orderId}.${realMime.split("/")[1]}`, { type: realMime });
-    const { utapi } = await import("uploadthing/server");
+    const { UTApi } = await import("uploadthing/server");
+    const utapi = new UTApi();
     const uploadResult = await utapi.uploadFiles([uploadFile]);
 
     if (!uploadResult || !uploadResult[0]?.data?.url) {

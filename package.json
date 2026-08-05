@@ -35,7 +35,8 @@
     "shepherd.js": "^15.2.2",
     "stripe": "^22.2.0",
     "swiper": "^12.1.2",
-    "uploadthing": "^7.7.4"
+    "uploadthing": "^7.7.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

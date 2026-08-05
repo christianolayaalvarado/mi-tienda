@@ -65,7 +65,8 @@ export async function POST(req, context) {
     const buffer = Buffer.from(bytes)
 
     // Subir comprobante a Uploadthing
-    const { utapi } = await import("uploadthing/server")
+    const { UTApi } = await import("uploadthing/server")
+    const utapi = new UTApi()
     const uploadFile = new File([buffer], `comprobante_rechazo_${orderId}.jpg`, { type: file.type || "image/jpeg" })
     const uploadResult = await utapi.uploadFiles([uploadFile])
 
