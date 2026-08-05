@@ -14,22 +14,38 @@ function getCookieValueFromHeader(cookieHeader = "", name) {
   return match ? match.split("=").slice(1).join("=") : undefined;
 }
 
+async function verifyNextAuthJWT(tokenValue) {
+  try {
+    const { jwtVerify } = await import("jose");
+    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(tokenValue, secret);
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 export async function getServerAuthUser(req) {
   try {
-    // Check if NextAuth session cookie exists
-    let hasSessionCookie = false;
+    // Collect cookies
+    let cookieHeader = "";
     if (req?.headers?.get) {
-      const cookieHeader = req.headers.get("cookie") || "";
-      hasSessionCookie = !!getCookieValueFromHeader(cookieHeader, "next-auth.session-token");
+      cookieHeader = req.headers.get("cookie") || "";
     }
-    if (!hasSessionCookie) {
+
+    const hasNextAuthCookie =
+      cookieHeader.includes("next-auth.session-token") ||
+      cookieHeader.includes("__Secure-next-auth.session-token");
+
+    if (!hasNextAuthCookie) {
       try {
         const cookieStore = await cookies();
-        hasSessionCookie = !!cookieStore.get("next-auth.session-token")?.value;
+        const naCookie = cookieStore.get("next-auth.session-token")?.value || cookieStore.get("__Secure-next-auth.session-token")?.value;
+        if (naCookie) cookieHeader = cookieHeader || `next-auth.session-token=${naCookie}`;
       } catch {}
     }
 
-    // 1) Intentar obtener sesión de next-auth (Google/Facebook login)
+    // 1) Try getServerSession (NextAuth built-in)
     try {
       const session = await getServerSession(authOptions);
       if (session?.user) {
@@ -40,32 +56,42 @@ export async function getServerAuthUser(req) {
       if (DEBUG) console.warn("[serverAuth] getServerSession failed:", e?.message || e);
     }
 
-    // 2) If next-auth session cookie exists but getServerSession failed,
-    //    do NOT fall back to custom token — the user is a social login user
-    if (hasSessionCookie) {
-      if (DEBUG) console.log("[serverAuth] session cookie present but getServerSession failed, returning null");
+    // 2) If getServerSession failed but NextAuth cookie exists, manually verify JWT
+    if (hasNextAuthCookie) {
+      let tokenValue = getCookieValueFromHeader(cookieHeader, "next-auth.session-token");
+      if (!tokenValue) tokenValue = getCookieValueFromHeader(cookieHeader, "__Secure-next-auth.session-token");
+
+      if (tokenValue) {
+        try {
+          tokenValue = decodeURIComponent(tokenValue);
+        } catch {}
+
+        const payload = await verifyNextAuthJWT(tokenValue);
+        if (payload?.email) {
+          if (DEBUG) console.log("[serverAuth] manually verified NextAuth JWT for", payload.email);
+          return { email: payload.email, id: payload.id, name: payload.name, source: "nextauth-jwt" };
+        }
+      }
+
+      // Even if JWT verification fails, try looking up by session token existence
+      // This is a last resort - shouldn't normally reach here
+      if (DEBUG) console.log("[serverAuth] NextAuth cookie present but JWT verification failed");
       return null;
     }
 
-    // 3) Intentar extraer token desde la cabecera cookie (credentials login only)
+    // 3) Fall back to custom token cookie (credentials login only)
     let tokenValue = null;
 
     if (req?.headers?.get) {
-      const cookieHeader = req.headers.get("cookie") || "";
-      if (DEBUG) console.log("[serverAuth] cookieHeader (from req.headers):", cookieHeader ? "[present]" : "[empty]");
       tokenValue = getCookieValueFromHeader(cookieHeader, "token");
     }
 
-    // 3) Si no está en la cabecera, intentar usar next/headers cookies() (server-only)
     if (!tokenValue) {
       try {
         const cookieStore = await cookies();
         const cookieObj = cookieStore.get("token");
         tokenValue = cookieObj?.value;
-        if (DEBUG) console.log("[serverAuth] cookie (from next/headers):", tokenValue ? "[present]" : "[empty]");
-      } catch (e) {
-        if (DEBUG) console.warn("[serverAuth] cookies() unavailable or failed:", e?.message || e);
-      }
+      } catch {}
     }
 
     if (!tokenValue) {
@@ -73,14 +99,10 @@ export async function getServerAuthUser(req) {
       return null;
     }
 
-    // token puede venir codificado en URI component
     try {
       tokenValue = decodeURIComponent(tokenValue);
-    } catch {
-      // ignore decode errors and use raw value
-    }
+    } catch {}
 
-    // 4) Verificar JWT
     const payload = jwt.verify(tokenValue, getJwtSecret());
     if (!payload || !payload.email) {
       if (DEBUG) console.log("[serverAuth] token payload invalid or missing email");
@@ -90,7 +112,6 @@ export async function getServerAuthUser(req) {
     if (DEBUG) console.log("[serverAuth] token valid for", payload.email);
     return { ...payload, source: "token" };
   } catch (err) {
-    // Mostrar solo errores no esperados en modo debug
     if (DEBUG) {
       console.warn("[serverAuth] token validation error:", err?.name, err?.message || err);
     }

@@ -18,17 +18,33 @@ function getCookieValue(cookieHeader, name) {
   return match ? match.split("=").slice(1).join("=") : undefined;
 }
 
+async function verifyNextAuthJWT(tokenValue) {
+  try {
+    const { jwtVerify } = await import("jose");
+    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(tokenValue, secret);
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 async function resolveUserId(req) {
   const cookieHeader = req.headers.get("cookie") || "";
-  const hasSessionCookie = !!getCookieValue(cookieHeader, "next-auth.session-token");
+  const nextAuthToken = getCookieValue(cookieHeader, "next-auth.session-token") || getCookieValue(cookieHeader, "__Secure-next-auth.session-token");
 
-  // 1. Try NextAuth session first (Google/Facebook login)
+  // 1. Try NextAuth session first (getServerSession)
   const session = await getServerSession(authOptions);
   if (session?.user?.id) return session.user.id;
 
-  // 2. If next-auth session cookie exists but getServerSession failed,
-  //    do NOT fall back to custom token — the user is a social login user
-  if (hasSessionCookie) return null;
+  // 2. If getServerSession failed but NextAuth cookie exists, verify JWT manually
+  if (nextAuthToken) {
+    try { var decoded = decodeURIComponent(nextAuthToken); } catch { decoded = nextAuthToken; }
+    const payload = await verifyNextAuthJWT(decoded);
+    if (payload?.id) return payload.id;
+    // JWT verification failed but cookie exists — don't fall back to custom token
+    return null;
+  }
 
   // 3. Fall back to custom token cookie (credentials login only)
   let tokenStr = getCookieValue(cookieHeader, "token");

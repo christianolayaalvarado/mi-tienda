@@ -3,20 +3,25 @@ import { cookies } from "next/headers";
 import { getJwtSecret } from "./getJwtSecret";
 
 /**
+ * Verify a NextAuth JWT token using jose (same library NextAuth uses).
+ */
+async function verifyNextAuthJWT(tokenValue) {
+  try {
+    const { jwtVerify } = await import("jose");
+    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(tokenValue, secret);
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Resolves the authenticated user from cookies.
  * Priority: NextAuth session (Google/Facebook) > custom token cookie.
- * When next-auth.session-token cookie exists, we NEVER fall back to custom token
- * to prevent showing a different user (e.g. admin@demo.com) after Google login.
  */
 export async function getAuthUserFromCookie() {
-  // Check if NextAuth session cookie exists at all
-  let hasSessionCookie = false;
-  try {
-    const cookieStore = await cookies();
-    hasSessionCookie = !!cookieStore.get("next-auth.session-token")?.value;
-  } catch {}
-
-  // 1. Try NextAuth session first (Google/Facebook login)
+  // 1. Try NextAuth session first (getServerSession)
   try {
     const { getServerSession } = await import("next-auth");
     const { authOptions } = await import("./authOptions");
@@ -26,12 +31,18 @@ export async function getAuthUserFromCookie() {
     }
   } catch {}
 
-  // 2. If next-auth session cookie exists but getServerSession failed,
-  //    do NOT fall back to custom token — the user is a social login user
-  //    and the custom token is stale.
-  if (hasSessionCookie) {
-    return null;
-  }
+  // 2. If getServerSession failed, try manually verifying the NextAuth JWT cookie
+  try {
+    const cookieStore = await cookies();
+    let tokenValue = cookieStore.get("next-auth.session-token")?.value || cookieStore.get("__Secure-next-auth.session-token")?.value;
+    if (tokenValue) {
+      try { tokenValue = decodeURIComponent(tokenValue); } catch {}
+      const payload = await verifyNextAuthJWT(tokenValue);
+      if (payload?.email) {
+        return { email: payload.email, id: payload.id, name: payload.name };
+      }
+    }
+  } catch {}
 
   // 3. Fall back to custom token cookie (credentials login only)
   try {
