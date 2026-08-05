@@ -18,10 +18,25 @@ async function verifyNextAuthJWT(tokenValue) {
 
 /**
  * Resolves the authenticated user from cookies.
- * Priority: NextAuth session (Google/Facebook) > custom token cookie.
+ * Priority: custom token (credentials login) > NextAuth session (Google/Facebook).
+ * The custom token cookie is set by /api/auth/login and represents the most
+ * recent explicit login. If it exists, we use it regardless of any stale
+ * next-auth.session-token that might still be lingering.
  */
 export async function getAuthUserFromCookie() {
-  // 1. Try NextAuth session first (getServerSession)
+  // 1. Try custom token cookie first (credentials login — most recent explicit login)
+  try {
+    const cookieStore = await cookies();
+    const tokenValue = cookieStore.get("token")?.value;
+    if (tokenValue) {
+      const payload = jwt.verify(decodeURIComponent(tokenValue), getJwtSecret());
+      if (payload?.email) {
+        return { email: payload.email, id: payload.id, name: payload.name };
+      }
+    }
+  } catch {}
+
+  // 2. Try NextAuth session (Google/Facebook login)
   try {
     const { getServerSession } = await import("next-auth");
     const { authOptions } = await import("./authOptions");
@@ -31,7 +46,7 @@ export async function getAuthUserFromCookie() {
     }
   } catch {}
 
-  // 2. If getServerSession failed, try manually verifying the NextAuth JWT cookie
+  // 3. If getServerSession failed, try manually verifying the NextAuth JWT cookie
   try {
     const cookieStore = await cookies();
     let tokenValue = cookieStore.get("next-auth.session-token")?.value || cookieStore.get("__Secure-next-auth.session-token")?.value;
@@ -44,15 +59,5 @@ export async function getAuthUserFromCookie() {
     }
   } catch {}
 
-  // 3. Fall back to custom token cookie (credentials login only)
-  try {
-    const cookieStore = await cookies();
-    const tokenValue = cookieStore.get("token")?.value;
-    if (!tokenValue) return null;
-    const payload = jwt.verify(decodeURIComponent(tokenValue), getJwtSecret());
-    if (!payload?.email) return null;
-    return payload;
-  } catch (error) {
-    return null;
-  }
+  return null;
 }
