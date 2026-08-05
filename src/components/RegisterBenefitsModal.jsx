@@ -42,23 +42,23 @@ const BENEFITS = [
 
 const CAROUSEL_IMAGES = [
   {
-    src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/f_auto,q_auto,w_400/v1783892235/mi_tienda/a1a1f3oj3lfpzrmv1jsb.jpg",
+    src: "https://6h9f7lxba9.ufs.sh/f/LCsO4fTJNgmrdVagVsXbSXgrbYTL0Iniw2fUtjDHRBy7u6dm",
     alt: "Alfombra Tapete Catania",
     price: "S/. 89.90",
   },
   {
-    src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/f_auto,q_auto,w_400/v1784062298/mi_tienda/lcii6cewvnq8f4fanipo.jpg",
-    alt: "Funda de almohada",
+    src: "https://6h9f7lxba9.ufs.sh/f/LCsO4fTJNgmrRZpuCfI06AtEdSJZRUbqacIz1XG8YhpQPeF2",
+    alt: "Fundas Zara",
     price: "S/. 45.00",
   },
   {
-    src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/f_auto,q_auto,w_400/v1783983627/mi_tienda/cd40o43e8ndxoqihqf89.jpg",
+    src: "https://6h9f7lxba9.ufs.sh/f/LCsO4fTJNgmr0QzT6rSqSQ2rcmFdw5a48gEeOMJuWV9IslTx",
     alt: "Macetero colgante",
     price: "S/. 30.00",
   },
   {
-    src: "https://res.cloudinary.com/dqx8wx5fj/image/upload/f_auto,q_auto,w_400/v1783896868/mi_tienda/lnb86rx7hkqnonbfd7gz.jpg",
-    alt: "Farol mediano",
+    src: "https://6h9f7lxba9.ufs.sh/f/LCsO4fTJNgmr8zkUsHd5OnHZMI7fqRyuXgWDaGKNB5lrhjsi",
+    alt: "Waflera",
     price: "S/. 65.00",
   },
 ];

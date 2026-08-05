@@ -97,11 +97,11 @@ function RegisterForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 relative overflow-hidden">
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 grid grid-cols-5 gap-0 opacity-30">
-          <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/f_auto,q_auto,w_400/v1783892235/mi_tienda/a1a1f3oj3lfpzrmv1jsb.jpg" alt="" className="w-full h-full object-cover" />
-          <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/f_auto,q_auto,w_400/v1783956527/mi_tienda/bkjzbxrpij42fyzthshf.jpg" alt="" className="w-full h-full object-cover" />
-          <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/f_auto,q_auto,w_400/v1783896606/mi_tienda/q9vn1s5jfgdzbuyi3wbt.jpg" alt="" className="w-full h-full object-cover" />
-          <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/f_auto,q_auto,w_400/v1783896868/mi_tienda/lnb86rx7hkqnonbfd7gz.jpg" alt="" className="w-full h-full object-cover" />
-          <img src="https://res.cloudinary.com/dqx8wx5fj/image/upload/f_auto,q_auto,w_400/v1783895702/mi_tienda/rdeylpspuzuaczod8r4y.jpg" alt="" className="w-full h-full object-cover hidden md:block" />
+          <img src="https://6h9f7lxba9.ufs.sh/f/LCsO4fTJNgmrdVagVsXbSXgrbYTL0Iniw2fUtjDHRBy7u6dm" alt="" className="w-full h-full object-cover" />
+          <img src="https://6h9f7lxba9.ufs.sh/f/LCsO4fTJNgmrHovxJFMgseyuOVbQAPvcd0jmTGLthNX7En9W" alt="" className="w-full h-full object-cover" />
+          <img src="https://6h9f7lxba9.ufs.sh/f/LCsO4fTJNgmrxRZj8wR7DS0sZlX5uBowcQz8FUKOhTekaNMj" alt="" className="w-full h-full object-cover" />
+          <img src="https://6h9f7lxba9.ufs.sh/f/LCsO4fTJNgmr8zkUsHd5OnHZMI7fqRyuXgWDaGKNB5lrhjsi" alt="" className="w-full h-full object-cover" />
+          <img src="https://6h9f7lxba9.ufs.sh/f/LCsO4fTJNgmretZdSlYg8jMFPzoqw6pUkvTiWNDGZJbHcma" alt="" className="w-full h-full object-cover hidden md:block" />
         </div>
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-gray-50/80 to-transparent" />
       </div>
