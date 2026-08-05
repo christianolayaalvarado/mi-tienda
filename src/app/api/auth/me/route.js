@@ -1,61 +1,67 @@
-import jwt from "jsonwebtoken";
-import { getJwtSecret } from "@/lib/getJwtSecret";
 import prisma from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
-function getCookieValue(cookieHeader, name) {
-  if (!cookieHeader) return undefined;
-  const match = cookieHeader.split("; ").find(c => c.startsWith(name + "="));
-  return match ? match.split("=").slice(1).join("=") : undefined;
-}
+export const dynamic = "force-dynamic";
 
 export async function GET(req) {
   try {
-    const cookieHeader = req.headers.get("cookie") || "";
+    // Use the same auth source as all other API routes
+    const { getAuthUserFromCookie } = await import("@/lib/authFromCookie");
+    const authUser = await getAuthUserFromCookie();
 
-    // Try custom 'token' cookie first, then NextAuth session token
-    let tokenEncoded = getCookieValue(cookieHeader, "token");
-
-    if (!tokenEncoded) {
-      const nextAuthToken = getCookieValue(cookieHeader, "next-auth.session-token");
-      if (nextAuthToken) {
-        tokenEncoded = encodeURIComponent(nextAuthToken);
-      }
+    if (!authUser?.email) {
+      return NextResponse.json({ ok: false, message: "No autenticado" }, { status: 401 });
     }
 
-    if (!tokenEncoded) {
-      const auth = req.headers.get("authorization");
-      if (auth && auth.startsWith("Bearer ")) {
-        tokenEncoded = encodeURIComponent(auth.slice(7));
-      }
+    // Look up full user from DB
+    const user = await prisma.user.findUnique({
+      where: { email: authUser.email.toLowerCase() },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        plan: true,
+        emailVerified: true,
+        selectedMascot: true,
+        stores: { select: { name: true, code: true }, take: 1 },
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Usuario no encontrado" }, { status: 401 });
     }
 
-    if (!tokenEncoded) {
-      return new Response(JSON.stringify({ ok: false, message: "No hay token" }), { status: 401, headers: { "Content-Type": "application/json" } });
+    // If logged in via Google/Facebook and old "token" cookie exists, clear it
+    const hasSessionCookie = req.headers.get("cookie")?.includes("next-auth.session-token");
+    const hasOldToken = req.headers.get("cookie")?.includes("token=");
+    const shouldClearOldToken = hasSessionCookie && hasOldToken;
+
+    const response = NextResponse.json({
+      ok: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        plan: user.plan,
+        emailVerified: user.emailVerified,
+        selectedMascot: user.selectedMascot,
+        store: user.stores?.[0]?.name || null,
+        storeCode: user.stores?.[0]?.code || null,
+      },
+    });
+
+    if (shouldClearOldToken) {
+      response.headers.append(
+        "Set-Cookie",
+        "token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"
+      );
     }
 
-    const token = decodeURIComponent(tokenEncoded);
-
-    let payload;
-    try {
-      payload = jwt.verify(token, getJwtSecret());
-    } catch (err) {
-      return new Response(JSON.stringify({ ok: false, message: "Token inválido o expirado" }), { status: 401, headers: { "Content-Type": "application/json" } });
-    }
-
-    let selectedMascot = "box";
-    try {
-      const dbUser = await prisma.user.findUnique({
-        where: { id: payload.id },
-        select: { selectedMascot: true },
-      });
-      if (dbUser?.selectedMascot) {
-        selectedMascot = dbUser.selectedMascot;
-      }
-    } catch {}
-
-    return new Response(JSON.stringify({ ok: true, user: { ...payload, selectedMascot } }), { status: 200, headers: { "Content-Type": "application/json" } });
+    return response;
   } catch (err) {
     console.error("[/api/auth/me] error:", err);
-    return new Response(JSON.stringify({ ok: false, message: "Token inválido o expirado" }), { status: 401, headers: { "Content-Type": "application/json" } });
+    return NextResponse.json({ ok: false, message: "Error interno" }, { status: 500 });
   }
 }
