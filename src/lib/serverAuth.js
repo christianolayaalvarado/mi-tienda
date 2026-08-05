@@ -16,7 +16,20 @@ function getCookieValueFromHeader(cookieHeader = "", name) {
 
 export async function getServerAuthUser(req) {
   try {
-    // 1) Intentar obtener sesión de next-auth (si está disponible)
+    // Check if NextAuth session cookie exists
+    let hasSessionCookie = false;
+    if (req?.headers?.get) {
+      const cookieHeader = req.headers.get("cookie") || "";
+      hasSessionCookie = !!getCookieValueFromHeader(cookieHeader, "next-auth.session-token");
+    }
+    if (!hasSessionCookie) {
+      try {
+        const cookieStore = await cookies();
+        hasSessionCookie = !!cookieStore.get("next-auth.session-token")?.value;
+      } catch {}
+    }
+
+    // 1) Intentar obtener sesión de next-auth (Google/Facebook login)
     try {
       const session = await getServerSession(authOptions);
       if (session?.user) {
@@ -25,10 +38,16 @@ export async function getServerAuthUser(req) {
       }
     } catch (e) {
       if (DEBUG) console.warn("[serverAuth] getServerSession failed:", e?.message || e);
-      // continuar al fallback del token
     }
 
-    // 2) Intentar extraer token desde la cabecera cookie (Request del App Router)
+    // 2) If next-auth session cookie exists but getServerSession failed,
+    //    do NOT fall back to custom token — the user is a social login user
+    if (hasSessionCookie) {
+      if (DEBUG) console.log("[serverAuth] session cookie present but getServerSession failed, returning null");
+      return null;
+    }
+
+    // 3) Intentar extraer token desde la cabecera cookie (credentials login only)
     let tokenValue = null;
 
     if (req?.headers?.get) {

@@ -1,24 +1,7 @@
 // app/api/products/mine/route.js
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import jwt from "jsonwebtoken";
-import { cookies } from "next/headers";
-import { getJwtSecret } from "@/lib/getJwtSecret";
-
-async function getAuthUserFromCookie() {
-  try {
-    const cookieStore = await cookies();
-    let tokenValue = cookieStore.get("token")?.value;
-    if (!tokenValue) {
-      tokenValue = cookieStore.get("next-auth.session-token")?.value;
-    }
-    if (!tokenValue) return null;
-    const payload = jwt.verify(decodeURIComponent(tokenValue), getJwtSecret());
-    return payload?.email ? payload : null;
-  } catch (error) {
-    return null;
-  }
-}
+import { getAuthUserFromCookie } from "@/lib/authFromCookie";
 
 export async function GET(req) {
   try {

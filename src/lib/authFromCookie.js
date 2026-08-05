@@ -5,10 +5,17 @@ import { getJwtSecret } from "./getJwtSecret";
 /**
  * Resolves the authenticated user from cookies.
  * Priority: NextAuth session (Google/Facebook) > custom token cookie.
- * When NextAuth session exists, the old custom token cookie is stale
- * and should be cleared.
+ * When next-auth.session-token cookie exists, we NEVER fall back to custom token
+ * to prevent showing a different user (e.g. admin@demo.com) after Google login.
  */
 export async function getAuthUserFromCookie() {
+  // Check if NextAuth session cookie exists at all
+  let hasSessionCookie = false;
+  try {
+    const cookieStore = await cookies();
+    hasSessionCookie = !!cookieStore.get("next-auth.session-token")?.value;
+  } catch {}
+
   // 1. Try NextAuth session first (Google/Facebook login)
   try {
     const { getServerSession } = await import("next-auth");
@@ -19,7 +26,14 @@ export async function getAuthUserFromCookie() {
     }
   } catch {}
 
-  // 2. Fall back to custom token cookie (credentials login)
+  // 2. If next-auth session cookie exists but getServerSession failed,
+  //    do NOT fall back to custom token — the user is a social login user
+  //    and the custom token is stale.
+  if (hasSessionCookie) {
+    return null;
+  }
+
+  // 3. Fall back to custom token cookie (credentials login only)
   try {
     const cookieStore = await cookies();
     const tokenValue = cookieStore.get("token")?.value;

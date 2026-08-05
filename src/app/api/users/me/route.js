@@ -19,15 +19,19 @@ function getCookieValue(cookieHeader, name) {
 }
 
 async function resolveUserId(req) {
+  const cookieHeader = req.headers.get("cookie") || "";
+  const hasSessionCookie = !!getCookieValue(cookieHeader, "next-auth.session-token");
+
+  // 1. Try NextAuth session first (Google/Facebook login)
   const session = await getServerSession(authOptions);
   if (session?.user?.id) return session.user.id;
 
-  const cookieHeader = req.headers.get("cookie") || "";
+  // 2. If next-auth session cookie exists but getServerSession failed,
+  //    do NOT fall back to custom token — the user is a social login user
+  if (hasSessionCookie) return null;
+
+  // 3. Fall back to custom token cookie (credentials login only)
   let tokenStr = getCookieValue(cookieHeader, "token");
-  if (!tokenStr) {
-    const nextAuth = getCookieValue(cookieHeader, "next-auth.session-token");
-    if (nextAuth) tokenStr = nextAuth;
-  }
   if (!tokenStr) {
     const auth = req.headers.get("authorization");
     if (auth?.startsWith("Bearer ")) tokenStr = auth.slice(7);
