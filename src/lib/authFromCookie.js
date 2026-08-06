@@ -1,11 +1,11 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
 import { getJwtSecret } from "./getJwtSecret";
 
 /**
  * Verify a NextAuth JWT token using jose (same library NextAuth uses).
+ * This is the PRIMARY auth method for API routes in Next.js App Router.
+ * getServerSession() from next-auth@4 does NOT work reliably in Route Handlers.
  */
 async function verifyNextAuthJWT(tokenValue) {
   try {
@@ -20,10 +20,10 @@ async function verifyNextAuthJWT(tokenValue) {
 
 /**
  * Resolves the authenticated user from cookies.
- * Priority: custom token (credentials login) > NextAuth session (Google/Facebook).
- * The custom token cookie is set by /api/auth/login and represents the most
- * recent explicit login. If it exists, we use it regardless of any stale
- * next-auth.session-token that might still be lingering.
+ * Priority: custom token (credentials login) > manual NextAuth JWT verification.
+ * getServerSession() is intentionally NOT used here because it fails silently
+ * in Next.js App Router Route Handlers (next-auth@4 is CJS and can't access
+ * the request context properly in the App Router).
  */
 export async function getAuthUserFromCookie() {
   // 1. Try custom token cookie first (credentials login — most recent explicit login)
@@ -38,15 +38,8 @@ export async function getAuthUserFromCookie() {
     }
   } catch {}
 
-  // 2. Try NextAuth session (Google/Facebook login)
-  try {
-    const session = await getServerSession(authOptions);
-    if (session?.user?.email) {
-      return { email: session.user.email, id: session.user.id, name: session.user.name };
-    }
-  } catch {}
-
-  // 3. If getServerSession failed, try manually verifying the NextAuth JWT cookie
+  // 2. Try manual NextAuth JWT verification (Google/Facebook login)
+  //    Reads the session token cookie directly and verifies with jose.
   try {
     const cookieStore = await cookies();
     let tokenValue = cookieStore.get("next-auth.session-token")?.value || cookieStore.get("__Secure-next-auth.session-token")?.value;
