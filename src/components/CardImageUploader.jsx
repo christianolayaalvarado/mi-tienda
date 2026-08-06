@@ -313,7 +313,7 @@ export default function CardImageUploader({ onClose }) {
                       <img
                         src={sel.imageUrl}
                         alt="Preview"
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className="absolute inset-0 w-full h-full object-contain"
                         style={{
                           transform: `translate(${sel.offsetX || 0}%, ${sel.offsetY || 0}%) scale(${sel.scale || 1})`,
                         }}

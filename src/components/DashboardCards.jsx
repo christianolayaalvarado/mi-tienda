@@ -375,7 +375,7 @@ export default function DashboardCards({ userRole, isFull }) {
                 <img
                   src={cardImages[cat.id].imageUrl}
                   alt={cat.label}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-contain"
                   style={{
                     transform: `translate(${cardImages[cat.id].offsetX || 0}%, ${cardImages[cat.id].offsetY || 0}%) scale(${cardImages[cat.id].scale || 1})`,
                   }}

@@ -69,7 +69,7 @@ export default function SlidePanel({ open, onClose, category, cardImages = {} })
                   <img
                     src={itemImg?.imageUrl || catImg?.headerUrl}
                     alt={hoveredItem.label}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-contain"
                     style={{
                       transform: `translate(${(itemImg?.offsetX || catImg?.headerOffsetX || 0)}%, ${(itemImg?.offsetY || catImg?.headerOffsetY || 0)}%) scale(${itemImg?.scale || catImg?.headerScale || 1})`,
                     }}
@@ -139,7 +139,7 @@ export default function SlidePanel({ open, onClose, category, cardImages = {} })
               <img
                 src={cardImages[category.id].headerUrl}
                 alt={category.label}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-contain"
                 style={{
                   transform: `translate(${cardImages[category.id].headerOffsetX || 0}%, ${cardImages[category.id].headerOffsetY || 0}%) scale(${cardImages[category.id].headerScale || 1})`,
                 }}
