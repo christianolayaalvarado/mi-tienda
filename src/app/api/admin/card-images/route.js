@@ -51,10 +51,30 @@ export async function PUT(req) {
 
     let existing = null;
     try {
-      existing = await prisma.dashboardCardImage.findFirst({ where });
-    } catch (_) {
+      const all = await prisma.dashboardCardImage.findMany({
+        where: { cardId },
+      });
+      existing = all.find((img) => {
+        if (itemHref) return img.itemHref === itemHref;
+        return img.itemHref === null || img.itemHref === undefined;
+      }) || null;
+    } catch (findErr) {
+      console.error("Error finding card image:", findErr);
       existing = null;
     }
+
+    const createData = {
+      cardId,
+      itemHref: itemHref || null,
+      imageUrl: imageUrl || "",
+      offsetX: offsetX || 0,
+      offsetY: offsetY || 0,
+      scale: scale || 1,
+      headerUrl: headerUrl || null,
+      headerOffsetX: headerOffsetX || 0,
+      headerOffsetY: headerOffsetY || 0,
+      headerScale: headerScale || 1,
+    };
 
     let result;
     if (existing) {
@@ -63,26 +83,30 @@ export async function PUT(req) {
         data,
       });
     } else {
-      result = await prisma.dashboardCardImage.create({
-        data: {
-          cardId,
-          itemHref: itemHref || null,
-          imageUrl: imageUrl || "",
-          offsetX: offsetX || 0,
-          offsetY: offsetY || 0,
-          scale: scale || 1,
-          headerUrl: headerUrl || null,
-          headerOffsetX: headerOffsetX || 0,
-          headerOffsetY: headerOffsetY || 0,
-          headerScale: headerScale || 1,
-        },
-      });
+      try {
+        result = await prisma.dashboardCardImage.create({ data: createData });
+      } catch (createErr) {
+        console.error("Error creating card image, trying update:", createErr);
+        const retry = await prisma.dashboardCardImage.findMany({ where: { cardId } });
+        const fallback = retry.find((img) => {
+          if (itemHref) return img.itemHref === itemHref;
+          return img.itemHref === null || img.itemHref === undefined;
+        });
+        if (fallback) {
+          result = await prisma.dashboardCardImage.update({
+            where: { id: fallback.id },
+            data,
+          });
+        } else {
+          throw createErr;
+        }
+      }
     }
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error updating card image:", error);
-    return NextResponse.json({ error: "Error del servidor" }, { status: 500 });
+    console.error("Error updating card image:", error?.message || error);
+    return NextResponse.json({ error: error?.message || "Error del servidor" }, { status: 500 });
   }
 }
 
@@ -114,7 +138,8 @@ export async function DELETE(req) {
       const existing = await prisma.dashboardCardImage.findFirst({ where: { cardId, itemHref } });
       if (existing) await prisma.dashboardCardImage.delete({ where: { id: existing.id } });
     } else {
-      const existing = await prisma.dashboardCardImage.findFirst({ where: { cardId, itemHref: null } });
+      const all = await prisma.dashboardCardImage.findMany({ where: { cardId } });
+      const existing = all.find((img) => img.itemHref === null || img.itemHref === undefined);
       if (existing) await prisma.dashboardCardImage.delete({ where: { id: existing.id } });
     }
     return NextResponse.json({ ok: true });
