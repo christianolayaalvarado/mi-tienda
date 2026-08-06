@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   setLogoutInProgress,
   isLogoutInProgress,
@@ -86,7 +87,14 @@ export function useAuth({ initialFetch = true } = {}) {
     markJustLoggedOut();
 
     try {
-      // Llamada al endpoint que borra cookies en servidor
+      // 1. Invalidar sesión NextAuth en servidor PRIMERO
+      try {
+        await signOut({ redirect: false });
+      } catch (e) {
+        console.warn("next-auth signOut error (non-fatal):", e);
+      }
+
+      // 2. Limpiar cookies en servidor vía nuestro endpoint (token, refreshToken, etc.)
       await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",

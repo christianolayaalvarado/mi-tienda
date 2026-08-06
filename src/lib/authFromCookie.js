@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 import { getJwtSecret } from "./getJwtSecret";
 
 /**
@@ -38,8 +40,6 @@ export async function getAuthUserFromCookie() {
 
   // 2. Try NextAuth session (Google/Facebook login)
   try {
-    const { getServerSession } = await import("next-auth");
-    const { authOptions } = await import("./authOptions");
     const session = await getServerSession(authOptions);
     if (session?.user?.email) {
       return { email: session.user.email, id: session.user.id, name: session.user.name };
