@@ -67,7 +67,7 @@ function PositionSliders({ data, onChange }) {
   const fields = [
     { key: "offsetX", label: "X", min: -50, max: 50, suffix: "%" },
     { key: "offsetY", label: "Y", min: -50, max: 50, suffix: "%" },
-    { key: "scale", label: "Zoom", min: 30, max: 200, suffix: "%", isPercent: true },
+    { key: "scale", label: "Zoom", min: 10, max: 200, suffix: "%", isPercent: true },
   ];
   return (
     <div className="mt-3 space-y-2">
