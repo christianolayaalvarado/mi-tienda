@@ -8,11 +8,10 @@ import { useAuthContext } from "@/context/AuthProvider";
 
 export default function UserMenu() {
   const router = useRouter();
-  const { user, logout, loading: authLoading } = useAuthContext();
+  const { user, logout } = useAuthContext();
   const [signingOut, setSigningOut] = useState(false);
 
   const isLoggedIn = !!user;
-  const isLoading = authLoading;
 
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
@@ -25,10 +24,6 @@ export default function UserMenu() {
       setSigningOut(false);
     }
   }, [logout]);
-
-  if (isLoading) {
-    return <span className="text-sm text-gray-500">...</span>;
-  }
 
   if (!isLoggedIn) {
     return (
