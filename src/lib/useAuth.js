@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
 import {
   setLogoutInProgress,
   isLogoutInProgress,
@@ -93,13 +92,6 @@ export function useAuth({ initialFetch = true } = {}) {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       }).catch((e) => console.warn("logout endpoint error", e));
-
-      // Intentar signOut de next-auth (no redirigir desde aquí)
-      try {
-        await signOut({ redirect: false });
-      } catch (e) {
-        console.warn("next-auth signOut error", e);
-      }
 
       // Limpiar tokens locales
       try {
