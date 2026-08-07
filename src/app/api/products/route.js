@@ -312,27 +312,26 @@ export async function DELETE(req) {
     const user = await prisma.user.findUnique({ where: { email: session.email } });
     if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
 
-    // Verificar que los productos pertenecen al usuario o a sus tiendas
-    const productIds = body.ids;
-    const userProducts = await prisma.product.findMany({
-      where: { id: { in: productIds } },
-      include: { store: true },
-    });
+    const isAdmin = user.role === "admin" || user.role === "ADMIN";
 
-    const authorized = userProducts.every(
-      (p) => String(p.userId) === String(user.id) || (p.store && String(p.store.userId) === String(user.id))
-    );
-    if (!authorized) {
-      return NextResponse.json({ error: "No autorizado para eliminar algunos productos" }, { status: 403 });
+    let where;
+    if (isAdmin) {
+      where = { id: { in: body.ids } };
+    } else {
+      where = {
+        id: { in: body.ids },
+        OR: [
+          { userId: user.id },
+          { store: { userId: user.id } },
+        ],
+      };
     }
 
-    const deleted = await prisma.product.deleteMany({
-      where: { id: { in: body.ids }, userId: user.id },
-    });
+    const deleted = await prisma.product.deleteMany({ where });
 
     return NextResponse.json({ message: "Productos eliminados correctamente", count: deleted.count });
   } catch (error) {
-    console.error("DELETE /api/products error:", error);
+    console.error("DELETE /api/products error:", error?.message || error);
     return NextResponse.json({ error: "Error eliminando productos" }, { status: 500 });
   }
 }
