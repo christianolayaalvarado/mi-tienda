@@ -17,10 +17,10 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith("/dashboard")) {
       const cookieHeader = req.headers.get("cookie") || "";
 
-      const hasCustomToken = cookieHeader.includes("token=");
+      const hasCustomToken = /(?:^|;\s*)token=/.test(cookieHeader);
       const hasNextAuthCookie =
-        cookieHeader.includes("next-auth.session-token") ||
-        cookieHeader.includes("__Secure-next-auth.session-token");
+        /(?:^|;\s*)next-auth\.session-token=/.test(cookieHeader) ||
+        /(?:^|;\s*)__Secure-next-auth\.session-token=/.test(cookieHeader);
 
       if (!hasCustomToken && !hasNextAuthCookie) {
         const loginUrl = new URL("/login", req.url);
