@@ -60,9 +60,8 @@ export default function MascotWelcomeModal() {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  if (!MASCOT_WELCOME_ENABLED) return null;
-
   useEffect(() => {
+    if (!MASCOT_WELCOME_ENABLED) return;
     try {
       const shown = sessionStorage.getItem("mascot-welcome-shown");
       if (!shown) {

@@ -78,9 +78,8 @@ export default function RegisterBenefitsModal() {
 
   const isLoggedIn = user || session?.user;
 
-  if (!REGISTER_MODAL_ENABLED) return null;
-
   useEffect(() => {
+    if (!REGISTER_MODAL_ENABLED) return;
     if (loading || sessionStatus === "loading" || isLoggedIn || pathname === "/register" || pathname === "/login") return;
 
     const dismissedAt = Number(sessionStorage.getItem(DISMISS_KEY) || 0);
