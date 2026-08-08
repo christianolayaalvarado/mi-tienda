@@ -1,4 +1,4 @@
-const CACHE_NAME = "mi-tienda-v1";
+const CACHE_NAME = "mi-tienda-v2";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
