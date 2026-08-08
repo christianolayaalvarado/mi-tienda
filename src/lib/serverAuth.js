@@ -30,7 +30,31 @@ export async function getServerAuthUser(req) {
       cookieHeader = req.headers.get("cookie") || "";
     }
 
-    // 1) Try custom token cookie first (credentials login — most recent explicit login)
+    // 1) Try NextAuth JWT first (Google/Facebook login — most recent)
+    //    Credentials login clears NextAuth cookies, so if NextAuth cookie exists,
+    //    it means Google/Facebook login happened most recently.
+    const nextAuthTokenName = "next-auth.session-token";
+    const secureTokenName = "__Secure-next-auth.session-token";
+
+    let naToken = getCookieValueFromHeader(cookieHeader, nextAuthTokenName) || getCookieValueFromHeader(cookieHeader, secureTokenName);
+
+    if (!naToken) {
+      try {
+        const cookieStore = await cookies();
+        naToken = cookieStore.get(nextAuthTokenName)?.value || cookieStore.get(secureTokenName)?.value;
+      } catch {}
+    }
+
+    if (naToken) {
+      try { naToken = decodeURIComponent(naToken); } catch {}
+      const payload = await verifyNextAuthJWT(naToken);
+      if (payload?.email) {
+        if (DEBUG) console.log("[serverAuth] manually verified NextAuth JWT for", payload.email);
+        return { email: payload.email, id: payload.id, name: payload.name, source: "nextauth-jwt" };
+      }
+    }
+
+    // 2) Try custom token cookie (credentials login)
     let tokenValue = null;
 
     if (req?.headers?.get) {
@@ -54,30 +78,6 @@ export async function getServerAuthUser(req) {
           return { ...payload, source: "token" };
         }
       } catch {}
-    }
-
-    // 2) Try manual NextAuth JWT verification (Google/Facebook login)
-    //    getServerSession() from next-auth@4 does NOT work reliably in App Router Route Handlers.
-    const nextAuthTokenName = "next-auth.session-token";
-    const secureTokenName = "__Secure-next-auth.session-token";
-
-    let naToken = getCookieValueFromHeader(cookieHeader, nextAuthTokenName) || getCookieValueFromHeader(cookieHeader, secureTokenName);
-
-    // Fallback to cookie store if not in header
-    if (!naToken) {
-      try {
-        const cookieStore = await cookies();
-        naToken = cookieStore.get(nextAuthTokenName)?.value || cookieStore.get(secureTokenName)?.value;
-      } catch {}
-    }
-
-    if (naToken) {
-      try { naToken = decodeURIComponent(naToken); } catch {}
-      const payload = await verifyNextAuthJWT(naToken);
-      if (payload?.email) {
-        if (DEBUG) console.log("[serverAuth] manually verified NextAuth JWT for", payload.email);
-        return { email: payload.email, id: payload.id, name: payload.name, source: "nextauth-jwt" };
-      }
     }
 
     if (DEBUG) console.log("[serverAuth] no auth found");

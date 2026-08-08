@@ -32,7 +32,17 @@ async function verifyNextAuthJWT(tokenValue) {
 async function resolveUserId(req) {
   const cookieHeader = req.headers.get("cookie") || "";
 
-  // 1. Custom token cookie first (credentials login — most recent explicit login)
+  // 1. NextAuth session (Google/Facebook login — most recent)
+  //    Credentials login clears NextAuth cookies, so if NextAuth cookie exists,
+  //    it means Google/Facebook login happened most recently.
+  const nextAuthToken = getCookieValue(cookieHeader, "next-auth.session-token") || getCookieValue(cookieHeader, "__Secure-next-auth.session-token");
+  if (nextAuthToken) {
+    try { var decoded = decodeURIComponent(nextAuthToken); } catch { decoded = nextAuthToken; }
+    const payload = await verifyNextAuthJWT(decoded);
+    if (payload?.id) return payload.id;
+  }
+
+  // 2. Custom token cookie (credentials login)
   let tokenStr = getCookieValue(cookieHeader, "token");
   if (tokenStr) {
     try {
@@ -41,20 +51,7 @@ async function resolveUserId(req) {
     } catch {}
   }
 
-  // 2. NextAuth session (Google/Facebook login)
-  const session = await getServerSession(authOptions);
-  if (session?.user?.id) return session.user.id;
-
-  // 3. Manual NextAuth JWT verification
-  const nextAuthToken = getCookieValue(cookieHeader, "next-auth.session-token") || getCookieValue(cookieHeader, "__Secure-next-auth.session-token");
-  if (nextAuthToken) {
-    try { var decoded = decodeURIComponent(nextAuthToken); } catch { decoded = nextAuthToken; }
-    const payload = await verifyNextAuthJWT(decoded);
-    if (payload?.id) return payload.id;
-    return null;
-  }
-
-  // 4. Bearer token
+  // 3. Bearer token
   const auth = req.headers.get("authorization");
   if (auth?.startsWith("Bearer ")) {
     try {
