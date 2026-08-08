@@ -66,6 +66,8 @@ const CAROUSEL_IMAGES = [
 const DISMISS_KEY = "register-benefits-dismissed";
 const REAPPEAR_MS = 10000;
 
+const REGISTER_MODAL_ENABLED = false;
+
 export default function RegisterBenefitsModal() {
   const { user, loading } = useAuthContext();
   const { data: session, status: sessionStatus } = useSession();
@@ -75,6 +77,8 @@ export default function RegisterBenefitsModal() {
   const [currentImage, setCurrentImage] = useState(0);
 
   const isLoggedIn = user || session?.user;
+
+  if (!REGISTER_MODAL_ENABLED) return null;
 
   useEffect(() => {
     if (loading || sessionStatus === "loading" || isLoggedIn || pathname === "/register" || pathname === "/login") return;

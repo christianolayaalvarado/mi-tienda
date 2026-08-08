@@ -52,11 +52,15 @@ function Particle({ delay, color }) {
   );
 }
 
+const MASCOT_WELCOME_ENABLED = false;
+
 export default function MascotWelcomeModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  if (!MASCOT_WELCOME_ENABLED) return null;
 
   useEffect(() => {
     try {
