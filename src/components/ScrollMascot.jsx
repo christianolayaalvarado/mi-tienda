@@ -536,7 +536,6 @@ export default function ScrollMascot({ onClick }) {
               mascotType={mascotType}
               moodEmoji={moodEmoji}
               onClose={() => setShowChat(false)}
-              openHelp={openHelp}
             />
           </div>
         </SafePortal>
