@@ -20,33 +20,32 @@ async function verifyNextAuthJWT(tokenValue) {
 
 /**
  * Resolves the authenticated user from cookies.
- * Priority: manual NextAuth JWT (Google/Facebook) > custom token (credentials).
+ * Priority: custom token (credentials) > manual NextAuth JWT verification.
  *
- * When BOTH cookies exist, NextAuth takes precedence because:
- * - Credentials login clears NextAuth cookies (in /api/auth/login)
- * - So if NextAuth cookie still exists, it means Google/Facebook login happened AFTER
- *   the last credentials login and is the most recent authentication.
+ * Credentials login clears NextAuth cookies. When a Google/Facebook login succeeds,
+ * the [...nextauth] route handler clears the old token cookie.
  */
 export async function getAuthUserFromCookie() {
-  // 1. Try NextAuth JWT first (Google/Facebook login — most recent)
+  // 1. Try custom token cookie first (credentials login — most recent explicit login)
   try {
     const cookieStore = await cookies();
-    let tokenValue = cookieStore.get("next-auth.session-token")?.value || cookieStore.get("__Secure-next-auth.session-token")?.value;
+    const tokenValue = cookieStore.get("token")?.value;
     if (tokenValue) {
-      try { tokenValue = decodeURIComponent(tokenValue); } catch {}
-      const payload = await verifyNextAuthJWT(tokenValue);
+      const payload = jwt.verify(decodeURIComponent(tokenValue), getJwtSecret());
       if (payload?.email) {
         return { email: payload.email, id: payload.id, name: payload.name };
       }
     }
   } catch {}
 
-  // 2. Try custom token cookie (credentials login)
+  // 2. Try manual NextAuth JWT verification (Google/Facebook login)
+  //    Reads the session token cookie directly and verifies with jose.
   try {
     const cookieStore = await cookies();
-    const tokenValue = cookieStore.get("token")?.value;
+    let tokenValue = cookieStore.get("next-auth.session-token")?.value || cookieStore.get("__Secure-next-auth.session-token")?.value;
     if (tokenValue) {
-      const payload = jwt.verify(decodeURIComponent(tokenValue), getJwtSecret());
+      try { tokenValue = decodeURIComponent(tokenValue); } catch {}
+      const payload = await verifyNextAuthJWT(tokenValue);
       if (payload?.email) {
         return { email: payload.email, id: payload.id, name: payload.name };
       }
