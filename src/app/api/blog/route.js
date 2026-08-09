@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getAuthUserFromCookie } from "@/lib/authFromCookie";
 
 export async function GET(req) {
   try {
@@ -37,9 +38,6 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
-  const { getAuthUserFromCookie } = await import("@/lib/authFromCookie");
-  const { default: prisma } = await import("@/lib/prisma");
-
   const user = await getAuthUserFromCookie(req);
   if (!user?.email) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 

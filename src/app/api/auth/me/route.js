@@ -1,11 +1,11 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { getServerAuthUser } from "@/lib/serverAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req) {
   try {
-    const { getServerAuthUser } = await import("@/lib/serverAuth");
     const authUser = await getServerAuthUser(req);
 
     if (!authUser?.email) {
