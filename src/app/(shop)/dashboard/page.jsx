@@ -5,7 +5,6 @@ import DashboardCards from "@/components/DashboardCards";
 import DashboardAnalytics from "@/components/DashboardAnalytics";
 import CelebrationToggle from "@/components/CelebrationToggle";
 import CelebrationImageManager from "@/components/CelebrationImageManager";
-import VendorStats from "@/components/VendorStats";
 import ReferralBanner from "@/components/ReferralBanner";
 import FlashSaleManager from "@/components/FlashSaleManager";
 
@@ -37,9 +36,6 @@ export default async function DashboardHome() {
           Selecciona una sección para comenzar
         </p>
       </div>
-
-      {/* Vendor Stats */}
-      <VendorStats />
 
       {/* Referral Banner */}
       <div className="mt-4">

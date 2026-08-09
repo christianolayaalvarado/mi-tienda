@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import VendorStats from "@/components/VendorStats";
 
 export default function SlidePanel({ open, onClose, category, cardImages = {} }) {
   const pathname = usePathname();
@@ -165,6 +166,11 @@ export default function SlidePanel({ open, onClose, category, cardImages = {} })
 
         {/* Items */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {category.id === "ventas" && (
+            <div className="mb-4">
+              <VendorStats />
+            </div>
+          )}
           {category.items.map((item) => (
             <div
               key={item.href}
