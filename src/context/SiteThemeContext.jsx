@@ -38,74 +38,114 @@ const DEFAULT_SETTINGS = {
   borderRadiusLg: "12px",
 };
 
+function buildCSS(s) {
+  return `
+    :root {
+      --st-banner-bg: ${s.bannerBg};
+      --st-banner-text: ${s.bannerTextColor};
+      --st-banner-accent: ${s.bannerAccentColor};
+      --st-navbar-bg: ${s.navbarBg};
+      --st-navbar-text: ${s.navbarTextColor};
+      --st-hero-bg: ${s.heroBg};
+      --st-hero-text: ${s.heroTextColor};
+      --st-catbar-bg: ${s.categoryBarBg};
+      --st-catbar-active: ${s.categoryBarActiveColor};
+      --st-card-bg: ${s.cardBg};
+      --st-card-border: ${s.cardBorderColor};
+      --st-card-shadow: ${s.cardShadowColor};
+      --st-product-bg: ${s.productCardBg};
+      --st-product-hover: ${s.productCardHoverShadow};
+      --st-price: ${s.priceColor};
+      --st-sale-price: ${s.salePriceColor};
+      --st-btn-primary-bg: ${s.primaryBtnBg};
+      --st-btn-primary-hover: ${s.primaryBtnHover};
+      --st-btn-primary-text: ${s.primaryBtnText};
+      --st-btn-secondary-bg: ${s.secondaryBtnBg};
+      --st-btn-secondary-hover: ${s.secondaryBtnHover};
+      --st-btn-secondary-text: ${s.secondaryBtnText};
+      --st-footer-bg: ${s.footerBg};
+      --st-footer-text: ${s.footerTextColor};
+      --st-footer-link: ${s.footerLinkColor};
+      --st-body-bg: ${s.bodyBg};
+      --st-body-text: ${s.bodyTextColor};
+      --st-accent: ${s.accentColor};
+      --st-accent-text: ${s.accentTextColor};
+      --st-radius: ${s.borderRadius};
+      --st-radius-lg: ${s.borderRadiusLg};
+    }
+
+    /* Navbar */
+    .navbar-theme { background: var(--st-navbar-bg) !important; color: var(--st-navbar-text) !important; }
+    .navbar-theme a, .navbar-theme button { color: inherit; }
+
+    /* Category bar */
+    .border-t { border-color: var(--st-card-border) !important; }
+
+    /* Body */
+    body { background: var(--st-body-bg) !important; color: var(--st-body-text) !important; }
+
+    /* Green buttons */
+    .bg-green-600 { background-color: var(--st-btn-primary-bg) !important; }
+    .bg-green-600:hover { background-color: var(--st-btn-primary-hover) !important; }
+    .bg-green-500 { background-color: var(--st-btn-primary-bg) !important; }
+
+    /* Product cards */
+    .product-card, [class*="ProductCard"] {
+      background: var(--st-product-bg) !important;
+      border-color: var(--st-card-border) !important;
+      border-radius: var(--st-radius) !important;
+    }
+
+    /* Prices */
+    .text-green-600 { color: var(--st-price) !important; }
+    .text-green-700 { color: var(--st-price) !important; }
+
+    /* Sale prices */
+    .text-red-600 { color: var(--st-sale-price) !important; }
+
+    /* Footer */
+    footer, [class*="footer"], .bg-gray-900 {
+      background: var(--st-footer-bg) !important;
+      color: var(--st-footer-text) !important;
+    }
+  `;
+}
+
 function applyThemeToCSS(settings) {
   if (typeof document === "undefined") return;
-  const root = document.documentElement;
   const s = { ...DEFAULT_SETTINGS, ...settings };
+  const root = document.documentElement;
+  Object.entries(s).forEach(([k, v]) => root.style.setProperty(`--st-${k}`, v));
 
-  root.style.setProperty("--st-banner-bg", s.bannerBg);
-  root.style.setProperty("--st-banner-text", s.bannerTextColor);
-  root.style.setProperty("--st-banner-accent", s.bannerAccentColor);
-  root.style.setProperty("--st-navbar-bg", s.navbarBg);
-  root.style.setProperty("--st-navbar-text", s.navbarTextColor);
-  root.style.setProperty("--st-hero-bg", s.heroBg);
-  root.style.setProperty("--st-hero-text", s.heroTextColor);
-  root.style.setProperty("--st-catbar-bg", s.categoryBarBg);
-  root.style.setProperty("--st-catbar-active", s.categoryBarActiveColor);
-  root.style.setProperty("--st-card-bg", s.cardBg);
-  root.style.setProperty("--st-card-border", s.cardBorderColor);
-  root.style.setProperty("--st-card-shadow", s.cardShadowColor);
-  root.style.setProperty("--st-product-bg", s.productCardBg);
-  root.style.setProperty("--st-product-hover", s.productCardHoverShadow);
-  root.style.setProperty("--st-price", s.priceColor);
-  root.style.setProperty("--st-sale-price", s.salePriceColor);
-  root.style.setProperty("--st-btn-primary-bg", s.primaryBtnBg);
-  root.style.setProperty("--st-btn-primary-hover", s.primaryBtnHover);
-  root.style.setProperty("--st-btn-primary-text", s.primaryBtnText);
-  root.style.setProperty("--st-btn-secondary-bg", s.secondaryBtnBg);
-  root.style.setProperty("--st-btn-secondary-hover", s.secondaryBtnHover);
-  root.style.setProperty("--st-btn-secondary-text", s.secondaryBtnText);
-  root.style.setProperty("--st-footer-bg", s.footerBg);
-  root.style.setProperty("--st-footer-text", s.footerTextColor);
-  root.style.setProperty("--st-footer-link", s.footerLinkColor);
-  root.style.setProperty("--st-body-bg", s.bodyBg);
-  root.style.setProperty("--st-body-text", s.bodyTextColor);
-  root.style.setProperty("--st-accent", s.accentColor);
-  root.style.setProperty("--st-accent-text", s.accentTextColor);
-  root.style.setProperty("--st-radius", s.borderRadius);
-  root.style.setProperty("--st-radius-lg", s.borderRadiusLg);
+  let tag = document.getElementById("site-theme-style");
+  if (!tag) {
+    tag = document.createElement("style");
+    tag.id = "site-theme-style";
+    document.head.appendChild(tag);
+  }
+  tag.textContent = buildCSS(s);
 }
 
 export function SiteThemeProvider({ children }) {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch("/api/site-theme", { cache: "no-store" })
       .then((r) => r.json())
-      .then((d) => {
-        if (d.settings) {
-          setSettings(d.settings);
-          applyThemeToCSS(d.settings);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
+      .then((d) => { if (d.settings) { setSettings(d.settings); applyThemeToCSS(d.settings); } })
+      .catch(() => {});
   }, []);
 
   const refresh = useCallback(async () => {
     try {
       const res = await fetch("/api/site-theme", { cache: "no-store" });
       const data = await res.json();
-      if (data.settings) {
-        setSettings(data.settings);
-        applyThemeToCSS(data.settings);
-      }
+      if (data.settings) { setSettings(data.settings); applyThemeToCSS(data.settings); }
     } catch {}
   }, []);
 
   return (
-    <SiteThemeContext.Provider value={{ settings, loaded, refresh }}>
+    <SiteThemeContext.Provider value={{ settings, refresh }}>
       {children}
     </SiteThemeContext.Provider>
   );

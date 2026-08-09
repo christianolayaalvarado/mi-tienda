@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSiteTheme } from "@/context/SiteThemeContext";
 
 const SECTIONS = [
   {
@@ -128,6 +129,7 @@ function TextField({ label, value, onChange }) {
 }
 
 export default function SiteThemeEditor() {
+  const { refresh } = useSiteTheme();
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -158,6 +160,7 @@ export default function SiteThemeEditor() {
       });
       if (res.ok) {
         setSaved(true);
+        refresh();
         setTimeout(() => setSaved(false), 2000);
       }
     } catch (err) {
