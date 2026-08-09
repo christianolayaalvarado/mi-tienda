@@ -15,7 +15,7 @@ import RecentlyViewed from "@/components/RecentlyViewed";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useCelebrations } from "@/context/CelebrationsContext";
 
-export default function HomeClient() {
+export default function HomeClient({ initialTotalCount = 0 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { active: celebration } = useCelebrations();
@@ -267,7 +267,7 @@ export default function HomeClient() {
         <div className="mt-8 mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Todos los productos</h2>
-            <p className="text-gray-500 text-sm mt-1">Explora nuestro catálogo completo</p>
+            <p className="text-gray-500 text-sm mt-1">{initialTotalCount > 0 ? `${initialTotalCount} producto${initialTotalCount !== 1 ? "s" : ""} disponible${initialTotalCount !== 1 ? "s" : ""}` : "Explora nuestro catálogo completo"}</p>
           </div>
           <div className="flex items-center gap-2">
             <label htmlFor="sort-select" className="text-xs text-gray-500 whitespace-nowrap">Ordenar por:</label>

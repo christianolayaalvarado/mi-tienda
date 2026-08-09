@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerAuthUser } from "@/lib/serverAuth";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +31,20 @@ export async function GET(req) {
       return NextResponse.json({ ok: false, message: "Usuario no encontrado" }, { status: 401 });
     }
 
-    const hasSessionCookie = req.headers.get("cookie")?.includes("next-auth.session-token");
-    const hasOldToken = req.headers.get("cookie")?.includes("token=");
+    // Detect stale credentials token when NextAuth session exists
+    let hasSessionCookie = false;
+    let hasOldToken = false;
+    try {
+      const cookieStore = await cookies();
+      hasSessionCookie = !!(cookieStore.get("next-auth.session-token")?.value || cookieStore.get("__Secure-next-auth.session-token")?.value);
+      hasOldToken = !!cookieStore.get("token")?.value;
+    } catch {}
+    // Fallback to req.headers
+    if (!hasSessionCookie && !hasOldToken && req?.headers?.get) {
+      const cc = req.headers.get("cookie") || "";
+      hasSessionCookie = cc.includes("next-auth.session-token");
+      hasOldToken = cc.includes("token=");
+    }
     const shouldClearOldToken = hasSessionCookie && hasOldToken;
 
     const response = NextResponse.json({

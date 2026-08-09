@@ -26,31 +26,48 @@ async function verifyNextAuthJWT(tokenValue) {
 }
 
 /**
+ * Read a cookie value by name from the cookie header string.
+ */
+function readCookie(cookieHeader, name) {
+  return getCookieValueFromHeader(cookieHeader, name);
+}
+
+/**
  * Resolves the authenticated user from cookies.
  * Priority: custom token (credentials) > manual NextAuth JWT verification.
+ * Method: cookies() from next/headers (PRIMARY — works in Vercel serverless)
+ *         then req.headers.get("cookie") as fallback (works in middleware/edge).
  *
- * @param {Request} [req] - Optional request object. When provided, reads cookies from req.headers first (more reliable).
+ * @param {Request} [req] - Optional request object. Fallback for edge contexts.
  */
 export async function getAuthUserFromCookie(req) {
-  let cookieHeader = "";
-  if (req?.headers?.get) {
-    cookieHeader = req.headers.get("cookie") || "";
+  // PRIMARY: Read cookies via next/headers (works in Vercel serverless Route Handlers)
+  let customToken = undefined;
+  let naToken = undefined;
+
+  try {
+    const cookieStore = await cookies();
+    customToken = cookieStore.get("token")?.value;
+    naToken =
+      cookieStore.get("next-auth.session-token")?.value ||
+      cookieStore.get("__Secure-next-auth.session-token")?.value;
+  } catch {}
+
+  // FALLBACK: Read from req.headers if cookies() didn't yield results
+  if (!customToken && !naToken && req?.headers?.get) {
+    const cookieHeader = req.headers.get("cookie") || "";
+    if (cookieHeader) {
+      customToken = readCookie(cookieHeader, "token");
+      naToken =
+        readCookie(cookieHeader, "next-auth.session-token") ||
+        readCookie(cookieHeader, "__Secure-next-auth.session-token");
+    }
   }
 
   // 1. Try custom token cookie first (credentials login — most recent explicit login)
-  let tokenValue = cookieHeader ? getCookieValueFromHeader(cookieHeader, "token") : undefined;
-
-  if (!tokenValue) {
+  if (customToken) {
     try {
-      const cookieStore = await cookies();
-      const cookieObj = cookieStore.get("token");
-      tokenValue = cookieObj?.value;
-    } catch {}
-  }
-
-  if (tokenValue) {
-    try {
-      const decoded = decodeURIComponent(tokenValue);
+      const decoded = decodeURIComponent(customToken);
       const payload = jwt.verify(decoded, getJwtSecret());
       if (payload?.email) {
         if (DEBUG) console.log("[authFromCookie] custom token valid for", payload.email);
@@ -60,20 +77,6 @@ export async function getAuthUserFromCookie(req) {
   }
 
   // 2. Try manual NextAuth JWT verification (Google/Facebook login)
-  const nextAuthTokenName = "next-auth.session-token";
-  const secureTokenName = "__Secure-next-auth.session-token";
-
-  let naToken = cookieHeader
-    ? getCookieValueFromHeader(cookieHeader, nextAuthTokenName) || getCookieValueFromHeader(cookieHeader, secureTokenName)
-    : undefined;
-
-  if (!naToken) {
-    try {
-      const cookieStore = await cookies();
-      naToken = cookieStore.get(nextAuthTokenName)?.value || cookieStore.get(secureTokenName)?.value;
-    } catch {}
-  }
-
   if (naToken) {
     try { naToken = decodeURIComponent(naToken); } catch {}
     const payload = await verifyNextAuthJWT(naToken);

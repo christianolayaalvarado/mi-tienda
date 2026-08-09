@@ -25,29 +25,35 @@ async function verifyNextAuthJWT(tokenValue) {
 
 export async function getServerAuthUser(req) {
   try {
-    let cookieHeader = "";
-    if (req?.headers?.get) {
-      cookieHeader = req.headers.get("cookie") || "";
+    // PRIMARY: Read cookies via next/headers (works in Vercel serverless Route Handlers)
+    let customToken = null;
+    let naToken = null;
+
+    try {
+      const cookieStore = await cookies();
+      customToken = cookieStore.get("token")?.value || null;
+      naToken =
+        cookieStore.get("next-auth.session-token")?.value ||
+        cookieStore.get("__Secure-next-auth.session-token")?.value ||
+        null;
+    } catch {}
+
+    // FALLBACK: Read from req.headers if cookies() didn't yield results
+    if (!customToken && !naToken && req?.headers?.get) {
+      const cookieHeader = req.headers.get("cookie") || "";
+      if (cookieHeader) {
+        customToken = getCookieValueFromHeader(cookieHeader, "token") || null;
+        naToken =
+          getCookieValueFromHeader(cookieHeader, "next-auth.session-token") ||
+          getCookieValueFromHeader(cookieHeader, "__Secure-next-auth.session-token") ||
+          null;
+      }
     }
 
     // 1) Try custom token cookie first (credentials login — most recent explicit login)
-    let tokenValue = null;
-
-    if (req?.headers?.get) {
-      tokenValue = getCookieValueFromHeader(cookieHeader, "token");
-    }
-
-    if (!tokenValue) {
+    if (customToken) {
       try {
-        const cookieStore = await cookies();
-        const cookieObj = cookieStore.get("token");
-        tokenValue = cookieObj?.value;
-      } catch {}
-    }
-
-    if (tokenValue) {
-      try {
-        const decoded = decodeURIComponent(tokenValue);
+        const decoded = decodeURIComponent(customToken);
         const payload = jwt.verify(decoded, getJwtSecret());
         if (payload?.email) {
           if (DEBUG) console.log("[serverAuth] custom token valid for", payload.email);
@@ -57,18 +63,6 @@ export async function getServerAuthUser(req) {
     }
 
     // 2) Try manual NextAuth JWT verification (Google/Facebook login)
-    const nextAuthTokenName = "next-auth.session-token";
-    const secureTokenName = "__Secure-next-auth.session-token";
-
-    let naToken = getCookieValueFromHeader(cookieHeader, nextAuthTokenName) || getCookieValueFromHeader(cookieHeader, secureTokenName);
-
-    if (!naToken) {
-      try {
-        const cookieStore = await cookies();
-        naToken = cookieStore.get(nextAuthTokenName)?.value || cookieStore.get(secureTokenName)?.value;
-      } catch {}
-    }
-
     if (naToken) {
       try { naToken = decodeURIComponent(naToken); } catch {}
       const payload = await verifyNextAuthJWT(naToken);

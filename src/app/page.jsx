@@ -33,6 +33,7 @@ export default async function HomePage({ searchParams }) {
 
   let products = []
   let totalPages = 1
+  let totalCount = 0
 
   try {
     const total = await prisma.product.count({ where })
@@ -50,6 +51,7 @@ export default async function HomePage({ searchParams }) {
 
     products = fetched
     totalPages = Math.ceil(total / limit)
+    totalCount = total
   } catch (err) {
     console.error("[HomePage] Error fetching products:", err)
   }
@@ -58,6 +60,7 @@ export default async function HomePage({ searchParams }) {
     <HomeClient
       initialProducts={products}
       initialTotalPages={totalPages}
+      initialTotalCount={totalCount}
     />
   )
 }

@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { getJwtSecret } from "@/lib/getJwtSecret";
 import prisma from "@/lib/prisma";
+import { cookies } from "next/headers";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -30,32 +31,55 @@ async function verifyNextAuthJWT(tokenValue) {
 }
 
 async function resolveUserId(req) {
-  const cookieHeader = req.headers.get("cookie") || "";
+  // PRIMARY: Read cookies via next/headers (works in Vercel serverless Route Handlers)
+  let customToken = undefined;
+  let nextAuthToken = undefined;
+
+  try {
+    const cookieStore = await cookies();
+    customToken = cookieStore.get("token")?.value;
+    nextAuthToken =
+      cookieStore.get("next-auth.session-token")?.value ||
+      cookieStore.get("__Secure-next-auth.session-token")?.value;
+  } catch {}
+
+  // FALLBACK: Read from req.headers if cookies() didn't yield results
+  if (!customToken && !nextAuthToken && req?.headers?.get) {
+    const cookieHeader = req.headers.get("cookie") || "";
+    if (cookieHeader) {
+      customToken = getCookieValue(cookieHeader, "token");
+      nextAuthToken =
+        getCookieValue(cookieHeader, "next-auth.session-token") ||
+        getCookieValue(cookieHeader, "__Secure-next-auth.session-token");
+    }
+  }
 
   // 1. Custom token cookie first (credentials login — most recent explicit login)
-  let tokenStr = getCookieValue(cookieHeader, "token");
-  if (tokenStr) {
+  if (customToken) {
     try {
-      const payload = jwt.verify(decodeURIComponent(tokenStr), getJwtSecret());
+      const payload = jwt.verify(decodeURIComponent(customToken), getJwtSecret());
       if (payload?.id) return payload.id;
     } catch {}
   }
 
-  // 2. NextAuth session (Google/Facebook login)
-  const nextAuthToken = getCookieValue(cookieHeader, "next-auth.session-token") || getCookieValue(cookieHeader, "__Secure-next-auth.session-token");
+  // 2. NextAuth JWT verification (Google/Facebook login)
   if (nextAuthToken) {
-    try { var decoded = decodeURIComponent(nextAuthToken); } catch { decoded = nextAuthToken; }
-    const payload = await verifyNextAuthJWT(decoded);
-    if (payload?.id) return payload.id;
+    try {
+      const decoded = decodeURIComponent(nextAuthToken);
+      const payload = await verifyNextAuthJWT(decoded);
+      if (payload?.id) return payload.id;
+    } catch {}
   }
 
   // 3. Bearer token
-  const auth = req.headers.get("authorization");
-  if (auth?.startsWith("Bearer ")) {
-    try {
-      const payload = jwt.verify(auth.slice(7), getJwtSecret());
-      if (payload?.id) return payload.id;
-    } catch {}
+  if (req?.headers?.get) {
+    const auth = req.headers.get("authorization");
+    if (auth?.startsWith("Bearer ")) {
+      try {
+        const payload = jwt.verify(auth.slice(7), getJwtSecret());
+        if (payload?.id) return payload.id;
+      } catch {}
+    }
   }
 
   return null;

@@ -162,7 +162,7 @@ export default function ProductsPage() {
       <Breadcrumbs />
 
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 mt-4">
-        <h1 className="text-xl sm:text-2xl font-bold">Mis Productos</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Mis Productos <span className="text-sm font-normal text-gray-400">({totalPages * limit > 0 ? `${(page - 1) * limit + 1}-${Math.min(page * limit, totalPages * limit)} de ${totalPages * limit}` : "0"})</span></h1>
 
         <div className="flex gap-2">
           <button
