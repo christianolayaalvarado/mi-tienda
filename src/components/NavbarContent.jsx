@@ -9,7 +9,6 @@ import CartPreview from "./navbar/CartPreview";
 import UserMenu from "./navbar/UserMenu";
 import ThemeToggle from "./navbar/ThemeToggle";
 import CategoryScroller from "./navbar/CategoryScroller";
-import { useHelpCenter } from "@/context/HelpCenterContext";
 
 import {
   buildURL,
@@ -21,7 +20,6 @@ import {
 export default function NavbarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { openHelp } = useHelpCenter() || {};
   const cartCtx = useCart();
   const cartItems = useMemo(() => cartCtx?.cartItems ?? [], [cartCtx?.cartItems]);
   const subtotal = Number(typeof cartCtx?.getTotal === "function" ? cartCtx.getTotal() : 0);
@@ -181,16 +179,6 @@ export default function NavbarContent() {
             </div>
 
             <ThemeToggle />
-
-            <button
-              onClick={() => openHelp?.()}
-              className="flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
-              title="Centro de ayuda"
-            >
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
           </div>
 
           <div className="w-full sm:w-auto sm:flex-1 order-3 sm:order-2">
