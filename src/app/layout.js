@@ -15,6 +15,7 @@ import ScrollWrapper from "@/components/ScrollWrapper";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { HelpCenterProvider } from "@/context/HelpCenterContext";
 import { CelebrationsProvider } from "@/context/CelebrationsContext";
+import { SiteThemeProvider } from "@/context/SiteThemeContext";
 import PriceDropNotification from "@/components/PriceDropNotification";
 import RegisterBenefitsModal from "@/components/RegisterBenefitsModal";
 
@@ -154,6 +155,7 @@ export default function RootLayout({ children }) {
             <ThemeProvider>
             <HelpCenterProvider>
             <CelebrationsProvider>
+            <SiteThemeProvider>
             <MascotProvider>
               <CartProvider>
               <RootLayoutClientInit />
@@ -181,6 +183,7 @@ export default function RootLayout({ children }) {
 
             </CartProvider>
             </MascotProvider>
+            </SiteThemeProvider>
             </CelebrationsProvider>
             </HelpCenterProvider>
             </ThemeProvider>

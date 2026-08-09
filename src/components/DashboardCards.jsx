@@ -311,6 +311,15 @@ const CATEGORIES = [
         features: ["Modales de bienvenida", "Ofertas y promociones", "Celebraciones temporales", "Programación por fechas"],
       },
       {
+        href: "/dashboard/admin/appearance",
+        label: "Apariencia",
+        icon: "🎨",
+        description: "Colores del sitio, banners y estilos",
+        longDescription: "Personaliza los colores globales del sitio: banners, navbar, botones, tarjetas, footer y más. Los cambios se aplican a todos los usuarios en tiempo real.",
+        photoGradient: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+        features: ["Colores de banners", "Estilos de navbar y footer", "Colores de botones", "Vista previa en vivo"],
+      },
+      {
         href: "/dashboard/admin/marketing",
         label: "Marketing",
         icon: "📧",
