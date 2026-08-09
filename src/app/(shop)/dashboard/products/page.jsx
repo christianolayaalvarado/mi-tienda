@@ -226,15 +226,43 @@ export default function ProductsPage() {
 
             return (
               <div key={product.id} className={`border p-3 rounded ${selectedProducts.includes(product.id) ? "ring-2 ring-red-500" : ""}`}>
-                <div className="flex justify-between mb-2">
+                <div className="flex justify-between items-center mb-2">
                   <input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => toggleSelect(product.id)} />
 
-                  {canEdit ? (
-                    <Link href={`/dashboard/products/edit/${product.id}`}>
-                      <button className="text-xs bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600 transition">Editar</button>
-                    </Link>
-                  ) : (
-                    <span className="text-xs text-gray-500 px-2 py-1">Solo lectura</span>
+                  {canEdit && (
+                    <div className="flex gap-1">
+                      <Link href={`/dashboard/products/edit/${product.id}`}>
+                        <button className="text-xs bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600 transition">Editar</button>
+                      </Link>
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`¿Eliminar "${product.title}"?`)) return;
+                          const loadingToast = toast.loading("Eliminando...");
+                          try {
+                            const res = await fetch("/api/products", {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              credentials: "include",
+                              body: JSON.stringify({ ids: [product.id] }),
+                            });
+                            const data = await res.json().catch(() => ({}));
+                            toast.dismiss(loadingToast);
+                            if (!res.ok) {
+                              toast.error(data.detail || data.error || "Error eliminando");
+                              return;
+                            }
+                            toast.success("Producto eliminado");
+                            fetchProducts();
+                          } catch {
+                            toast.dismiss(loadingToast);
+                            toast.error("Error de red");
+                          }
+                        }}
+                        className="text-xs bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600 transition"
+                      >
+                        🗑
+                      </button>
+                    </div>
                   )}
                 </div>
 
