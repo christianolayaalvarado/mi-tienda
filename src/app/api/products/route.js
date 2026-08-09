@@ -345,6 +345,18 @@ export async function DELETE(req) {
       };
     }
 
+    const productIds = validIds;
+
+    await prisma.$transaction([
+      prisma.productView.deleteMany({ where: { productId: { in: productIds } } }),
+      prisma.cartItem.deleteMany({ where: { productId: { in: productIds } } }),
+      prisma.favorite.deleteMany({ where: { productId: { in: productIds } } }),
+      prisma.review.deleteMany({ where: { productId: { in: productIds } } }),
+      prisma.priceHistory.deleteMany({ where: { productId: { in: productIds } } }),
+      prisma.orderItemProduct.deleteMany({ where: { productId: { in: productIds } } }),
+      prisma.conversation.deleteMany({ where: { productId: { in: productIds } } }),
+    ]);
+
     const deleted = await prisma.product.deleteMany({ where });
 
     return NextResponse.json({ message: "Productos eliminados correctamente", count: deleted.count });
