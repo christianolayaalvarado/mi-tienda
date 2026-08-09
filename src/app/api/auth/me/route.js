@@ -5,15 +5,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req) {
   try {
-    // Use the same auth source as all other API routes
-    const { getAuthUserFromCookie } = await import("@/lib/authFromCookie");
-    const authUser = await getAuthUserFromCookie();
+    const { getServerAuthUser } = await import("@/lib/serverAuth");
+    const authUser = await getServerAuthUser(req);
 
     if (!authUser?.email) {
       return NextResponse.json({ ok: false, message: "No autenticado" }, { status: 401 });
     }
 
-    // Look up full user from DB
     const user = await prisma.user.findUnique({
       where: { email: authUser.email.toLowerCase() },
       select: {
@@ -32,7 +30,6 @@ export async function GET(req) {
       return NextResponse.json({ ok: false, message: "Usuario no encontrado" }, { status: 401 });
     }
 
-    // If logged in via Google/Facebook and old "token" cookie exists, clear it
     const hasSessionCookie = req.headers.get("cookie")?.includes("next-auth.session-token");
     const hasOldToken = req.headers.get("cookie")?.includes("token=");
     const shouldClearOldToken = hasSessionCookie && hasOldToken;
@@ -61,7 +58,7 @@ export async function GET(req) {
 
     return response;
   } catch (err) {
-    console.error("[/api/auth/me] error:", err);
+    console.error("[/api/auth/me] error:", err?.message || err);
     return NextResponse.json({ ok: false, message: "Error interno" }, { status: 500 });
   }
 }

@@ -2,10 +2,17 @@ import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import { getJwtSecret } from "./getJwtSecret";
 
+const DEBUG = Boolean(process.env.DEBUG_AUTH === "true");
+
+function getCookieValueFromHeader(cookieHeader = "", name) {
+  if (!cookieHeader) return undefined;
+  const parts = cookieHeader.split(";").map((c) => c.trim());
+  const match = parts.find((c) => c.startsWith(name + "="));
+  return match ? match.split("=").slice(1).join("=") : undefined;
+}
+
 /**
  * Verify a NextAuth JWT token using jose (same library NextAuth uses).
- * This is the PRIMARY auth method for API routes in Next.js App Router.
- * getServerSession() from next-auth@4 does NOT work reliably in Route Handlers.
  */
 async function verifyNextAuthJWT(tokenValue) {
   try {
@@ -22,35 +29,60 @@ async function verifyNextAuthJWT(tokenValue) {
  * Resolves the authenticated user from cookies.
  * Priority: custom token (credentials) > manual NextAuth JWT verification.
  *
- * Credentials login clears NextAuth cookies. When a Google/Facebook login succeeds,
- * the [...nextauth] route handler clears the old token cookie.
+ * @param {Request} [req] - Optional request object. When provided, reads cookies from req.headers first (more reliable).
  */
-export async function getAuthUserFromCookie() {
+export async function getAuthUserFromCookie(req) {
+  let cookieHeader = "";
+  if (req?.headers?.get) {
+    cookieHeader = req.headers.get("cookie") || "";
+  }
+
   // 1. Try custom token cookie first (credentials login — most recent explicit login)
-  try {
-    const cookieStore = await cookies();
-    const tokenValue = cookieStore.get("token")?.value;
-    if (tokenValue) {
-      const payload = jwt.verify(decodeURIComponent(tokenValue), getJwtSecret());
+  let tokenValue = cookieHeader ? getCookieValueFromHeader(cookieHeader, "token") : undefined;
+
+  if (!tokenValue) {
+    try {
+      const cookieStore = await cookies();
+      const cookieObj = cookieStore.get("token");
+      tokenValue = cookieObj?.value;
+    } catch {}
+  }
+
+  if (tokenValue) {
+    try {
+      const decoded = decodeURIComponent(tokenValue);
+      const payload = jwt.verify(decoded, getJwtSecret());
       if (payload?.email) {
+        if (DEBUG) console.log("[authFromCookie] custom token valid for", payload.email);
         return { email: payload.email, id: payload.id, name: payload.name };
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
   // 2. Try manual NextAuth JWT verification (Google/Facebook login)
-  //    Reads the session token cookie directly and verifies with jose.
-  try {
-    const cookieStore = await cookies();
-    let tokenValue = cookieStore.get("next-auth.session-token")?.value || cookieStore.get("__Secure-next-auth.session-token")?.value;
-    if (tokenValue) {
-      try { tokenValue = decodeURIComponent(tokenValue); } catch {}
-      const payload = await verifyNextAuthJWT(tokenValue);
-      if (payload?.email) {
-        return { email: payload.email, id: payload.id, name: payload.name };
-      }
-    }
-  } catch {}
+  const nextAuthTokenName = "next-auth.session-token";
+  const secureTokenName = "__Secure-next-auth.session-token";
 
+  let naToken = cookieHeader
+    ? getCookieValueFromHeader(cookieHeader, nextAuthTokenName) || getCookieValueFromHeader(cookieHeader, secureTokenName)
+    : undefined;
+
+  if (!naToken) {
+    try {
+      const cookieStore = await cookies();
+      naToken = cookieStore.get(nextAuthTokenName)?.value || cookieStore.get(secureTokenName)?.value;
+    } catch {}
+  }
+
+  if (naToken) {
+    try { naToken = decodeURIComponent(naToken); } catch {}
+    const payload = await verifyNextAuthJWT(naToken);
+    if (payload?.email) {
+      if (DEBUG) console.log("[authFromCookie] NextAuth JWT valid for", payload.email);
+      return { email: payload.email, id: payload.id, name: payload.name };
+    }
+  }
+
+  if (DEBUG) console.log("[authFromCookie] no auth found");
   return null;
 }

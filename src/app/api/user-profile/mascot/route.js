@@ -5,8 +5,8 @@ import { MASCOTS, getUnlockedMascots } from "@/lib/mascotCatalog";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const user = await getAuthUserFromCookie();
+export async function GET(req) {
+  const user = await getAuthUserFromCookie(req);
   if (!user?.email) {
     return NextResponse.json({ mascot: "box" });
   }
@@ -24,7 +24,7 @@ export async function GET() {
 }
 
 export async function PUT(request) {
-  const user = await getAuthUserFromCookie();
+  const user = await getAuthUserFromCookie(request);
   if (!user?.email) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }

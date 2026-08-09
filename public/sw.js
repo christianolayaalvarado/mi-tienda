@@ -1,4 +1,4 @@
-const CACHE_NAME = "mi-tienda-v2";
+const CACHE_NAME = "mi-tienda-v3";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -28,13 +28,13 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(fetch(event.request).catch(() => new Response(JSON.stringify({ error: "Network error" }), { status: 503, headers: { "Content-Type": "application/json" } })));
     return;
   }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const fetched = fetch(event.request)
+      return fetch(event.request)
         .then((response) => {
           if (response && response.status === 200) {
             const clone = response.clone();
@@ -42,9 +42,7 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => cached);
-
-      return cached || fetched;
+        .catch(() => cached || new Response("", { status: 504 }));
     })
   );
 });

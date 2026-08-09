@@ -303,23 +303,35 @@ export async function DELETE(req) {
 
     const session = await getServerAuthUser(req);
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!session.email) return NextResponse.json({ error: "Sesión inválida" }, { status: 401 });
 
-    const body = await req.json().catch(() => null);
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Body inválido" }, { status: 400 });
+    }
+
     if (!body || !Array.isArray(body.ids) || body.ids.length === 0) {
       return NextResponse.json({ error: "IDs requeridos" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email: session.email } });
+    const validIds = body.ids.filter((id) => typeof id === "string" && id.length > 0);
+    if (validIds.length === 0) {
+      return NextResponse.json({ error: "IDs inválidos" }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: session.email.toLowerCase() } });
     if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
 
     const isAdmin = user.role === "admin" || user.role === "ADMIN";
 
     let where;
     if (isAdmin) {
-      where = { id: { in: body.ids } };
+      where = { id: { in: validIds } };
     } else {
       where = {
-        id: { in: body.ids },
+        id: { in: validIds },
         OR: [
           { userId: user.id },
           { store: { userId: user.id } },
@@ -331,7 +343,7 @@ export async function DELETE(req) {
 
     return NextResponse.json({ message: "Productos eliminados correctamente", count: deleted.count });
   } catch (error) {
-    console.error("DELETE /api/products error:", error?.message || error);
-    return NextResponse.json({ error: "Error eliminando productos" }, { status: 500 });
+    console.error("DELETE /api/products error:", error?.name, error?.message, error?.code);
+    return NextResponse.json({ error: "Error eliminando productos", detail: error?.message }, { status: 500 });
   }
 }

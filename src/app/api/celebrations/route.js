@@ -13,7 +13,7 @@ export async function GET() {
 
 export async function PUT(req) {
   try {
-    const user = await getAuthUserFromCookie();
+    const user = await getAuthUserFromCookie(req);
     if (!user || (user.role !== "admin" && user.email !== "admin@demo.com")) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }

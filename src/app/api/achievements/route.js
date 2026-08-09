@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { ACHIEVEMENT_DEFINITIONS, getUnlockedMascots } from "@/lib/mascotCatalog";
 
 export async function GET() {
-  const user = await getAuthUserFromCookie();
+  const user = await getAuthUserFromCookie(req);
   if (!user?.email) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }

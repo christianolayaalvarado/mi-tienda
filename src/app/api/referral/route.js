@@ -4,8 +4,8 @@ import prisma from "@/lib/prisma";
 
 const REWARD_AMOUNT = 10;
 
-export async function GET() {
-  const user = await getAuthUserFromCookie();
+export async function GET(req) {
+  const user = await getAuthUserFromCookie(req);
   if (!user?.email) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   const dbUser = await prisma.user.findUnique({ where: { email: user.email }, select: { id: true, sellerCode: true } });

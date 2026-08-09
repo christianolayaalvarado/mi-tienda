@@ -16,7 +16,7 @@ export async function GET() {
 
 export async function PUT(req) {
   try {
-    const authUser = await getAuthUserFromCookie();
+    const authUser = await getAuthUserFromCookie(req);
     if (!authUser?.email) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
@@ -112,7 +112,7 @@ export async function PUT(req) {
 
 export async function DELETE(req) {
   try {
-    const authUser = await getAuthUserFromCookie();
+    const authUser = await getAuthUserFromCookie(req);
     if (!authUser?.email) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }

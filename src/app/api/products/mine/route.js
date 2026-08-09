@@ -5,7 +5,7 @@ import { getAuthUserFromCookie } from "@/lib/authFromCookie";
 
 export async function GET(req) {
   try {
-    const authUser = await getAuthUserFromCookie();
+    const authUser = await getAuthUserFromCookie(req);
     if (!authUser?.email) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }

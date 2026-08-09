@@ -10,9 +10,9 @@ const MAX_COLORS = 5;
 
 /* ── GET ──────────────────────────────────────────────────────────── */
 
-export async function GET() {
+export async function GET(req) {
   try {
-    const user = await getAuthUserFromCookie();
+    const user = await getAuthUserFromCookie(req);
     if (!user?.email) {
       return NextResponse.json({
         theme: "default",
@@ -80,7 +80,7 @@ export async function GET() {
 
 export async function PUT(req) {
   try {
-    const user = await getAuthUserFromCookie();
+    const user = await getAuthUserFromCookie(req);
     if (!user?.email) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }

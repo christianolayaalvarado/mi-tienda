@@ -14,9 +14,9 @@ function generateCode() {
 }
 
 /* GET: obtener código y stats del usuario */
-export async function GET() {
+export async function GET(req) {
   try {
-    const user = await getAuthUserFromCookie();
+    const user = await getAuthUserFromCookie(req);
     if (!user?.email) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }

@@ -9,7 +9,7 @@ const PLANS = {
 };
 
 export async function POST(req) {
-  const user = await getAuthUserFromCookie();
+  const user = await getAuthUserFromCookie(req);
   if (!user?.email) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   const dbUser = await prisma.user.findUnique({ where: { email: user.email }, select: { id: true } });

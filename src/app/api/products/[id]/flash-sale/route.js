@@ -7,7 +7,7 @@ export async function PATCH(req, context) {
   const productId = params?.id;
   if (!productId) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
-  const user = await getAuthUserFromCookie();
+  const user = await getAuthUserFromCookie(req);
   if (!user?.email) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   const dbUser = await prisma.user.findUnique({ where: { email: user.email }, select: { id: true } });
