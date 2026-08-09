@@ -133,7 +133,7 @@ export default function ProductsPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.dismiss(loadingToast);
-        toast.error(data.error || "Error eliminando productos");
+        toast.error(data.detail || data.error || "Error eliminando productos");
         return;
       }
 

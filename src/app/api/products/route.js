@@ -330,11 +330,17 @@ export async function DELETE(req) {
     if (isAdmin) {
       where = { id: { in: validIds } };
     } else {
+      const stores = await prisma.store.findMany({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+      const storeIds = stores.map((s) => s.id);
+
       where = {
         id: { in: validIds },
         OR: [
           { userId: user.id },
-          { store: { userId: user.id } },
+          { storeId: { in: storeIds } },
         ],
       };
     }
