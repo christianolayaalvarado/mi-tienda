@@ -646,3 +646,16 @@ model CelebrationState {
   value     String?  // celebration ID or null
   updatedAt DateTime @updatedAt
 }
+
+model ModalFlag {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  key           String   @unique // e.g. "welcome_registered", "welcome_unregistered", "seasonal_fiestas", "offers_modal"
+  label         String   // Human-readable name
+  enabled       Boolean  @default(false)
+  audience      String   @default("all") // "all", "registered", "unregistered"
+  activateAt    DateTime? // When to auto-enable (null = manual)
+  deactivateAt  DateTime? // When to auto-disable (null = manual)
+  metadata      Json?     // Extra config (image URL, title, etc.)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

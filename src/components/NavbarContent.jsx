@@ -22,12 +22,10 @@ export default function NavbarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { openHelp } = useHelpCenter() || {};
-  // Cart context (assume hook returns stable API)
   const cartCtx = useCart();
   const cartItems = useMemo(() => cartCtx?.cartItems ?? [], [cartCtx?.cartItems]);
   const subtotal = Number(typeof cartCtx?.getTotal === "function" ? cartCtx.getTotal() : 0);
 
-  // Cart operations (memoized callbacks)
   const increaseQuantity = useCallback((id) => {
     const item = cartItems.find((i) => String(i.id ?? i.productId) === String(id));
     const currentQty = item ? Number(item.quantity || 0) : 0;
@@ -58,65 +56,47 @@ export default function NavbarContent() {
     }
   }, [cartCtx]);
 
-  // Query params
   const currentSearch = searchParams?.get("search") || "";
   const currentCategory = searchParams?.get("category") || "";
   const currentSort = searchParams?.get("sort") || "";
 
-  // Local UI state
   const [search, setSearch] = useState(currentSearch);
   const [cartOpen, setCartOpen] = useState(false);
-
-  // mounted flag to avoid router.push during SSR/hydration
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    // defer setMounted to next frame to avoid synchronous setState in effect
     if (typeof window === "undefined") return;
     const raf = requestAnimationFrame(() => setMounted(true));
-    return () => {
-      cancelAnimationFrame(raf);
-    };
+    return () => cancelAnimationFrame(raf);
   }, []);
 
-  // localRaw cart (lazy init, guarded)
   const [localRaw, setLocalRaw] = useState(() => {
     try {
       if (typeof window === "undefined") return [];
       const raw = readCartRaw("mi_tienda_cart");
       return Array.isArray(raw) ? raw : safeParseLocalCart("mi_tienda_cart");
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   });
 
   const cartRef = useRef(null);
 
-  // Listen storage and custom events to keep localRaw in sync
   useEffect(() => {
     const onStorage = (e) => {
       if (e && e.key && e.key !== "mi_tienda_cart" && e.key !== "cart") return;
       try {
         const raw = readCartRaw("mi_tienda_cart");
         setLocalRaw(Array.isArray(raw) ? raw : safeParseLocalCart("mi_tienda_cart"));
-      } catch {
-        setLocalRaw([]);
-      }
+      } catch { setLocalRaw([]); }
     };
-
     const onCartUpdated = () => {
       try {
         const raw = readCartRaw("mi_tienda_cart");
         setLocalRaw(Array.isArray(raw) ? raw : safeParseLocalCart("mi_tienda_cart"));
-      } catch {
-        setLocalRaw([]);
-      }
+      } catch { setLocalRaw([]); }
     };
-
     if (typeof window !== "undefined") {
       window.addEventListener("storage", onStorage);
       window.addEventListener("cart:updated", onCartUpdated);
     }
-
     return () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("storage", onStorage);
@@ -125,7 +105,6 @@ export default function NavbarContent() {
     };
   }, []);
 
-  // Update URL only when user actively changes search/category/sort (not on mount)
   const prevSearchRef = useRef(currentSearch);
   const prevCategoryRef = useRef(currentCategory);
   const prevSortRef = useRef(currentSort);
@@ -141,8 +120,6 @@ export default function NavbarContent() {
       prevSortRef.current = currentSort;
       return;
     }
-
-    // Skip if this render was caused by our own router.push
     if (isNavigatingRef.current) {
       isNavigatingRef.current = false;
       prevSearchRef.current = currentSearch;
@@ -150,15 +127,12 @@ export default function NavbarContent() {
       prevSortRef.current = currentSort;
       return;
     }
-
     const searchChanged = search !== prevSearchRef.current;
     const categoryChanged = currentCategory !== prevCategoryRef.current;
     const sortChanged = currentSort !== prevSortRef.current;
-
     prevSearchRef.current = search;
     prevCategoryRef.current = currentCategory;
     prevSortRef.current = currentSort;
-
     if (searchChanged || categoryChanged || sortChanged) {
       isNavigatingRef.current = true;
       const url = buildURL({ searchVal: search, categoryVal: currentCategory, sortVal: currentSort, pageVal: "1" });
@@ -166,7 +140,6 @@ export default function NavbarContent() {
     }
   }, [search, currentCategory, currentSort, mounted, router]);
 
-  // Count items (prefer cart context, fallback to local storage)
   const count = useMemo(() => {
     if (Array.isArray(cartItems) && cartItems.length > 0) {
       return cartItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
@@ -178,60 +151,48 @@ export default function NavbarContent() {
     <>
     <nav className="w-full navbar-theme shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
-        {/* Single flex row with wrap: search goes to line 2 on mobile */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-6">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           <Link href="/" className="flex items-center shrink-0 order-1">
             <img src="/images/logo.png" alt="Logo MiTienda" className="h-8 sm:h-10 w-auto navbar-logo animate-[fadeIn_0.5s_ease]" />
           </Link>
 
-          {/* Actions: ml-auto on mobile pushes to right edge, sm:order-3 on desktop */}
-          <div className="flex items-center gap-1 sm:gap-3 ml-auto sm:ml-0 order-2 sm:order-3 shrink-0">
-            <Link
-              href="/ofertas"
-              className="flex items-center gap-1 text-red-600 hover:text-red-700 font-bold text-xs sm:text-sm shrink-0 min-h-[44px] px-1 sm:px-2"
-            >
-              <span className="text-base sm:text-lg">🔥</span>
-              <span className="hidden sm:inline">Ofertas</span>
-            </Link>
-            <Link
-              href="/blog"
-              className="flex items-center gap-1 text-gray-600 hover:text-green-600 font-medium text-xs sm:text-sm shrink-0 min-h-[44px] px-1 sm:px-2"
-            >
-              <span className="text-base sm:text-lg">📝</span>
-              <span className="hidden sm:inline">Blog</span>
-            </Link>
-            <button
-              type="button"
-              aria-label={`Abrir carrito, ${count} items`}
-              onClick={() => setCartOpen((s) => !s)}
-              className="text-sm font-medium cursor-pointer relative select-none shrink-0 min-h-[44px] flex items-center justify-center px-1 sm:px-3"
-              aria-haspopup="true"
-              aria-expanded={cartOpen}
-              ref={cartRef}
-            >
-              <span data-cart-icon className="relative inline-block">
-                <span className="sm:hidden text-xl">🛒</span>
-                <span className="hidden sm:inline">🛒 Carrito</span>
-                {mounted && count > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full">{count}</span>
-                )}
-              </span>
-            </button>
+          <div className="flex items-center gap-1 sm:gap-2 ml-auto sm:ml-0 order-2 sm:order-3 shrink-0">
             <UserMenu />
+
+            {/* Cart icon only - tooltip on hover */}
+            <div className="relative group">
+              <button
+                type="button"
+                aria-label={`Abrir carrito, ${count} items`}
+                onClick={() => setCartOpen((s) => !s)}
+                className="text-sm font-medium cursor-pointer relative select-none shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-haspopup="true"
+                aria-expanded={cartOpen}
+                ref={cartRef}
+              >
+                <span data-cart-icon className="relative inline-block">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
+                  {mounted && count > 0 && (
+                    <span className="absolute -top-2 -right-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full">{count}</span>
+                  )}
+                </span>
+              </button>
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">Carrito</span>
+            </div>
+
             <ThemeToggle />
+
             <button
               onClick={() => openHelp?.()}
-              className="hidden sm:flex items-center gap-1 px-2 py-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-all text-xs font-medium"
+              className="flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
               title="Centro de ayuda"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="hidden lg:inline">Ayuda</span>
             </button>
           </div>
 
-          {/* Search: order-3 on mobile (wraps to line 2), order-2 on desktop (between logo and actions) */}
           <div className="w-full sm:w-auto sm:flex-1 order-3 sm:order-2">
             <SearchBox initial={currentSearch} onSearch={(val) => setSearch(val)} />
           </div>
@@ -258,7 +219,6 @@ export default function NavbarContent() {
         }}
       />
       </nav>
-
     </>
   );
 }

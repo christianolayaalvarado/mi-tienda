@@ -35,8 +35,6 @@ function SafePortal({ children, container }) {
 }
 import useMascotPersonality from "@/hooks/useMascotPersonality";
 import useMascotCoins from "@/hooks/useMascotCoins";
-import useMascotChat from "@/hooks/useMascotChat";
-import MascotChat from "@/components/MascotChat";
 import { usePathname } from "next/navigation";
 import { MASCOTS } from "@/lib/mascotCatalog";
 import { MascotEmotion } from "@/lib/mascot/MascotEmotion";
@@ -149,7 +147,6 @@ export default function ScrollMascot({ onClick }) {
 
   const { mood, moodEmoji, lastDialogue, dialogueKey, speak } = useMascotPersonality();
   const { coins, newCoinAnimation, addScrollCoins, getEquippedDisplay, getScrollSpeed, getWalkSpeed, equipped } = useMascotCoins();
-  const { messages, isTyping, sendMessage, clearMessages, quickActions } = useMascotChat({ mood, mascotName, coins });
 
   // --- PERSISTENCE ---
   useEffect(() => {
@@ -415,21 +412,15 @@ export default function ScrollMascot({ onClick }) {
         </div>
       </div>
 
-      {/* Chat toggle button */}
+      {/* Chat toggle button - bottom floating */}
       <button
-        className="absolute right-0 top-32 w-8 h-8 rounded-full bg-green-500 text-white shadow-md flex items-center justify-center pointer-events-auto hover:bg-green-600 transition-all hover:scale-110 z-30"
-        onClick={() => { setShowChat((v) => !v); setShowShop(false); }}
-        title={showChat ? "Cerrar chat" : "Hablar con " + mascotName}
+        className="fixed bottom-6 left-6 w-12 h-12 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center pointer-events-auto hover:bg-green-600 transition-all hover:scale-110 z-[9998]"
+        onClick={() => { openHelp?.(); }}
+        title="Centro de ayuda"
       >
-        {showChat ? (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-        )}
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
       </button>
 
       {/* Mascot */}
@@ -519,26 +510,6 @@ export default function ScrollMascot({ onClick }) {
       {showShop && (
         <SafePortal>
           <AccessoryShop onClose={() => setShowShop(false)} />
-        </SafePortal>
-      )}
-
-      {/* Chat rendered via portal (dedicated container, no removeChild errors) */}
-      {showChat && (
-        <SafePortal>
-          <div className="fixed bottom-20 right-4 z-[9999]" style={{ maxHeight: "60vh" }}>
-            <MascotChat
-              messages={messages}
-              isTyping={isTyping}
-              onSend={(text) => sendMessage(text)}
-              onClear={clearMessages}
-              quickActions={quickActions}
-              mascotName={mascotName}
-              mascotType={mascotType}
-              moodEmoji={moodEmoji}
-              onClose={() => setShowChat(false)}
-              openHelp={openHelp}
-            />
-          </div>
         </SafePortal>
       )}
     </div>
