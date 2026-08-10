@@ -9,7 +9,8 @@ const SECTIONS = [
     label: "Productos Destacados",
     icon: "⭐",
     fields: [
-      { key: "featuredBannerBg", label: "Fondo (CSS gradient)", type: "text" },
+      { key: "featuredGradFrom", label: "Gradiente desde", type: "color" },
+      { key: "featuredGradTo", label: "Gradiente hasta", type: "color" },
       { key: "featuredBannerIconBg", label: "Color del ícono", type: "color" },
       { key: "featuredBannerBorderColor", label: "Color del borde", type: "color" },
     ],
@@ -19,9 +20,8 @@ const SECTIONS = [
     label: "Banner Mascota",
     icon: "🐾",
     fields: [
-      { key: "mascotBannerGrad1", label: "Gradiente 1", type: "color" },
-      { key: "mascotBannerGrad2", label: "Gradiente 2", type: "color" },
-      { key: "mascotBannerGrad3", label: "Gradiente 3", type: "color" },
+      { key: "mascotGradFrom", label: "Gradiente desde", type: "color" },
+      { key: "mascotGradTo", label: "Gradiente hasta", type: "color" },
     ],
   },
   {
@@ -29,9 +29,8 @@ const SECTIONS = [
     label: "Nuevos Productos",
     icon: "🆕",
     fields: [
-      { key: "latestBannerGrad1", label: "Gradiente 1", type: "color" },
-      { key: "latestBannerGrad2", label: "Gradiente 2", type: "color" },
-      { key: "latestBannerGrad3", label: "Gradiente 3", type: "color" },
+      { key: "latestGradFrom", label: "Gradiente desde", type: "color" },
+      { key: "latestGradTo", label: "Gradiente hasta", type: "color" },
     ],
   },
   {
@@ -139,13 +138,29 @@ function TextField({ label, value, onChange }) {
   );
 }
 
+function GradientField({ labelFrom, labelTo, valueFrom, valueTo, onChangeFrom, onChangeTo }) {
+  const from = valueFrom || "#10b981";
+  const to = valueTo || "#06b6d4";
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-medium text-gray-700">{labelFrom || "Gradiente"}</div>
+      <div className="flex items-center gap-2">
+        <input type="color" value={from} onChange={(e) => onChangeFrom(e.target.value)} className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer shrink-0" />
+        <span className="text-xs text-gray-400">→</span>
+        <input type="color" value={to} onChange={(e) => onChangeTo(e.target.value)} className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer shrink-0" />
+        <div className="flex-1 h-10 rounded-lg border border-gray-200" style={{ background: `linear-gradient(135deg, ${from}, ${to})` }} />
+      </div>
+    </div>
+  );
+}
+
 export default function SiteThemeEditor() {
   const { refresh } = useSiteTheme();
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [activeSection, setActiveSection] = useState("banners");
+  const [activeSection, setActiveSection] = useState("featured");
 
   useEffect(() => {
     fetch("/api/admin/site-theme", { credentials: "include" })
@@ -244,6 +259,9 @@ export default function SiteThemeEditor() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {currentSection?.fields.map((field) => {
               const val = settings[field.key] || "";
+              if (field.type === "gradient") {
+                return null; // handled separately below
+              }
               if (field.type === "color") {
                 return <ColorField key={field.key} label={field.label} value={val} onChange={(v) => update(field.key, v)} />;
               }
@@ -251,15 +269,62 @@ export default function SiteThemeEditor() {
             })}
           </div>
 
+          {/* Gradient pairs for banner sections */}
+          {currentSection?.id === "featured" && (
+            <GradientField
+              labelFrom="Desde"
+              labelTo="Hasta"
+              valueFrom={settings.featuredGradFrom}
+              valueTo={settings.featuredGradTo}
+              onChangeFrom={(v) => update("featuredGradFrom", v)}
+              onChangeTo={(v) => update("featuredGradTo", v)}
+            />
+          )}
+          {currentSection?.id === "mascot" && (
+            <GradientField
+              labelFrom="Desde"
+              labelTo="Hasta"
+              valueFrom={settings.mascotGradFrom}
+              valueTo={settings.mascotGradTo}
+              onChangeFrom={(v) => update("mascotGradFrom", v)}
+              onChangeTo={(v) => update("mascotGradTo", v)}
+            />
+          )}
+          {currentSection?.id === "latest" && (
+            <GradientField
+              labelFrom="Desde"
+              labelTo="Hasta"
+              valueFrom={settings.latestGradFrom}
+              valueTo={settings.latestGradTo}
+              onChangeFrom={(v) => update("latestGradFrom", v)}
+              onChangeTo={(v) => update("latestGradTo", v)}
+            />
+          )}
+
           {/* Live preview */}
           <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
             <div className="text-xs font-bold text-gray-500 mb-2">Vista previa</div>
             <div className="space-y-2">
+              {/* Featured banner preview */}
               <div
-                className="px-4 py-2 rounded-lg text-sm font-medium"
-                style={{ background: settings.bannerBg, color: settings.bannerTextColor }}
+                className="px-4 py-3 rounded-lg text-sm font-medium text-white"
+                style={{ background: `linear-gradient(135deg, ${settings.featuredGradFrom || "#eff6ff"}, ${settings.featuredGradTo || "#eef2ff"})` }}
               >
-                Banner de ejemplo
+                ⭐ Productos Destacados
+              </div>
+              {/* Mascot banner preview */}
+              <div
+                className="px-4 py-3 rounded-lg text-sm font-medium text-white"
+                style={{ background: `linear-gradient(135deg, ${settings.mascotGradFrom || "#10b981"}, ${settings.mascotGradTo || "#06b6d4"})` }}
+              >
+                🐾 Banner Mascota
+              </div>
+              {/* Latest banner preview */}
+              <div
+                className="px-4 py-3 rounded-lg text-sm font-medium text-white"
+                style={{ background: `linear-gradient(135deg, ${settings.latestGradFrom || "#0f172a"}, ${settings.latestGradTo || "#312e81"})` }}
+              >
+                🆕 Nuevos Productos
               </div>
               <div className="flex gap-2">
                 <button

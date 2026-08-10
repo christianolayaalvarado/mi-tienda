@@ -5,15 +5,14 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 const SiteThemeContext = createContext({});
 
 const DEFAULT_SETTINGS = {
-  featuredBannerBg: "linear-gradient(90deg, #eff6ff, #ffffff, #eef2ff)",
+  featuredGradFrom: "#eff6ff",
+  featuredGradTo: "#eef2ff",
   featuredBannerIconBg: "#2563eb",
   featuredBannerBorderColor: "#dbeafe",
-  mascotBannerGrad1: "#10b981",
-  mascotBannerGrad2: "#14b8a6",
-  mascotBannerGrad3: "#06b6d4",
-  latestBannerGrad1: "#0f172a",
-  latestBannerGrad2: "#1e3a5f",
-  latestBannerGrad3: "#312e81",
+  mascotGradFrom: "#10b981",
+  mascotGradTo: "#06b6d4",
+  latestGradFrom: "#0f172a",
+  latestGradTo: "#312e81",
   navbarBg: "#ffffff",
   navbarTextColor: "#1f2937",
   categoryBarBg: "#f9fafb",
@@ -45,15 +44,14 @@ const DEFAULT_SETTINGS = {
 function buildCSS(s) {
   return `
     :root {
-      --st-featured-bg: ${s.featuredBannerBg};
+      --st-featured-from: ${s.featuredGradFrom};
+      --st-featured-to: ${s.featuredGradTo};
       --st-featured-icon: ${s.featuredBannerIconBg};
       --st-featured-border: ${s.featuredBannerBorderColor};
-      --st-mascot-grad1: ${s.mascotBannerGrad1};
-      --st-mascot-grad2: ${s.mascotBannerGrad2};
-      --st-mascot-grad3: ${s.mascotBannerGrad3};
-      --st-latest-grad1: ${s.latestBannerGrad1};
-      --st-latest-grad2: ${s.latestBannerGrad2};
-      --st-latest-grad3: ${s.latestBannerGrad3};
+      --st-mascot-from: ${s.mascotGradFrom};
+      --st-mascot-to: ${s.mascotGradTo};
+      --st-latest-from: ${s.latestGradFrom};
+      --st-latest-to: ${s.latestGradTo};
       --st-navbar-bg: ${s.navbarBg};
       --st-navbar-text: ${s.navbarTextColor};
       --st-catbar-bg: ${s.categoryBarBg};
@@ -76,42 +74,26 @@ function buildCSS(s) {
       --st-accent-text: ${s.accentTextColor};
     }
 
-    /* Navbar */
     .navbar-theme { background: var(--st-navbar-bg) !important; color: var(--st-navbar-text) !important; }
-
-    /* Body */
     body { background: var(--st-body-bg) !important; color: var(--st-body-text) !important; }
-
-    /* Green buttons */
     .bg-green-600 { background-color: var(--st-btn-primary-bg) !important; }
     .bg-green-600:hover { background-color: var(--st-btn-primary-hover) !important; }
-
-    /* Prices */
     .text-green-600 { color: var(--st-price) !important; }
-
-    /* Sale prices */
     .text-red-600 { color: var(--st-sale-price) !important; }
-
-    /* Footer */
     footer { background: var(--st-footer-bg) !important; color: var(--st-footer-text) !important; }
 
-    /* Featured Carousel banner */
     [data-banner="featured"] {
-      background: var(--st-featured-bg) !important;
+      background: linear-gradient(135deg, var(--st-featured-from), var(--st-featured-to)) !important;
       border-color: var(--st-featured-border) !important;
     }
     [data-banner="featured"] .featured-icon {
       background: var(--st-featured-icon) !important;
     }
-
-    /* Mascot promo banner */
     [data-banner="mascot"] {
-      background: linear-gradient(135deg, var(--st-mascot-grad1), var(--st-mascot-grad2), var(--st-mascot-grad3)) !important;
+      background: linear-gradient(135deg, var(--st-mascot-from), var(--st-mascot-to)) !important;
     }
-
-    /* Latest products banner */
     [data-banner="latest"] {
-      background: linear-gradient(135deg, var(--st-latest-grad1), var(--st-latest-grad2), var(--st-latest-grad3)) !important;
+      background: linear-gradient(135deg, var(--st-latest-from), var(--st-latest-to)) !important;
     }
   `;
 }
