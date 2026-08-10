@@ -320,15 +320,6 @@ const CATEGORIES = [
         features: ["Modales de bienvenida", "Ofertas y promociones", "Celebraciones temporales", "Programación por fechas"],
       },
       {
-        href: "/dashboard/admin/appearance",
-        label: "Apariencia",
-        icon: "🎨",
-        description: "Colores del sitio, banners y estilos",
-        longDescription: "Personaliza los colores globales del sitio: banners, navbar, botones, tarjetas, footer y más. Los cambios se aplican a todos los usuarios en tiempo real.",
-        photoGradient: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
-        features: ["Colores de banners", "Estilos de navbar y footer", "Colores de botones", "Vista previa en vivo"],
-      },
-      {
         href: "/dashboard/admin/marketing",
         label: "Marketing",
         icon: "📧",
@@ -338,6 +329,30 @@ const CATEGORIES = [
         features: ["Campañas de email", "Plantillas predefinidas", "Métricas de envío", "Automatizaciones"],
       },
 
+    ],
+  },
+  {
+    id: "appearance",
+    label: "Apariencia",
+    icon: "🎨",
+    description: "Colores del sitio, banners y estilos",
+    gradient: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+    photoGradient: "linear-gradient(160deg, #581c87 0%, #7c3aed 40%, #c084fc 100%)",
+    monoBg: "#faf5ff",
+    monoAccent: "#7c3aed",
+    monoText: "#6b21a8",
+    itemGradient: "linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)",
+    adminOnly: true,
+    items: [
+      {
+        href: "/dashboard/admin/appearance",
+        label: "Colores del sitio",
+        icon: "🎨",
+        description: "Banners, navbar, botones, footer y más",
+        longDescription: "Personaliza los colores globales del sitio: banners de productos destacados, mascot, nuevos productos, navbar, botones, tarjetas, footer y más. Los cambios se aplican en tiempo real.",
+        photoGradient: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+        features: ["Colores de 3 banners", "Navbar y categorías", "Botones y tarjetas", "Footer y general", "Vista previa en vivo"],
+      },
     ],
   },
 ];
