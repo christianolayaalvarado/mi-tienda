@@ -91,6 +91,15 @@ const CATEGORIES = [
     itemGradient: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
     items: [
       {
+        href: "/dashboard/ventas",
+        label: "Resumen de ventas",
+        icon: "📊",
+        description: "Ingresos, órdenes, comisiones y rendimiento",
+        longDescription: "Visualiza un resumen completo de tus ventas: ingresos totales, órdenes realizadas, comisiones pendientes y pagadas, productos en tienda y vistas totales.",
+        photoGradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+        features: ["Ingresos y comisiones", "Órdenes totales", "Productos y vistas", "Promocionar productos"],
+      },
+      {
         href: "/dashboard/seller/orders",
         label: "Ventas",
         icon: "💰",
