@@ -45,7 +45,7 @@ export default function LatestProductsBanner() {
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-800 to-indigo-900" />
 
         {/* Decorative elements */}
         <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-blue-400/15 blur-3xl" />
