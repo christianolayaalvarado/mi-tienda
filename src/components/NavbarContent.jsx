@@ -24,6 +24,21 @@ export default function NavbarContent() {
   const cartItems = useMemo(() => cartCtx?.cartItems ?? [], [cartCtx?.cartItems]);
   const subtotal = Number(typeof cartCtx?.getTotal === "function" ? cartCtx.getTotal() : 0);
 
+  // Mascot visibility (synced with ScrollMascot via localStorage + events)
+  const [mascotHidden, setMascotHidden] = useState(() => {
+    try { return typeof window !== "undefined" && localStorage.getItem("mascot_hidden") === "true"; } catch { return false; }
+  });
+  useEffect(() => {
+    const onHidden = () => setMascotHidden(true);
+    const onShow = () => setMascotHidden(false);
+    window.addEventListener("mascot:hidden", onHidden);
+    window.addEventListener("mascot:show", onShow);
+    return () => {
+      window.removeEventListener("mascot:hidden", onHidden);
+      window.removeEventListener("mascot:show", onShow);
+    };
+  }, []);
+
   const increaseQuantity = useCallback((id) => {
     const item = cartItems.find((i) => String(i.id ?? i.productId) === String(id));
     const currentQty = item ? Number(item.quantity || 0) : 0;
@@ -156,6 +171,24 @@ export default function NavbarContent() {
 
           <div className="flex items-center gap-1 sm:gap-2 ml-auto sm:ml-0 order-2 sm:order-3 shrink-0">
             <UserMenu />
+
+            {/* Mascot restore button - only when hidden */}
+            {mascotHidden && (
+              <div className="relative group">
+                <button
+                  type="button"
+                  aria-label="Mostrar mascota"
+                  onClick={() => {
+                    try { localStorage.removeItem("mascot_hidden"); } catch {}
+                    window.dispatchEvent(new Event("mascot:show"));
+                  }}
+                  className="w-8 h-8 rounded-full bg-green-100 hover:bg-green-200 flex items-center justify-center transition-all hover:scale-110 shrink-0"
+                >
+                  <img src="/images/mascots/box.png" alt="" className="w-5 h-5 object-contain" />
+                </button>
+                <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">Mostrar mascota</span>
+              </div>
+            )}
 
             {/* Cart icon only - tooltip on hover */}
             <div className="relative group">

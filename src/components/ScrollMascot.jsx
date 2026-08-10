@@ -109,6 +109,11 @@ export default function ScrollMascot({ onClick }) {
   const { openHelp } = useHelpCenter() || {};
   const pathname = usePathname();
 
+  // Mascot visibility (persisted in localStorage)
+  const [mascotHidden, setMascotHidden] = useState(() => {
+    try { return typeof window !== "undefined" && localStorage.getItem("mascot_hidden") === "true"; } catch { return false; }
+  });
+
   // Core states
   const [progress, setProgress] = useState(0);
   const [viewH, setViewH] = useState(800);
@@ -188,6 +193,21 @@ export default function ScrollMascot({ onClick }) {
       .catch(() => { if (!cancelled) { setMascotName(MASCOTS[mascotType]?.name || "Shopito"); mascotNameResolved.current = true; } });
     return () => { cancelled = true; };
   }, [mascotType]);
+
+  // Listen for restore event from navbar
+  useEffect(() => {
+    const handleShow = () => setMascotHidden(false);
+    window.addEventListener("mascot:show", handleShow);
+    return () => window.removeEventListener("mascot:show", handleShow);
+  }, []);
+
+  const handleHideMascot = useCallback(() => {
+    setMascotHidden(true);
+    setShowChat(false);
+    setShowShop(false);
+    try { localStorage.setItem("mascot_hidden", "true"); } catch {}
+    window.dispatchEvent(new Event("mascot:hidden"));
+  }, []);
 
   useEffect(() => {
     try {
@@ -378,6 +398,9 @@ export default function ScrollMascot({ onClick }) {
   const isLying = mascotState === STATES.LYING;
   const isWalking = mascotState === STATES.WALKING;
 
+  // Hidden state — still renders the portal chat/shop if open
+  if (mascotHidden && !showChat && !showShop) return null;
+
   return (
     <div className="fixed right-2 sm:right-4 top-0 bottom-0 z-50 pointer-events-none">
       {/* Confetti */}
@@ -448,6 +471,18 @@ export default function ScrollMascot({ onClick }) {
         tabIndex={0}
         aria-label="Mascota"
       >
+        {/* Close mascot button */}
+        <button
+          className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-30 pointer-events-auto shadow"
+          onClick={(e) => { e.stopPropagation(); handleHideMascot(); }}
+          title="Ocultar mascota"
+          aria-label="Ocultar mascota"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
         {/* Speech bubble */}
         {(message || lastDialogue) && (
           <div key={msgKey + (dialogueKey || 0)} className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 animate-[fadeInScale_0.3s_ease-out]">
