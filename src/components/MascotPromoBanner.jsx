@@ -77,6 +77,7 @@ export default function MascotPromoBanner() {
 
   return (
     <div
+      data-banner="mascot"
       className="relative w-full h-full rounded-xl overflow-hidden shadow-lg shadow-purple-500/20"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

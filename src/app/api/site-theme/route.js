@@ -4,13 +4,17 @@ import prisma from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const DEFAULT_SETTINGS = {
-  bannerBg: "#16a34a",
-  bannerTextColor: "#ffffff",
-  bannerAccentColor: "#fbbf24",
+  featuredBannerBg: "linear-gradient(90deg, #eff6ff, #ffffff, #eef2ff)",
+  featuredBannerIconBg: "#2563eb",
+  featuredBannerBorderColor: "#dbeafe",
+  mascotBannerGrad1: "#10b981",
+  mascotBannerGrad2: "#14b8a6",
+  mascotBannerGrad3: "#06b6d4",
+  latestBannerGrad1: "#0f172a",
+  latestBannerGrad2: "#1e3a5f",
+  latestBannerGrad3: "#312e81",
   navbarBg: "#ffffff",
   navbarTextColor: "#1f2937",
-  heroBg: "linear-gradient(135deg, #16a34a 0%, #059669 100%)",
-  heroTextColor: "#ffffff",
   categoryBarBg: "#f9fafb",
   categoryBarActiveColor: "#16a34a",
   cardBg: "#ffffff",

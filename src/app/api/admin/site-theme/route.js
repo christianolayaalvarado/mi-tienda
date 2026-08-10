@@ -3,16 +3,21 @@ import prisma from "@/lib/prisma";
 import { getServerAuthUser } from "@/lib/serverAuth";
 
 const DEFAULT_SETTINGS = {
-  // Banners
-  bannerBg: "#16a34a",
-  bannerTextColor: "#ffffff",
-  bannerAccentColor: "#fbbf24",
+  // Featured carousel banner
+  featuredBannerBg: "linear-gradient(90deg, #eff6ff, #ffffff, #eef2ff)",
+  featuredBannerIconBg: "#2563eb",
+  featuredBannerBorderColor: "#dbeafe",
+  // Mascot promo banner
+  mascotBannerGrad1: "#10b981",
+  mascotBannerGrad2: "#14b8a6",
+  mascotBannerGrad3: "#06b6d4",
+  // Latest products banner
+  latestBannerGrad1: "#0f172a",
+  latestBannerGrad2: "#1e3a5f",
+  latestBannerGrad3: "#312e81",
   // Navbar
   navbarBg: "#ffffff",
   navbarTextColor: "#1f2937",
-  // Hero section
-  heroBg: "linear-gradient(135deg, #16a34a 0%, #059669 100%)",
-  heroTextColor: "#ffffff",
   // Category bar
   categoryBarBg: "#f9fafb",
   categoryBarActiveColor: "#16a34a",

@@ -5,22 +5,33 @@ import { useSiteTheme } from "@/context/SiteThemeContext";
 
 const SECTIONS = [
   {
-    id: "banners",
-    label: "Banners",
-    icon: "🖼️",
+    id: "featured",
+    label: "Productos Destacados",
+    icon: "⭐",
     fields: [
-      { key: "bannerBg", label: "Fondo del banner", type: "color" },
-      { key: "bannerTextColor", label: "Texto del banner", type: "color" },
-      { key: "bannerAccentColor", label: "Acento del banner", type: "color" },
+      { key: "featuredBannerBg", label: "Fondo (CSS gradient)", type: "text" },
+      { key: "featuredBannerIconBg", label: "Color del ícono", type: "color" },
+      { key: "featuredBannerBorderColor", label: "Color del borde", type: "color" },
     ],
   },
   {
-    id: "hero",
-    label: "Hero / Inicio",
-    icon: "🏠",
+    id: "mascot",
+    label: "Banner Mascota",
+    icon: "🐾",
     fields: [
-      { key: "heroBg", label: "Fondo hero (CSS)", type: "text" },
-      { key: "heroTextColor", label: "Texto hero", type: "color" },
+      { key: "mascotBannerGrad1", label: "Gradiente 1", type: "color" },
+      { key: "mascotBannerGrad2", label: "Gradiente 2", type: "color" },
+      { key: "mascotBannerGrad3", label: "Gradiente 3", type: "color" },
+    ],
+  },
+  {
+    id: "latest",
+    label: "Nuevos Productos",
+    icon: "🆕",
+    fields: [
+      { key: "latestBannerGrad1", label: "Gradiente 1", type: "color" },
+      { key: "latestBannerGrad2", label: "Gradiente 2", type: "color" },
+      { key: "latestBannerGrad3", label: "Gradiente 3", type: "color" },
     ],
   },
   {
