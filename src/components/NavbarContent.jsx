@@ -184,7 +184,7 @@ export default function NavbarContent() {
                   }}
                   className="w-8 h-8 rounded-full bg-green-100 hover:bg-green-200 flex items-center justify-center transition-all hover:scale-110 shrink-0"
                 >
-                  <img src="/images/mascots/box.png" alt="" className="w-5 h-5 object-contain" />
+                  <img src="/mascots/box_c/caja_front.png" alt="" className="w-5 h-5 object-contain" />
                 </button>
                 <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 bg-gray-800 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">Mostrar mascota</span>
               </div>
