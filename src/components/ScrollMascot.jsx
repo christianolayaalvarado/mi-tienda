@@ -473,7 +473,7 @@ export default function ScrollMascot({ onClick }) {
       >
         {/* Close mascot button - right side */}
         <button
-          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-30 pointer-events-auto shadow"
+          className="absolute top-4 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-30 pointer-events-auto shadow"
           onClick={(e) => { e.stopPropagation(); handleHideMascot(); }}
           title="Ocultar mascota"
           aria-label="Ocultar mascota"
