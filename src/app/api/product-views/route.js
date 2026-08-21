@@ -39,22 +39,22 @@ export async function POST(req) {
       } catch {}
     }
 
-    // Geolocate with ip-api.com (free, no key needed)
+    // Geolocate with ipwho.is (free, HTTPS, no key needed)
     let country = null, region = null, city = null, lat = null, lon = null;
 
     if (ip && ip !== "127.0.0.1" && ip !== "::1") {
       try {
         const geoRes = await fetch(
-          `http://ip-api.com/json/${ip}?fields=country,regionName,city,lat,lon`,
+          `https://ipwho.is/${ip}`,
           { signal: AbortSignal.timeout(3000) }
         );
         const geo = await geoRes.json();
-        if (geo.status === "success") {
+        if (geo.success) {
           country = geo.country || null;
-          region = geo.regionName || null;
+          region = geo.region || null;
           city = geo.city || null;
-          lat = geo.lat || null;
-          lon = geo.lon || null;
+          lat = geo.latitude || null;
+          lon = geo.longitude || null;
         }
       } catch {
         // Geolocation failed, continue without it
