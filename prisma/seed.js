@@ -23,6 +23,9 @@ async function main() {
       if (existingAdmin.plan !== "full") {
         updateData.plan = "full";
       }
+      if (!existingAdmin.emailVerified) {
+        updateData.emailVerified = true;
+      }
       if (Object.keys(updateData).length > 0) {
         await prisma.user.update({
           where: { email: "admin@demo.com" },
@@ -39,6 +42,7 @@ async function main() {
           password,
           role: "admin",
           plan: "full",
+          emailVerified: true,
         },
       });
       console.log("Usuario admin creado:", admin.email);
